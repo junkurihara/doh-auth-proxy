@@ -88,7 +88,7 @@ impl DoHClient {
       }
       DoHMethod::POST => self
         .client
-        .post(resolver_url)
+        .post(resolver_url) // TODO: bootstrap resolver must be used to get resolver_url, maybe hyper is better?
         .body(packet_buf)
         .send()
         .await
