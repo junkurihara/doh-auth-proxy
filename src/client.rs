@@ -5,7 +5,7 @@ use log::{debug, error, info, warn};
 use reqwest;
 use reqwest::header;
 use std::error::Error;
-use std::net::{IpAddr, SocketAddr};
+use std::net::SocketAddr;
 use std::time::Duration;
 
 #[derive(Debug, Clone)]
