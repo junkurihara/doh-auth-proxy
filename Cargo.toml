@@ -18,5 +18,6 @@ tokio = { version = "1.6.0", features = [
   "time",
   "sync",
 ] }
-reqwest = "0.11.4"
+reqwest = { version = "0.11.4", features = ["default", "trust-dns"] }
 url = "2.2.2"
+trust-dns-resolver = "0.20.3"

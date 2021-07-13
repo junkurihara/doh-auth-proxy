@@ -1,6 +1,7 @@
 #[macro_use]
 extern crate clap;
 
+mod bootstrap;
 mod client;
 mod config;
 mod constants;
@@ -30,6 +31,7 @@ fn main() {
     runtime_builder.thread_name("doh-auth-proxy");
     let runtime = runtime_builder.build().unwrap();
 
+    let bootstrap_dns = BOOTSTRAP_DNS.parse().unwrap();
     let mut globals = Globals {
         doh_target_url: DOH_TARGET_URL.to_string(),
         listen_address: LISTEN_ADDRESS.parse().unwrap(),
@@ -37,10 +39,11 @@ fn main() {
         udp_channel_capacity: UDP_CHANNEL_CAPACITY,
         udp_timeout: Duration::from_secs(UDP_TIMEOUT_SEC),
         doh_timeout_sec: DOH_TIMEOUT_SEC,
+        bootstrap_dns,
         auth_token: None,
 
         runtime_handle: runtime.handle().clone(),
-        client: DoHClient::new(None, None, DOH_TIMEOUT_SEC).unwrap(),
+        client: DoHClient::new(None, None, DOH_TIMEOUT_SEC, bootstrap_dns, DOH_TARGET_URL).unwrap(),
     };
 
     parse_opts(&mut globals);

@@ -20,6 +20,8 @@ impl Proxy {
       info!("Enabled Authorization header in DoH query");
     }
 
+    // TODO: global.bootstrap_dnsを使ったclientの定期更新をspawnして実行する。
+
     // TODO: definition of error
     // TODO: TCP serverはspawnして別スレッドで待ち受け。別にいらない気もする。
 

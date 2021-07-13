@@ -21,6 +21,15 @@ pub fn parse_opts(globals: &mut Globals) {
         .help("Address to listen to"),
     )
     .arg(
+      Arg::with_name("bootstrap_dns")
+        .short("b")
+        .long("bootstrap-dns")
+        .takes_value(true)
+        .default_value(BOOTSTRAP_DNS)
+        .validator(verify_sock_addr)
+        .help("DNS (Do53) resolver address for bootstrap"),
+    )
+    .arg(
       Arg::with_name("doh_target_url")
         .short("t")
         .long("target-url")
@@ -39,7 +48,7 @@ pub fn parse_opts(globals: &mut Globals) {
 
   let matches = options.get_matches();
   globals.listen_address = matches.value_of("listen_address").unwrap().parse().unwrap();
-
+  globals.bootstrap_dns = matches.value_of("bootstrap_dns").unwrap().parse().unwrap();
   globals.doh_target_url = matches.value_of("doh_target_url").unwrap().to_string();
 
   if let Some(p) = matches.value_of("token_file_path") {
@@ -54,6 +63,8 @@ pub fn parse_opts(globals: &mut Globals) {
           globals.auth_token.clone(),
           Some(DoHMethod::POST),
           globals.doh_timeout_sec,
+          globals.bootstrap_dns,
+          &globals.doh_target_url,
         )
         .unwrap();
         // debug!("{:?}", globals.auth_token);

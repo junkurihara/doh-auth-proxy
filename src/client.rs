@@ -1,8 +1,11 @@
+use crate::bootstrap::resolve_by_bootstrap;
 use crate::errors::DoHError;
 use data_encoding::BASE64URL_NOPAD;
 use log::{debug, error, info, warn};
 use reqwest;
 use reqwest::header;
+use std::error::Error;
+use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
 
 #[derive(Debug, Clone)]
@@ -15,6 +18,7 @@ pub enum DoHMethod {
 pub struct DoHClient {
   client: reqwest::Client,
   method: DoHMethod,
+  bootstrap_dns: SocketAddr,
 }
 
 fn get_default_header() -> header::HeaderMap {
@@ -35,7 +39,9 @@ impl DoHClient {
     token: Option<String>,
     method: Option<DoHMethod>,
     timeout_sec: u64,
-  ) -> Result<Self, DoHError> {
+    bootstrap_dns: SocketAddr,
+    target_url: &str,
+  ) -> Result<Self, Box<dyn Error>> {
     let timeout_duration = Duration::from_secs(timeout_sec);
 
     let headers: header::HeaderMap = match token {
@@ -56,14 +62,27 @@ impl DoHClient {
       None => DoHMethod::POST,
       Some(t) => t,
     };
+
+    // TODO:
+    let (target_host, target_addresses) = resolve_by_bootstrap(&bootstrap_dns, &target_url)?;
+    info!(
+      "Via bootstrap DNS [{:?}], {:?} updated: {:?}",
+      bootstrap_dns, target_host, target_addresses
+    );
+
+    // TODO: target addressの定期更新と、複数あった時の対応
+
     Ok(DoHClient {
       client: reqwest::Client::builder()
         .timeout(timeout_duration)
         .default_headers(headers)
         .user_agent(format!("doh-auth/{}", env!("CARGO_PKG_VERSION")))
+        .resolve(&target_host, target_addresses[0])
+        .trust_dns(true)
         .build()
         .unwrap(),
       method: doh_method,
+      bootstrap_dns,
     })
   }
 

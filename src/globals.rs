@@ -12,6 +12,7 @@ pub struct Globals {
 
   pub doh_target_url: String,
   pub doh_timeout_sec: u64,
+  pub bootstrap_dns: SocketAddr,
 
   pub auth_token: Option<String>,
 
