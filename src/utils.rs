@@ -1,0 +1,21 @@
+// functions to verify the startup arguments as correct
+
+use std::net::SocketAddr;
+use url::Url;
+
+pub(crate) fn verify_sock_addr(arg_val: String) -> Result<(), String> {
+  match arg_val.parse::<SocketAddr>() {
+    Ok(_addr) => Ok(()),
+    Err(_) => Err(format!(
+      "Could not parse \"{}\" as a valid socket address (with port).",
+      arg_val
+    )),
+  }
+}
+
+pub(crate) fn verify_target_url(arg_val: String) -> Result<(), String> {
+  match Url::parse(&arg_val) {
+    Ok(_addr) => Ok(()),
+    Err(_) => Err(format!("Could not parse \"{}\" as a valid url.", arg_val)),
+  }
+}
