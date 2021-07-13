@@ -19,6 +19,7 @@ pub struct DoHClient {
   client: reqwest::Client,
   method: DoHMethod,
   bootstrap_dns: SocketAddr,
+  target_url: String,
 }
 
 fn get_default_header() -> header::HeaderMap {
@@ -83,20 +84,16 @@ impl DoHClient {
         .unwrap(),
       method: doh_method,
       bootstrap_dns,
+      target_url: target_url.to_string(),
     })
   }
 
-  pub async fn make_doh_query(
-    self,
-    packet_buf: Vec<u8>,
-    src_addr: std::net::SocketAddr,
-    resolver_url: &str,
-  ) -> Result<Vec<u8>, DoHError> {
+  pub async fn make_doh_query(self, packet_buf: Vec<u8>) -> Result<Vec<u8>, DoHError> {
     // TODO: メッセージバッファの中身を一切確認していない。DNSメッセージの体裁を取っているか確認すべき？
     let response = match self.method {
       DoHMethod::GET => {
         let query_b64u = BASE64URL_NOPAD.encode(&packet_buf);
-        let query_url = format!("{}?dns={}", resolver_url, query_b64u);
+        let query_url = format!("{}?dns={}", &self.target_url, query_b64u);
         debug!("query url: {:?}", query_url);
         self
           .client
@@ -107,14 +104,14 @@ impl DoHClient {
       }
       DoHMethod::POST => self
         .client
-        .post(resolver_url) // TODO: bootstrap resolver must be used to get resolver_url, maybe hyper is better?
+        .post(&self.target_url) // TODO: bootstrap resolver must be used to get resolver_url, maybe hyper is better?
         .body(packet_buf)
         .send()
         .await
         .map_err(DoHError::Reqwest)?,
     };
 
-    debug!("src address: {:?}", src_addr);
+    // debug!("src address: {:?}", src_addr);
     // debug!("response: {:?}", response);
 
     if response.status() != reqwest::StatusCode::OK {

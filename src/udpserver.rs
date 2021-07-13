@@ -22,10 +22,11 @@ impl UDPServer {
   ) {
     let client = self.globals.client.clone();
     self.globals.runtime_handle.clone().spawn(async move {
+      debug!("handle query from {:?}", src_addr);
       let res = tokio::time::timeout(
         self.globals.udp_timeout + Duration::from_secs(1),
         // serve udp dns message here
-        client.make_doh_query(packet_buf, src_addr, &self.globals.doh_target_url),
+        client.make_doh_query(packet_buf),
       )
       .await
       .ok();
