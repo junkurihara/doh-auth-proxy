@@ -5,5 +5,6 @@ pub const UDP_TIMEOUT_SEC: u64 = 10;
 pub const LISTEN_ADDRESS: &str = "127.0.0.1:50053";
 
 pub const BOOTSTRAP_DNS: &str = "1.1.1.1:53";
+pub const REBOOTSTRAP_PERIOD_MIN: u64 = 60;
 pub const DOH_TIMEOUT_SEC: u64 = 10;
 pub const DOH_TARGET_URL: &str = "https://dns.google/dns-query";

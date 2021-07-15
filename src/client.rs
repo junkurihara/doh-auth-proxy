@@ -1,11 +1,13 @@
 use crate::bootstrap::resolve_by_bootstrap;
 use crate::errors::DoHError;
+use crate::globals::Globals;
 use data_encoding::BASE64URL_NOPAD;
 use log::{debug, error, info, warn};
 use reqwest;
 use reqwest::header;
 use std::error::Error;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use std::time::Duration;
 
 #[derive(Debug, Clone)]
@@ -36,19 +38,13 @@ fn get_default_header() -> header::HeaderMap {
 }
 
 impl DoHClient {
-  pub fn new(
-    token: Option<String>,
-    method: Option<DoHMethod>,
-    timeout_sec: u64,
-    bootstrap_dns: SocketAddr,
-    target_url: &str,
-  ) -> Result<Self, Box<dyn Error>> {
-    let timeout_duration = Duration::from_secs(timeout_sec);
+  pub async fn new(globals: Arc<Globals>) -> Result<(Self, Vec<SocketAddr>), Box<dyn Error>> {
+    let timeout_duration = Duration::from_secs(globals.doh_timeout_sec);
 
-    let headers: header::HeaderMap = match token {
+    let headers: header::HeaderMap = match globals.auth_token.clone() {
       None => get_default_header(),
       Some(t) => {
-        info!("Set DoH client with http authorization header");
+        info!("Instantiating DoH client with http authorization header");
         let mut temporary_header = get_default_header();
         let token_str = format!("Bearer {}", &t);
         temporary_header.insert(
@@ -59,33 +55,42 @@ impl DoHClient {
       }
     };
 
-    let doh_method = match method {
+    let doh_method = match globals.doh_method.clone() {
       None => DoHMethod::POST,
       Some(t) => t,
     };
 
     // TODO:
-    let (target_host, target_addresses) = resolve_by_bootstrap(&bootstrap_dns, &target_url)?;
+    let (target_host_str, target_addresses) = resolve_by_bootstrap(
+      &globals.bootstrap_dns,
+      &globals.doh_target_url,
+      globals.runtime_handle.clone(),
+    )
+    .await?;
     info!(
       "Via bootstrap DNS [{:?}], {:?} updated: {:?}",
-      bootstrap_dns, target_host, target_addresses
+      globals.bootstrap_dns, target_host_str, target_addresses
     );
+    let target_addr = target_addresses[0].clone();
 
-    // TODO: target addressの定期更新と、複数あった時の対応
+    // TODO: target addressが複数あった時の対応
 
-    Ok(DoHClient {
-      client: reqwest::Client::builder()
-        .timeout(timeout_duration)
-        .default_headers(headers)
-        .user_agent(format!("doh-auth/{}", env!("CARGO_PKG_VERSION")))
-        .resolve(&target_host, target_addresses[0])
-        .trust_dns(true)
-        .build()
-        .unwrap(),
-      method: doh_method,
-      bootstrap_dns,
-      target_url: target_url.to_string(),
-    })
+    Ok((
+      DoHClient {
+        client: reqwest::Client::builder()
+          .timeout(timeout_duration)
+          .default_headers(headers)
+          .user_agent(format!("doh-auth/{}", env!("CARGO_PKG_VERSION")))
+          .resolve(&target_host_str, target_addr)
+          .trust_dns(true)
+          .build()
+          .unwrap(),
+        method: doh_method,
+        bootstrap_dns: globals.bootstrap_dns,
+        target_url: globals.doh_target_url.clone(),
+      },
+      target_addresses,
+    ))
   }
 
   pub async fn make_doh_query(self, packet_buf: Vec<u8>) -> Result<Vec<u8>, DoHError> {

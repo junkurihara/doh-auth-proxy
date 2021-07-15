@@ -1,11 +1,18 @@
 use crate::client::{DoHClient, DoHMethod};
 use crate::constants::*;
-use crate::globals::Globals;
+use crate::globals::{Globals, GlobalsCache};
 use clap::Arg;
+use std::error::Error;
+use tokio::runtime::Handle;
 // use log::{debug, error, info, warn};
 use std::fs;
+use std::net::SocketAddr;
+use std::sync::{Arc, RwLock};
+use std::time::Duration;
 
-pub fn parse_opts(globals: &mut Globals) {
+pub async fn parse_opts(
+  runtime_handle: Handle,
+) -> Result<(Arc<Globals>, Arc<RwLock<GlobalsCache>>), Box<dyn Error>> {
   use crate::utils::{verify_sock_addr, verify_target_url};
   // TODO: Args Optionで上書き
 
@@ -30,6 +37,13 @@ pub fn parse_opts(globals: &mut Globals) {
         .help("DNS (Do53) resolver address for bootstrap"),
     )
     .arg(
+      Arg::with_name("rebootstrap_period_min")
+        .short("p")
+        .long("reboot-period")
+        .takes_value(true)
+        .help("Minutes to re-fetch the IP addr of the target url host via the bootstrap DNS"),
+    )
+    .arg(
       Arg::with_name("doh_target_url")
         .short("t")
         .long("target-url")
@@ -47,28 +61,63 @@ pub fn parse_opts(globals: &mut Globals) {
     );
 
   let matches = options.get_matches();
-  globals.listen_address = matches.value_of("listen_address").unwrap().parse().unwrap();
-  globals.bootstrap_dns = matches.value_of("bootstrap_dns").unwrap().parse().unwrap();
-  globals.doh_target_url = matches.value_of("doh_target_url").unwrap().to_string();
+  let listen_address: SocketAddr = matches.value_of("listen_address").unwrap().parse().unwrap();
+  let bootstrap_dns: SocketAddr = matches.value_of("bootstrap_dns").unwrap().parse().unwrap();
+  let rebootstrap_period_min: u64 = match matches.value_of("rebootstrap_period_min") {
+    None => REBOOTSTRAP_PERIOD_MIN,
+    Some(s) => {
+      let num: u64 = s.parse().unwrap();
+      num
+    }
+  };
+  let doh_target_url: String = matches.value_of("doh_target_url").unwrap().to_string();
 
-  if let Some(p) = matches.value_of("token_file_path") {
-    if let Ok(content) = fs::read_to_string(p) {
-      let truncate_vec: Vec<&str> = content.split("\n").collect();
-      if truncate_vec.len() > 0 {
-        // TODO: validate token as JWT
-        globals.auth_token = Some(truncate_vec[0].to_string());
-        // override client if token is given
-        // TODO: update method
-        globals.client = DoHClient::new(
-          globals.auth_token.clone(),
-          Some(DoHMethod::POST),
-          globals.doh_timeout_sec,
-          globals.bootstrap_dns,
-          &globals.doh_target_url,
-        )
-        .unwrap();
-        // debug!("{:?}", globals.auth_token);
+  let doh_timeout_sec = DOH_TIMEOUT_SEC;
+  let doh_method = Some(DoHMethod::POST); //TODO: update method
+
+  let auth_token: Option<String> = match matches.value_of("token_file_path") {
+    Some(p) => {
+      match fs::read_to_string(p) {
+        Ok(content) => {
+          let truncate_vec: Vec<&str> = content.split("\n").collect();
+          if truncate_vec.len() > 0 {
+            // TODO: validate token as JWT
+            Some(truncate_vec[0].to_string())
+          } else {
+            None
+          }
+        }
+        Err(_) => None,
       }
     }
-  }
+    None => None,
+  };
+
+  let rebootstrap_period_sec = Duration::from_secs(rebootstrap_period_min * 60);
+
+  let globals = Arc::new(Globals {
+    doh_target_url,
+    listen_address,
+    udp_buffer_size: UDP_BUFFER_SIZE,
+    udp_channel_capacity: UDP_CHANNEL_CAPACITY,
+    udp_timeout: Duration::from_secs(UDP_TIMEOUT_SEC),
+    doh_timeout_sec,
+    doh_method,
+    bootstrap_dns,
+    rebootstrap_period_sec,
+    auth_token,
+
+    runtime_handle,
+    // client,
+  });
+
+  let (client, target_addrs) = DoHClient::new(globals.clone()).await?;
+  // debug!("{:?}", globals.auth_token);
+
+  let globals_cache = Arc::new(RwLock::new(GlobalsCache {
+    doh_target_addrs: target_addrs,
+    doh_client: client,
+  }));
+
+  Ok((globals, globals_cache))
 }

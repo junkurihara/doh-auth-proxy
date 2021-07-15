@@ -1,8 +1,8 @@
 use crate::errors::DoHError;
-use crate::globals::Globals;
+use crate::globals::{Globals, GlobalsCache};
 use log::{debug, error, info, warn};
 use std::net::SocketAddr;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use tokio;
 use tokio::net::UdpSocket;
@@ -11,6 +11,7 @@ use tokio::sync::mpsc;
 #[derive(Clone)]
 pub struct UDPServer {
   pub globals: Arc<Globals>,
+  pub globals_cache: Arc<RwLock<GlobalsCache>>,
 }
 
 impl UDPServer {
@@ -20,25 +21,32 @@ impl UDPServer {
     src_addr: std::net::SocketAddr,
     res_sender: mpsc::Sender<(Vec<u8>, std::net::SocketAddr)>,
   ) {
-    let client = self.globals.client.clone();
-    self.globals.runtime_handle.clone().spawn(async move {
-      debug!("handle query from {:?}", src_addr);
-      let res = tokio::time::timeout(
-        self.globals.udp_timeout + Duration::from_secs(1),
-        // serve udp dns message here
-        client.make_doh_query(packet_buf),
-      )
-      .await
-      .ok();
-      // debug!("response from DoH server: {:?}", res);
-      // send response via channel to the dispatch socket
-      if let Some(Ok(r)) = res {
-        match res_sender.send((r, src_addr)).await {
-          Err(e) => error!("res_sender on channel fail: {:?}", e),
-          Ok(_) => (), // debug!("res_sender on channel success"),
-        }
+    match self.clone().globals_cache.try_read() {
+      Ok(globals_cache) => {
+        let doh_client = globals_cache.doh_client.clone();
+        self.globals.runtime_handle.clone().spawn(async move {
+          debug!("handle query from {:?}", src_addr);
+          let res = tokio::time::timeout(
+            self.globals.udp_timeout + Duration::from_secs(1),
+            // serve udp dns message here
+            doh_client.make_doh_query(packet_buf),
+          )
+          .await
+          .ok();
+          // debug!("response from DoH server: {:?}", res);
+          // send response via channel to the dispatch socket
+          if let Some(Ok(r)) = res {
+            match res_sender.send((r, src_addr)).await {
+              Err(e) => error!("res_sender on channel fail: {:?}", e),
+              Ok(_) => (), // debug!("res_sender on channel success"),
+            }
+          }
+        });
       }
-    });
+      Err(e) => {
+        error!("try_read failed for RwLock {:?}", e);
+      }
+    }
   }
 
   async fn respond_to_src(

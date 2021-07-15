@@ -2,17 +2,22 @@ use log::{debug, error, info, warn};
 use std::error::Error;
 use std::net::SocketAddr;
 use trust_dns_resolver::config::*;
-use trust_dns_resolver::Resolver;
+use trust_dns_resolver::TokioAsyncResolver;
 use url::Url;
 
-pub fn resolve_by_bootstrap(
+pub async fn resolve_by_bootstrap(
   bootstrap_dns: &SocketAddr,
   target_url: &str,
+  runtime_handle: tokio::runtime::Handle,
 ) -> Result<(String, Vec<SocketAddr>), Box<dyn Error>> {
   let name_servers =
     NameServerConfigGroup::from_ips_clear(&[bootstrap_dns.ip()], bootstrap_dns.port(), true);
   let resolver_config = ResolverConfig::from_parts(None, vec![], name_servers);
-  let resolver = Resolver::new(resolver_config, ResolverOpts::default()).unwrap();
+
+  let resolver = runtime_handle
+    .clone()
+    .spawn(async move { TokioAsyncResolver::tokio(resolver_config, ResolverOpts::default()) })
+    .await??;
 
   // Lookup the IP addresses associated with a name.
   // The final dot forces this to be an FQDN, otherwise the search rules as specified
@@ -30,7 +35,8 @@ pub fn resolve_by_bootstrap(
     }
     Some(t) => t,
   };
-  let response = resolver.lookup_ip(format!("{}.", host_str))?;
+
+  let response = resolver.lookup_ip(format!("{}.", host_str)).await?;
 
   // There can be many addresses associated with the name,
   //  this can return IPv4 and/or IPv6 addresses
@@ -46,5 +52,6 @@ pub fn resolve_by_bootstrap(
     "Updated target url Ips {:?} by using bootstrap dns [{:?}]",
     target_addresses, bootstrap_dns
   );
+
   Ok((host_str.to_string(), target_addresses))
 }
