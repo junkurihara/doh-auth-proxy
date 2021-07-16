@@ -5,7 +5,7 @@ use crate::udpserver::UDPServer;
 use log::{debug, error, info, warn};
 use std::error::Error;
 use std::sync::{Arc, RwLock};
-use tokio::time::{sleep,};
+use tokio::time::sleep;
 
 #[derive(Debug, Clone)]
 pub struct Proxy {
@@ -38,7 +38,7 @@ impl Proxy {
     loop {
       sleep(period).await;
       match self.clone().update_resolver_addr().await {
-        Ok(_) => info!("Successfully Refetched target resolver addresses via bootstrap DNS"),
+        Ok(_) => info!("Successfully re-fetched target resolver addresses via bootstrap DNS"),
         Err(e) => error!("{:?}", e),
       };
 
