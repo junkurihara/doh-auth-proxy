@@ -26,7 +26,7 @@ pub async fn parse_opts(
         .multiple(true)
         .number_of_values(1)
         .validator(verify_sock_addr)
-        .help("Address to listen to. To specify multiple addresses, set args like \"--listen-address=127.0.0.1:50053 --listen-address=[::1]:50053\""),
+        .help("Address to listen to. To specify multiple addresses, set args like \"--listen-address=127.0.0.1:50053 --listen-address=\'[::1]:50053\'\""),
     )
     .arg(
       Arg::with_name("bootstrap_dns")

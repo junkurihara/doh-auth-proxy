@@ -26,7 +26,9 @@ OPTIONS:
     -t, --target-url <doh_target_url>
             URL of target DoH server like "https://dns.google/dns-query" [default: https://dns.google/dns-query]
 
-    -l, --listen-address <listen_address>           Address to listen to [default: 127.0.0.1:50053]
+    -l, --listen-address <listen_addresses>...
+            Address to listen to. To specify multiple addresses, set args like "--listen-address=127.0.0.1:50053
+            --listen-address='[::1]:50053'"
     -p, --reboot-period <rebootstrap_period_min>
             Minutes to re-fetch the IP addr of the target url host via the bootstrap DNS
 
