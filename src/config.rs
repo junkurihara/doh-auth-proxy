@@ -19,13 +19,14 @@ pub async fn parse_opts(
   let _ = include_str!("../Cargo.toml");
   let options = app_from_crate!()
     .arg(
-      Arg::with_name("listen_address")
+      Arg::with_name("listen_addresses")
         .short("l")
         .long("listen-address")
         .takes_value(true)
-        .default_value(LISTEN_ADDRESS)
+        .multiple(true)
+        .number_of_values(1)
         .validator(verify_sock_addr)
-        .help("Address to listen to"),
+        .help("Address to listen to. To specify multiple addresses, set args like \"--listen-address=127.0.0.1:50053 --listen-address=[::1]:50053\""),
     )
     .arg(
       Arg::with_name("bootstrap_dns")
@@ -61,7 +62,15 @@ pub async fn parse_opts(
     );
 
   let matches = options.get_matches();
-  let listen_address: SocketAddr = matches.value_of("listen_address").unwrap().parse().unwrap();
+
+  let listen_addresses: Vec<SocketAddr> = (match matches.values_of("listen_addresses") {
+    None => LISTEN_ADDRESSES.to_vec(),
+    Some(val) => val.collect(),
+  })
+  .iter()
+  .map(|x| x.parse().unwrap())
+  .collect();
+
   let bootstrap_dns: SocketAddr = matches.value_of("bootstrap_dns").unwrap().parse().unwrap();
   let rebootstrap_period_min: u64 = match matches.value_of("rebootstrap_period_min") {
     None => REBOOTSTRAP_PERIOD_MIN,
@@ -97,7 +106,7 @@ pub async fn parse_opts(
 
   let globals = Arc::new(Globals {
     doh_target_url,
-    listen_address,
+    listen_addresses,
     udp_buffer_size: UDP_BUFFER_SIZE,
     udp_channel_capacity: UDP_CHANNEL_CAPACITY,
     udp_timeout: Duration::from_secs(UDP_TIMEOUT_SEC),

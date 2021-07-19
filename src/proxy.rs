@@ -48,7 +48,6 @@ impl Proxy {
 
   pub async fn entrypoint(self) -> Result<(), DoHError> {
     debug!("Proxy entrypoint");
-    info!("Listen address: {:?}", &self.globals.listen_address);
     info!("Target DoH URL: {:?}", &self.globals.doh_target_url);
     info!(
       "Target DoH Address is re-fetched every {:?} min",
@@ -58,18 +57,32 @@ impl Proxy {
       info!("Enabled Authorization header in DoH query");
     }
 
-    // spawn a process to periodically update the DoH client via globa.bootstrap_dns
+    // spawn a process to periodically update the DoH client via global.bootstrap_dns
     tokio::spawn(self.clone().run_periodic_rebootstrap());
 
     // TODO: definition of error
-    // TODO: TCP serverはspawnして別スレッドで待ち受け。別にいらない気もする。
 
-    // UDP socket here
-    let udp_server = UDPServer {
-      globals: self.globals.clone(),
-      globals_cache: self.globals_cache.clone(),
-    };
-    udp_server.start().await?;
+    // handle TCP and UDP servers on listen socket addresses
+    let addresses = self.globals.listen_addresses.clone();
+    let futures = addresses
+      .into_iter()
+      .map(|addr| {
+        info!("Listen address: {:?}", addr);
+
+        // TODO: TCP serverもspawnして別スレッドで待ち受け。別にいらない気もする。
+
+        // UDP socket here
+        let udp_server = UDPServer {
+          globals: self.globals.clone(),
+          globals_cache: self.globals_cache.clone(),
+        };
+        tokio::spawn(udp_server.start(addr))
+      })
+      .collect::<Vec<_>>();
+    for f in futures {
+      // TODO: await for tuple of (udp, tcp)
+      let _ = f.await;
+    }
 
     Ok(())
   }

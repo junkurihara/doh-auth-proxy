@@ -6,7 +6,7 @@ use tokio;
 
 #[derive(Debug, Clone)]
 pub struct Globals {
-  pub listen_address: SocketAddr,
+  pub listen_addresses: Vec<SocketAddr>,
   pub udp_buffer_size: usize,
   pub udp_channel_capacity: usize,
   pub udp_timeout: Duration,

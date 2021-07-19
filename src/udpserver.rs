@@ -67,12 +67,16 @@ impl UDPServer {
     }
   }
 
-  pub async fn start(self) -> Result<(), DoHError> {
+  pub async fn start(self, listen_address: SocketAddr) -> Result<(), DoHError> {
     // setup a channel for sending out responses
     let (channel_sender, channel_receiver) =
       mpsc::channel::<(Vec<u8>, SocketAddr)>(self.globals.udp_channel_capacity);
 
-    let listen_address = self.globals.listen_address;
+    //let listen_address = *listen_address;
+    //self.globals.listen_addresses[0];
+    // TODO:
+    // TODO: v4 v6デュアル待受できるようにする
+    // 複数待受にするにはstartのときに個別にlisten_addressを受け取れるようにして、listen_addressごとにスレッドをspawnする。
     let udp_socket = UdpSocket::bind(&listen_address)
       .await
       .map_err(DoHError::Io)?;
