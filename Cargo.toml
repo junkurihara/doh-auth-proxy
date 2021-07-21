@@ -21,3 +21,4 @@ tokio = { version = "1.8.1", features = [
 reqwest = { version = "0.11.4", features = ["default", "trust-dns"] }
 url = "2.2.2"
 trust-dns-resolver = "0.20.3"
+anyhow = "1.0.42"

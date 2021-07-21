@@ -1,5 +1,4 @@
 // functions to verify the startup arguments as correct
-
 use std::net::SocketAddr;
 use url::Url;
 

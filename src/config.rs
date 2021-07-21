@@ -1,8 +1,8 @@
 use crate::client::{DoHClient, DoHMethod};
 use crate::constants::*;
+use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
 use clap::Arg;
-use std::error::Error;
 use tokio::runtime::Handle;
 // use log::{debug, error, info, warn};
 use std::fs;
@@ -12,7 +12,7 @@ use std::time::Duration;
 
 pub async fn parse_opts(
   runtime_handle: Handle,
-) -> Result<(Arc<Globals>, Arc<RwLock<GlobalsCache>>), Box<dyn Error>> {
+) -> Result<(Arc<Globals>, Arc<RwLock<GlobalsCache>>), Error> {
   use crate::utils::{verify_sock_addr, verify_target_url};
   // TODO: Args Optionで上書き
 

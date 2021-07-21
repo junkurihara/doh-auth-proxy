@@ -1,4 +1,4 @@
-use crate::errors::DoHError;
+use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
 use log::{debug, error, info, warn};
 use std::net::SocketAddr;
@@ -20,33 +20,36 @@ impl UDPServer {
     packet_buf: Vec<u8>,
     src_addr: std::net::SocketAddr,
     res_sender: mpsc::Sender<(Vec<u8>, std::net::SocketAddr)>,
-  ) {
-    match self.clone().globals_cache.try_read() {
-      Ok(globals_cache) => {
-        let doh_client = globals_cache.doh_client.clone();
-        self.globals.runtime_handle.clone().spawn(async move {
-          debug!("handle query from {:?}", src_addr);
-          let res = tokio::time::timeout(
-            self.globals.udp_timeout + Duration::from_secs(1),
-            // serve udp dns message here
-            doh_client.make_doh_query(packet_buf),
-          )
-          .await
-          .ok();
-          // debug!("response from DoH server: {:?}", res);
-          // send response via channel to the dispatch socket
-          if let Some(Ok(r)) = res {
-            match res_sender.send((r, src_addr)).await {
-              Err(e) => error!("res_sender on channel fail: {:?}", e),
-              Ok(_) => (), // debug!("res_sender on channel success"),
-            }
-          }
-        });
-      }
+  ) -> Result<(), Error> {
+    let self_clone = self.clone();
+    let globals_cache = match self_clone.globals_cache.try_read() {
+      Ok(g) => g,
       Err(e) => {
-        error!("try_read failed for RwLock {:?}", e);
+        bail!("try_read failed for RwLock {:?}", e);
       }
-    }
+    };
+
+    let doh_client = globals_cache.doh_client.clone();
+    self.globals.runtime_handle.clone().spawn(async move {
+      debug!("handle query from {:?}", src_addr);
+      let res = tokio::time::timeout(
+        self.globals.udp_timeout + Duration::from_secs(1),
+        // serve udp dns message here
+        doh_client.make_doh_query(packet_buf),
+      )
+      .await
+      .ok();
+      // debug!("response from DoH server: {:?}", res);
+      // send response via channel to the dispatch socket
+      if let Some(Ok(r)) = res {
+        match res_sender.send((r, src_addr)).await {
+          Err(e) => error!("res_sender on channel fail: {:?}", e),
+          Ok(_) => (), // debug!("res_sender on channel success"),
+        }
+      }
+    });
+
+    Ok(())
   }
 
   async fn respond_to_src(
@@ -67,22 +70,16 @@ impl UDPServer {
     }
   }
 
-  pub async fn start(self, listen_address: SocketAddr) -> Result<(), DoHError> {
+  pub async fn start(self, listen_address: SocketAddr) -> Result<(), Error> {
     // setup a channel for sending out responses
     let (channel_sender, channel_receiver) =
       mpsc::channel::<(Vec<u8>, SocketAddr)>(self.globals.udp_channel_capacity);
 
-    //let listen_address = *listen_address;
-    //self.globals.listen_addresses[0];
-    // TODO:
-    // TODO: v4 v6デュアル待受できるようにする
-    // 複数待受にするにはstartのときに個別にlisten_addressを受け取れるようにして、listen_addressごとにスレッドをspawnする。
-    let udp_socket = UdpSocket::bind(&listen_address)
-      .await
-      .map_err(DoHError::Io)?;
+    let udp_socket = UdpSocket::bind(&listen_address).await?;
+    // .map_err(DoHError::Io)?;
     info!(
       "Listening on UDP: {:?}",
-      udp_socket.local_addr().map_err(DoHError::Io)?
+      udp_socket.local_addr()? //.map_err(DoHError::Io)?
     );
 
     let socket_sender = Arc::new(udp_socket);
@@ -101,12 +98,18 @@ impl UDPServer {
     let udp_socket_service = async {
       while let Ok((buf_size, src_addr)) = socket_receiver.recv_from(&mut udp_buf).await {
         let packet_buf = udp_buf[..buf_size].to_vec();
+        // too many threads?
         self
+          .globals
+          .runtime_handle
           .clone()
-          .serve_query(packet_buf, src_addr, channel_sender.clone())
-          .await;
+          .spawn(
+            self
+              .clone()
+              .serve_query(packet_buf, src_addr, channel_sender.clone()),
+          );
       }
-      Ok(()) as Result<(), DoHError>
+      Ok(()) as Result<(), Error>
     };
     udp_socket_service.await?;
 

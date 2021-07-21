@@ -1,5 +1,5 @@
+use crate::error::*;
 use log::{debug, error, info, warn};
-use std::error::Error;
 use std::net::SocketAddr;
 use trust_dns_resolver::config::*;
 use trust_dns_resolver::TokioAsyncResolver;
@@ -9,7 +9,7 @@ pub async fn resolve_by_bootstrap(
   bootstrap_dns: &SocketAddr,
   target_url: &str,
   runtime_handle: tokio::runtime::Handle,
-) -> Result<(String, Vec<SocketAddr>), Box<dyn Error>> {
+) -> Result<(String, Vec<SocketAddr>), Error> {
   let name_servers =
     NameServerConfigGroup::from_ips_clear(&[bootstrap_dns.ip()], bootstrap_dns.port(), true);
   let resolver_config = ResolverConfig::from_parts(None, vec![], name_servers);
@@ -46,7 +46,7 @@ pub async fn resolve_by_bootstrap(
     target_addresses.push(format!("{}:{}", address, port).parse().unwrap());
   }
   if target_addresses.len() == 0 {
-    return Err("Unable to obtain target resolver address")?;
+    bail!("Unable to obtain target resolver address");
   }
   debug!(
     "Updated target url Ips {:?} by using bootstrap dns [{:?}]",

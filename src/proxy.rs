@@ -1,9 +1,9 @@
 use crate::client::DoHClient;
-use crate::errors::DoHError;
+use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
+use crate::tcpserver::TCPServer;
 use crate::udpserver::UDPServer;
 use log::{debug, error, info, warn};
-use std::error::Error;
 use std::sync::{Arc, RwLock};
 use tokio::time::sleep;
 
@@ -14,14 +14,16 @@ pub struct Proxy {
 }
 
 impl Proxy {
-  async fn update_resolver_addr(self) -> Result<(), Box<dyn Error>> {
+  async fn update_resolver_addr(self) -> Result<(), Error> {
     let (doh_client, doh_target_addrs) = DoHClient::new(self.globals.clone()).await?;
     let mut globals_cache = match self.globals_cache.try_write() {
       Ok(g) => g,
-      Err(e) => Err(format!(
-        "Failed to update global cache for resolver addresses: {:?}",
-        e
-      ))?,
+      Err(e) => {
+        bail!(
+          "Failed to update global cache for resolver addresses: {:?}",
+          e
+        )
+      }
     };
     *globals_cache = GlobalsCache {
       doh_client,
@@ -46,7 +48,7 @@ impl Proxy {
     }
   }
 
-  pub async fn entrypoint(self) -> Result<(), DoHError> {
+  pub async fn entrypoint(self) -> Result<(), Error> {
     debug!("Proxy entrypoint");
     info!("Target DoH URL: {:?}", &self.globals.doh_target_url);
     info!(
@@ -69,19 +71,37 @@ impl Proxy {
       .map(|addr| {
         info!("Listen address: {:?}", addr);
 
-        // TODO: TCP serverもspawnして別スレッドで待ち受け。別にいらない気もする。
+        // TCP server here
+        let tcp_server = TCPServer {
+          globals: self.globals.clone(),
+          globals_cache: self.globals_cache.clone(),
+        };
 
-        // UDP socket here
+        // UDP server here
         let udp_server = UDPServer {
           globals: self.globals.clone(),
           globals_cache: self.globals_cache.clone(),
         };
-        tokio::spawn(udp_server.start(addr))
+
+        // spawn as a tuple of (udp, tcp) for each socket address
+        (
+          tokio::spawn(async move {
+            if let Err(e) = udp_server.start(addr).await {
+              error!("Error in UDP acceptor {:?}", e);
+            }
+          }),
+          tokio::spawn(async move {
+            if let Err(e) = tcp_server.start(addr).await {
+              error!("Error in TCP acceptor {:?}", e);
+            }
+          }),
+        )
       })
       .collect::<Vec<_>>();
-    for f in futures {
-      // TODO: await for tuple of (udp, tcp)
-      let _ = f.await;
+    for (u, t) in futures {
+      // await for each tuple of (udp, tcp)
+      let _ = u.await;
+      let _ = t.await;
     }
 
     Ok(())
