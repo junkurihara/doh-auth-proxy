@@ -15,7 +15,6 @@ pub async fn resolve_by_bootstrap(
   let resolver_config = ResolverConfig::from_parts(None, vec![], name_servers);
 
   let resolver = runtime_handle
-    .clone()
     .spawn(async move { TokioAsyncResolver::tokio(resolver_config, ResolverOpts::default()) })
     .await??;
 

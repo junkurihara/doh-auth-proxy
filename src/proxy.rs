@@ -60,7 +60,10 @@ impl Proxy {
     }
 
     // spawn a process to periodically update the DoH client via global.bootstrap_dns
-    tokio::spawn(self.clone().run_periodic_rebootstrap());
+    self
+      .globals
+      .runtime_handle
+      .spawn(self.clone().run_periodic_rebootstrap());
 
     // TODO: definition of error
 
@@ -85,12 +88,12 @@ impl Proxy {
 
         // spawn as a tuple of (udp, tcp) for each socket address
         (
-          tokio::spawn(async move {
+          self.globals.runtime_handle.spawn(async move {
             if let Err(e) = udp_server.start(addr).await {
               error!("Error in UDP acceptor {:?}", e);
             }
           }),
-          tokio::spawn(async move {
+          self.globals.runtime_handle.spawn(async move {
             if let Err(e) = tcp_server.start(addr).await {
               error!("Error in TCP acceptor {:?}", e);
             }

@@ -60,10 +60,11 @@ impl TCPServer {
 
     // receive from src
     // TODO: アクティブな同時接続数の管理
+    // TODO: 1ストリーム1スレッドはやめてイベントキューイングさせる？
     let tcp_listener_service = async {
       while let Ok((stream, src_addr)) = tcp_listener.accept().await {
         let self_clone = self.clone();
-        self.globals.runtime_handle.clone().spawn(async move {
+        self.globals.runtime_handle.spawn(async move {
           if let Err(e) = self_clone.serve_query(stream, src_addr).await {
             error!("Failed to handle query: {:?}", e);
           }

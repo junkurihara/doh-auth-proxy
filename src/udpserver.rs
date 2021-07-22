@@ -88,7 +88,6 @@ impl UDPServer {
     self
       .globals
       .runtime_handle
-      .clone()
       .spawn(self.clone().respond_to_src(socket_sender, channel_receiver));
 
     // Setup buffer
@@ -99,15 +98,11 @@ impl UDPServer {
       while let Ok((buf_size, src_addr)) = socket_receiver.recv_from(&mut udp_buf).await {
         let packet_buf = udp_buf[..buf_size].to_vec();
         // too many threads?
-        self
-          .globals
-          .runtime_handle
-          .clone()
-          .spawn(
-            self
-              .clone()
-              .serve_query(packet_buf, src_addr, channel_sender.clone()),
-          );
+        self.globals.runtime_handle.spawn(self.clone().serve_query(
+          packet_buf,
+          src_addr,
+          channel_sender.clone(),
+        ));
       }
       Ok(()) as Result<(), Error>
     };
