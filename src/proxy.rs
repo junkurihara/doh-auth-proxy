@@ -1,4 +1,4 @@
-use crate::client::DoHClient;
+use crate::client::{DoHClient, DoHMethod};
 use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
 use crate::tcpserver::TCPServer;
@@ -58,6 +58,11 @@ impl Proxy {
     );
     if let Some(_) = &self.globals.auth_token {
       info!("Enabled Authorization header in DoH query");
+    }
+    match self.globals.doh_method {
+      Some(DoHMethod::GET) => info!("Use GET method to query"),
+      Some(DoHMethod::POST) => info!("Use POST method to query"),
+      _ => bail!("Something wrong for DoH method"),
     }
 
     // spawn a process to periodically update the DoH client via global.bootstrap_dns

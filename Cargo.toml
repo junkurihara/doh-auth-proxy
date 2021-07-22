@@ -1,7 +1,14 @@
 [package]
 name = "doh-auth-proxy"
+description = "DoH proxy with HTTP authorization of Bearer token"
 version = "0.1.0"
 authors = ["JK"]
+homepage = "https://github.com/junkurihara/doh-auth-proxy"
+repository = "https://github.com/junkurihara/doh-auth-proxy"
+license = "MIT"
+readme = "README.md"
+categories = ["asynchronous", "network-programming", "command-line-utilities"]
+keywords = ["dns", "https", "doh", "proxy", "authorization"]
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

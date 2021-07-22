@@ -59,6 +59,12 @@ pub async fn parse_opts(
         .long("token-file-path")
         .takes_value(true)
         .help("JWT file path like \"./token.example\""),
+    )
+    .arg(
+      Arg::with_name("doh_method_get")
+        .short("g")
+        .long("use-get-method")
+        .help("Use Get method to query"),
     );
 
   let matches = options.get_matches();
@@ -82,7 +88,10 @@ pub async fn parse_opts(
   let doh_target_url: String = matches.value_of("doh_target_url").unwrap().to_string();
 
   let doh_timeout_sec = DOH_TIMEOUT_SEC;
-  let doh_method = Some(DoHMethod::POST); //TODO: update method
+  let doh_method = match matches.is_present("doh_method_get") {
+    true => Some(DoHMethod::GET),
+    _ => Some(DoHMethod::POST),
+  };
 
   let auth_token: Option<String> = match matches.value_of("token_file_path") {
     Some(p) => {

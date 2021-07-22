@@ -15,11 +15,12 @@ $ cargo build --release
 
 ```bash
 USAGE:
-    doh-auth-proxy [OPTIONS]
+    doh-auth-proxy [FLAGS] [OPTIONS]
 
 FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+    -g, --use-get-method    Use Get method to query
+    -h, --help              Prints help information
+    -V, --version           Prints version information
 
 OPTIONS:
     -b, --bootstrap-dns <bootstrap_dns>             DNS (Do53) resolver address for bootstrap [default: 1.1.1.1:53]
