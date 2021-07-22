@@ -11,7 +11,7 @@ use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub enum DoHMethod {
-  GET,
+  GET, // TODO:
   POST,
 }
 
@@ -71,8 +71,6 @@ impl DoHClient {
       globals.bootstrap_dns, target_host_str, target_addresses
     );
     let target_addr = target_addresses[0].clone();
-
-    // TODO: target addressが複数あった時の対応
 
     Ok((
       DoHClient {

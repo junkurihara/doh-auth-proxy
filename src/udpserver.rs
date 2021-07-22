@@ -57,8 +57,14 @@ impl UDPServer {
     socket_sender: Arc<tokio::net::UdpSocket>,
     mut channel_receiver: mpsc::Receiver<(Vec<u8>, std::net::SocketAddr)>,
   ) {
-    while let Some((bytes, addr)) = channel_receiver.recv().await {
-      // debug!("respond_to_src");
+    loop {
+      let (bytes, addr) = match channel_receiver.recv().await {
+        None => {
+          error!("udp channel_receiver.recv()");
+          continue;
+        }
+        Some(res) => res,
+      };
       match &socket_sender.send_to(&bytes, &addr).await {
         Ok(len) => {
           debug!("send_to src with response of {:?} bytes", len);
@@ -95,7 +101,14 @@ impl UDPServer {
 
     // receive from src
     let udp_socket_service = async {
-      while let Ok((buf_size, src_addr)) = socket_receiver.recv_from(&mut udp_buf).await {
+      loop {
+        let (buf_size, src_addr) = match socket_receiver.recv_from(&mut udp_buf).await {
+          Err(e) => {
+            error!("Error in UDP acceptor: {}", e);
+            continue;
+          }
+          Ok(res) => res,
+        };
         let packet_buf = udp_buf[..buf_size].to_vec();
         // too many threads?
         self.globals.runtime_handle.spawn(self.clone().serve_query(
@@ -104,9 +117,8 @@ impl UDPServer {
           channel_sender.clone(),
         ));
       }
-      Ok(()) as Result<(), Error>
     };
-    udp_socket_service.await?;
+    udp_socket_service.await;
 
     Ok(())
   }

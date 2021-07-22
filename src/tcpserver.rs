@@ -60,9 +60,15 @@ impl TCPServer {
 
     // receive from src
     // TODO: アクティブな同時接続数の管理
-    // TODO: 1ストリーム1スレッドはやめてイベントキューイングさせる？
     let tcp_listener_service = async {
-      while let Ok((stream, src_addr)) = tcp_listener.accept().await {
+      loop {
+        let (stream, src_addr) = match tcp_listener.accept().await {
+          Err(e) => {
+            error!("Error in TCP acceptor: {}", e);
+            continue;
+          }
+          Ok(res) => res,
+        };
         let self_clone = self.clone();
         self.globals.runtime_handle.spawn(async move {
           if let Err(e) = self_clone.serve_query(stream, src_addr).await {
@@ -70,9 +76,8 @@ impl TCPServer {
           }
         });
       }
-      Ok(()) as Result<(), Error>
     };
-    tcp_listener_service.await?;
+    tcp_listener_service.await;
 
     Ok(())
   }

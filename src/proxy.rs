@@ -3,6 +3,7 @@ use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
 use crate::tcpserver::TCPServer;
 use crate::udpserver::UDPServer;
+use futures::future::select_all;
 use log::{debug, error, info, warn};
 use std::sync::{Arc, RwLock};
 use tokio::time::sleep;
@@ -65,47 +66,40 @@ impl Proxy {
       .runtime_handle
       .spawn(self.clone().run_periodic_rebootstrap());
 
-    // TODO: definition of error
-
     // handle TCP and UDP servers on listen socket addresses
     let addresses = self.globals.listen_addresses.clone();
-    let futures = addresses
-      .into_iter()
-      .map(|addr| {
-        info!("Listen address: {:?}", addr);
+    let futures = select_all(addresses.into_iter().flat_map(|addr| {
+      info!("Listen address: {:?}", addr);
 
-        // TCP server here
-        let tcp_server = TCPServer {
-          globals: self.globals.clone(),
-          globals_cache: self.globals_cache.clone(),
-        };
+      // TCP server here
+      let tcp_server = TCPServer {
+        globals: self.globals.clone(),
+        globals_cache: self.globals_cache.clone(),
+      };
 
-        // UDP server here
-        let udp_server = UDPServer {
-          globals: self.globals.clone(),
-          globals_cache: self.globals_cache.clone(),
-        };
+      // UDP server here
+      let udp_server = UDPServer {
+        globals: self.globals.clone(),
+        globals_cache: self.globals_cache.clone(),
+      };
 
-        // spawn as a tuple of (udp, tcp) for each socket address
-        (
-          self.globals.runtime_handle.spawn(async move {
-            if let Err(e) = udp_server.start(addr).await {
-              error!("Error in UDP acceptor {:?}", e);
-            }
-          }),
-          self.globals.runtime_handle.spawn(async move {
-            if let Err(e) = tcp_server.start(addr).await {
-              error!("Error in TCP acceptor {:?}", e);
-            }
-          }),
-        )
-      })
-      .collect::<Vec<_>>();
-    for (u, t) in futures {
-      // await for each tuple of (udp, tcp)
-      let _ = u.await;
-      let _ = t.await;
-    }
+      // spawn as a tuple of (udp, tcp) for each socket address
+      vec![
+        self.globals.runtime_handle.spawn(udp_server.start(addr)),
+        self.globals.runtime_handle.spawn(tcp_server.start(addr)),
+      ]
+    }));
+    // .collect::<Vec<_>>();
+
+    // wait for all future
+    if let (Ok(_), _, _) = futures.await {
+      println!("Some packet acceptors are down");
+    };
+
+    // for f in futures {
+    //   // await for each future
+    //   let _ = f.await;
+    // }
 
     Ok(())
   }
