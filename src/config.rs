@@ -1,11 +1,13 @@
-use crate::client::{DoHClient, DoHMethod};
+use crate::client::DoHMethod;
 use crate::constants::*;
 use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
 use clap::Arg;
 use tokio::runtime::Handle;
 // use log::{debug, error, info, warn};
-use std::fs;
+use crate::credential::Credential;
+use dotenv;
+use std::env;
 use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
@@ -61,6 +63,21 @@ pub async fn parse_opts(
         .help("JWT file path like \"./token.example\""),
     )
     .arg(
+      Arg::with_name("credential_file_path")
+      .short("c")
+      .long("credential-file-path")
+      .takes_value(true)
+      .help("Credential env file path for login endpoint like \"./credential.env\""),
+    )
+    .arg(
+      Arg::with_name("token_api")
+      .short("a")
+      .long("token-api")
+      .takes_value(true)
+      .validator(verify_target_url)
+      .help("API url to retrieve and refresh tokens like \"https://example.com\", where /v1.0/tokens and /v1.0/refresh are used for login and refresh, respectively."),
+    )
+    .arg(
       Arg::with_name("doh_method_get")
         .short("g")
         .long("use-get-method")
@@ -93,22 +110,34 @@ pub async fn parse_opts(
     _ => Some(DoHMethod::POST),
   };
 
-  let auth_token: Option<String> = match matches.value_of("token_file_path") {
-    Some(p) => {
-      match fs::read_to_string(p) {
-        Ok(content) => {
-          let truncate_vec: Vec<&str> = content.split("\n").collect();
-          if truncate_vec.len() > 0 {
-            // TODO: validate token as JWT
-            Some(truncate_vec[0].to_string())
-          } else {
-            None
-          }
-        }
-        Err(_) => None,
-      }
-    }
-    None => None,
+  // If credential exists, authorization header is also enabled.
+  let credential = if let Some(p) = matches.value_of("credential_file_path") {
+    let cred_path = env::current_dir()?.join(p);
+    dotenv::from_path(cred_path).ok();
+    let username = if let Ok(x) = env::var(CREDENTIAL_USERNAME_FIELD) {
+      x
+    } else {
+      bail!("No username is given in the credential file.");
+    };
+    let password = if let Ok(x) = env::var(CREDENTIAL_API_KEY_FIELD) {
+      x
+    } else {
+      bail!("No password is given in the credential file.");
+    };
+    let client_id = if let Ok(x) = env::var(CREDENTIAL_CLIENT_ID_FIELD) {
+      x
+    } else {
+      bail!("No client_id is given in the credential file.");
+    };
+    let token_api = if let Some(t) = matches.value_of("token_api") {
+      t
+    } else {
+      bail!("Token API must be given when credential file is specified");
+    };
+
+    Some(Credential::new(&username, &password, &client_id, token_api))
+  } else {
+    None
   };
 
   let rebootstrap_period_sec = Duration::from_secs(rebootstrap_period_min * 60);
@@ -123,18 +152,15 @@ pub async fn parse_opts(
     doh_method,
     bootstrap_dns,
     rebootstrap_period_sec,
-    auth_token,
 
     runtime_handle,
     // client,
   });
 
-  let (client, target_addrs) = DoHClient::new(globals.clone()).await?;
-  // debug!("{:?}", globals.auth_token);
-
   let globals_cache = Arc::new(RwLock::new(GlobalsCache {
-    doh_target_addrs: target_addrs,
-    doh_client: client,
+    doh_target_addrs: None,
+    doh_client: None,
+    credential,
   }));
 
   Ok((globals, globals_cache))

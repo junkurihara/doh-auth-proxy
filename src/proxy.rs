@@ -15,8 +15,19 @@ pub struct Proxy {
 }
 
 impl Proxy {
+  // TODO: token refresh時にもリゾルバアドレスもリフレッシュしてDoHクライアントオブジェクトを作り直す
   async fn update_resolver_addr(self) -> Result<(), Error> {
-    let (doh_client, doh_target_addrs) = DoHClient::new(self.globals.clone()).await?;
+    let credential = match self.globals_cache.try_read() {
+      Ok(cache) => match cache.credential.clone() {
+        Some(x) => x,
+        None => bail!("credential is not properly configured to update resolver"),
+      },
+      Err(e) => {
+        bail!("Failed to read cache: {}", e);
+      }
+    };
+    let (doh_client, doh_target_addrs) =
+      DoHClient::new(self.globals.clone(), &credential.id_token()).await?;
     let mut globals_cache = match self.globals_cache.try_write() {
       Ok(g) => g,
       Err(e) => {
@@ -27,8 +38,9 @@ impl Proxy {
       }
     };
     *globals_cache = GlobalsCache {
-      doh_client,
-      doh_target_addrs,
+      doh_client: Some(doh_client),
+      doh_target_addrs: Some(doh_target_addrs),
+      credential: Some(credential),
     };
 
     Ok(())
@@ -49,16 +61,46 @@ impl Proxy {
     }
   }
 
+  async fn run_periodic_token_refresh(self) {
+    //
+    // TODO: first read current token in globals_cache, check its expiration, and set period
+    // TODO: login password should be stored in keychain access like secure storage rather than dotenv.
+  }
+
   pub async fn entrypoint(self) -> Result<(), Error> {
-    debug!("Proxy entrypoint");
     info!("Target DoH URL: {:?}", &self.globals.doh_target_url);
     info!(
       "Target DoH Address is re-fetched every {:?} min",
       &self.globals.rebootstrap_period_sec.as_secs() / 60
     );
-    if let Some(_) = &self.globals.auth_token {
-      info!("Enabled Authorization header in DoH query");
+
+    // prepare authorization
+    match &mut self.globals_cache.try_write() {
+      Ok(c) => {
+        // Login and setup client first
+        if let Some(credential) = &mut c.credential {
+          credential.login(&self.globals).await?;
+        }
+        info!("Enabled Authorization header in DoH query");
+        let id_token = if let Some(t) = c.credential.clone() {
+          t.id_token()
+        } else {
+          bail!("Id token is not properly configured");
+        };
+        let (client, target_addrs) = DoHClient::new(self.globals.clone(), &id_token).await?;
+        c.doh_client = Some(client);
+        c.doh_target_addrs = Some(target_addrs);
+        // spawn a thread to periodically refresh token
+        self
+          .globals
+          .runtime_handle
+          .spawn(self.clone().run_periodic_token_refresh());
+      }
+      Err(e) => {
+        bail!("Failed to read cache: {}", e);
+      }
     }
+    ////
     match self.globals.doh_method {
       Some(DoHMethod::GET) => info!("Use GET method to query"),
       Some(DoHMethod::POST) => info!("Use POST method to query"),

@@ -3,7 +3,6 @@ use crate::error::*;
 use crate::globals::Globals;
 use data_encoding::BASE64URL_NOPAD;
 use log::{debug, error, info, warn};
-use reqwest;
 use reqwest::header;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -37,10 +36,13 @@ fn get_default_header() -> header::HeaderMap {
 }
 
 impl DoHClient {
-  pub async fn new(globals: Arc<Globals>) -> Result<(Self, Vec<SocketAddr>), Error> {
+  pub async fn new(
+    globals: Arc<Globals>,
+    auth_token: &Option<String>,
+  ) -> Result<(Self, Vec<SocketAddr>), Error> {
     let timeout_duration = Duration::from_secs(globals.doh_timeout_sec);
 
-    let headers: header::HeaderMap = match globals.auth_token.clone() {
+    let headers: header::HeaderMap = match auth_token {
       None => get_default_header(),
       Some(t) => {
         info!("Instantiating DoH client with http authorization header");
@@ -59,7 +61,6 @@ impl DoHClient {
       Some(t) => t,
     };
 
-    // TODO:
     let (target_host_str, target_addresses) = resolve_by_bootstrap(
       &globals.bootstrap_dns,
       &globals.doh_target_url,

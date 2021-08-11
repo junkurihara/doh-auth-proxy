@@ -8,3 +8,9 @@ pub const BOOTSTRAP_DNS: &str = "1.1.1.1:53";
 pub const REBOOTSTRAP_PERIOD_MIN: u64 = 60;
 pub const DOH_TIMEOUT_SEC: u64 = 10;
 pub const DOH_TARGET_URL: &str = "https://dns.google/dns-query";
+
+pub const CREDENTIAL_USERNAME_FIELD: &str = "username";
+pub const CREDENTIAL_API_KEY_FIELD: &str = "password";
+pub const CREDENTIAL_CLIENT_ID_FIELD: &str = "client_id";
+pub const ENDPOINT_LOGIN_PATH: &str = "/v1.0/tokens";
+pub const ENDPOINT_REFRESH_PATH: &str = "/v1.0/refresh";

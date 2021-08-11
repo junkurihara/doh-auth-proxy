@@ -5,6 +5,7 @@ mod bootstrap;
 mod client;
 mod config;
 mod constants;
+mod credential;
 mod error;
 mod globals;
 mod proxy;

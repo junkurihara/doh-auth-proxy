@@ -1,6 +1,6 @@
 use crate::client::{DoHClient, DoHMethod};
+use crate::credential::Credential;
 use std::net::SocketAddr;
-// use std::sync::Arc;
 use std::time::Duration;
 use tokio;
 
@@ -17,14 +17,12 @@ pub struct Globals {
   pub bootstrap_dns: SocketAddr,
   pub rebootstrap_period_sec: Duration,
 
-  pub auth_token: Option<String>,
-
   pub runtime_handle: tokio::runtime::Handle,
-  // pub client: DoHClient,
 }
 
 #[derive(Debug, Clone)]
 pub struct GlobalsCache {
-  pub doh_client: DoHClient,
-  pub doh_target_addrs: Vec<SocketAddr>,
+  pub doh_client: Option<DoHClient>,
+  pub doh_target_addrs: Option<Vec<SocketAddr>>,
+  pub credential: Option<Credential>,
 }

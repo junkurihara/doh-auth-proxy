@@ -16,7 +16,10 @@ impl TCPServer {
   async fn serve_query(self, mut stream: TcpStream, src_addr: SocketAddr) -> Result<(), Error> {
     debug!("handle query from {:?}", src_addr);
     let doh_client = match self.clone().globals_cache.try_read() {
-      Ok(globals_cache) => globals_cache.doh_client.clone(),
+      Ok(globals_cache) => match globals_cache.doh_client.clone() {
+        Some(x) => x,
+        None => bail!("DoH client is not properly configured"),
+      },
       Err(_) => {
         bail!("try_read failed for RwLock");
       }
