@@ -20,7 +20,7 @@ pub async fn resolve_by_bootstrap(
 
   // Lookup the IP addresses associated with a name.
   // The final dot forces this to be an FQDN, otherwise the search rules as specified
-  //  in `ResolverOpts` will take effect. FQDN's are generally cheaper queries.
+  // in `ResolverOpts` will take effect. FQDN's are generally cheaper queries.
   let url = Url::parse(target_url)?;
   let scheme = url.scheme(); // already checked at config.rs
   let host_str = url.host_str().unwrap();

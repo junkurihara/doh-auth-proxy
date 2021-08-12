@@ -10,7 +10,7 @@ use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub enum DoHMethod {
-  GET, // TODO:
+  GET,
   POST,
 }
 

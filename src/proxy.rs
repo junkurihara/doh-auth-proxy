@@ -1,4 +1,4 @@
-use crate::client::{DoHClient, DoHMethod};
+use crate::client::DoHClient;
 use crate::constants::*;
 use crate::credential::Credential;
 use crate::error::*;

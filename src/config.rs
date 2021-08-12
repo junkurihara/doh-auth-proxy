@@ -69,7 +69,7 @@ pub async fn parse_opts(
       .long("token-api")
       .takes_value(true)
       .validator(verify_target_url)
-      .help("API url to retrieve and refresh tokens like \"https://example.com\", where /v1.0/tokens and /v1.0/refresh are used for login and refresh, respectively."),
+      .help("API url to retrieve and refresh tokens like \"https://example.com/v1.0\", where /tokens and /refresh are used for login and refresh, respectively."),
     )
     .arg(
       Arg::with_name("doh_method_get")

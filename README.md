@@ -23,7 +23,10 @@ FLAGS:
     -V, --version           Prints version information
 
 OPTIONS:
-    -b, --bootstrap-dns <bootstrap_dns>             DNS (Do53) resolver address for bootstrap [default: 1.1.1.1:53]
+    -b, --bootstrap-dns <bootstrap_dns>                  DNS (Do53) resolver address for bootstrap [default: 1.1.1.1:53]
+    -c, --credential-file-path <credential_file_path>
+            Credential env file path for login endpoint like "./credential.env"
+
     -t, --target-url <doh_target_url>
             URL of target DoH server like "https://dns.google/dns-query" [default: https://dns.google/dns-query]
 
@@ -33,5 +36,7 @@ OPTIONS:
     -p, --reboot-period <rebootstrap_period_min>
             Minutes to re-fetch the IP addr of the target url host via the bootstrap DNS
 
-    -s, --token-file-path <token_file_path>         JWT file path like "./token.example"
+    -a, --token-api <token_api>
+            API url to retrieve and refresh tokens like "https://example.com/v1.0", where /tokens and /refresh are used
+            for login and refresh, respectively.
 ```
