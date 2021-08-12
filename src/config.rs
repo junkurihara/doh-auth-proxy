@@ -122,7 +122,7 @@ pub async fn parse_opts(
   // TODO: login password should be stored in keychain access like secure storage rather than dotenv.
   let credential = if let Some(p) = matches.value_of("credential_file_path") {
     let cred_path = env::current_dir()?.join(p);
-    dotenv::from_path(cred_path).ok();
+    dotenv::from_path(&cred_path).ok();
     let username = if let Ok(x) = env::var(CREDENTIAL_USERNAME_FIELD) {
       x
     } else {
@@ -145,12 +145,15 @@ pub async fn parse_opts(
     };
     info!("Token API: {}", token_api);
     let validation_key = match env::var("validation_key") {
-      Ok(validation_key_path) => match fs::read_to_string(validation_key_path) {
-        Ok(content) => content,
-        Err(e) => {
-          bail!("Valid validation key must be given: {}", e);
+      Ok(validation_key_path) => {
+        let vk_path = cred_path.parent().unwrap().join(&validation_key_path);
+        match fs::read_to_string(vk_path) {
+          Ok(content) => content,
+          Err(e) => {
+            bail!("Valid validation key must be given: {}", e);
+          }
         }
-      },
+      }
       Err(e) => {
         bail!("No validation key path is given in credential file: {}", e);
       }

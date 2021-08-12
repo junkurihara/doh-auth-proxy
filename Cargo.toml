@@ -2,7 +2,7 @@
 name = "doh-auth-proxy"
 description = "DoH proxy with HTTP authorization of Bearer token"
 version = "0.1.0"
-authors = ["JK"]
+authors = ["Jun K"]
 homepage = "https://github.com/junkurihara/doh-auth-proxy"
 repository = "https://github.com/junkurihara/doh-auth-proxy"
 license = "MIT"
@@ -35,3 +35,10 @@ serde_json = "1.0.66"
 jwt-simple = "0.10.3"
 p256 = "0.9.0"
 chrono = "0.4.19"
+
+[profile.release]
+codegen-units = 1
+incremental = false
+lto = "fat"
+opt-level = 3
+panic = "abort"
