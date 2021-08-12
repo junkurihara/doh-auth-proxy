@@ -1,4 +1,5 @@
 use crate::client::{DoHClient, DoHMethod};
+use crate::constants::*;
 use crate::credential::Credential;
 use crate::error::*;
 use crate::exitcodes::*;
@@ -8,6 +9,7 @@ use crate::udpserver::UDPServer;
 use futures::future::select_all;
 use log::{debug, error, info, warn};
 use std::sync::{Arc, RwLock};
+use std::time::Duration;
 use tokio::time::sleep;
 
 #[derive(Debug, Clone)]
@@ -40,7 +42,6 @@ impl Proxy {
       match self.globals_cache.try_write() {
         Ok(mut cache) => {
           cache.credential = Some(credential);
-          info!("Successful login for authorized DNS access.");
           drop(cache);
         }
         Err(e) => {
@@ -101,13 +102,13 @@ impl Proxy {
   }
 
   async fn run_periodic_rebootstrap(self) {
-    info!("Start periodic rebootstrap process to acquire target URL IP Addr");
+    debug!("Start periodic rebootstrap process to acquire target URL IP Addr");
 
     let period = self.globals.rebootstrap_period_sec;
     loop {
       sleep(period).await;
       match self.update_client().await {
-        Ok(_) => info!("Successfully re-fetched target resolver addresses via bootstrap DNS"),
+        Ok(_) => debug!("Successfully re-fetched target resolver addresses via bootstrap DNS"),
         Err(e) => error!(
           "Failed to update DoH client with new DoH resolver addresses {:?}",
           e
@@ -120,23 +121,40 @@ impl Proxy {
 
   async fn run_periodic_token_refresh(self) -> Result<(), Error> {
     {
-      if let None = self.get_credential_clone()? {
-        // No need to refresh
-        return Ok(());
-      }
-    }
-    {
-      info!("Start periodic refresh process of Id token");
-      // TODO: first read current token in globals_cache, check its expiration, and set period
-      // TODO: login password should be stored in keychain access like secure storage rather than dotenv.
-      // TODO: periodは適宜アップデートさせる
-      let mut period = self.globals.rebootstrap_period_sec;
+      // read current token in globals_cache, check its expiration, and set period
+      debug!("Start periodic refresh process of Id token");
       loop {
-        sleep(period).await;
+        {
+          let credential = {
+            if let Some(c) = self.get_credential_clone()? {
+              c
+            } else {
+              // No need to refresh
+              return Ok(());
+            }
+          };
+          let period = match credential.id_token_expires_in_secs() {
+            Ok(secs) => {
+              let period_secs = match secs > CREDENTIAL_REFRESH_BEFORE_EXPIRATION_IN_SECS {
+                true => secs - CREDENTIAL_REFRESH_BEFORE_EXPIRATION_IN_SECS,
+                false => 1,
+              };
+              Duration::from_secs(period_secs as u64)
+            }
+            Err(e) => {
+              error!("Need to re-login to token endpoint {:?}", e);
+              std::process::exit(EXIT_ON_LOGIN_FAILURE);
+            }
+          };
+          info!("Sleep {:?} untill next token refresh", period);
+          sleep(period).await;
+        }
+
         match self.update_id_token().await {
           Ok(_) => {
+            debug!("Successfully refresh Id token");
             match self.update_client().await {
-              Ok(_) => info!("Successfully update DoH client via bootstrap DNS"),
+              Ok(_) => debug!("Successfully update DoH client with updated Id token"),
               Err(e) => {
                 error!("Failed to update DoH client with new Id token {:?}", e);
                 std::process::exit(EXIT_ON_REFRESH_FAILURE);
@@ -163,12 +181,6 @@ impl Proxy {
   }
 
   pub async fn entrypoint(self) -> Result<(), Error> {
-    info!("Target DoH URL: {:?}", &self.globals.doh_target_url);
-    info!(
-      "Target DoH Address is re-fetched every {:?} min",
-      &self.globals.rebootstrap_period_sec.as_secs() / 60
-    );
-
     // 1. prepare authorization
     {
       if let Err(e) = self.authenticate().await {
@@ -182,13 +194,6 @@ impl Proxy {
         error!("Failed to update DoH client with new Id token {:?}", e);
         std::process::exit(EXIT_ON_CLIENT_FAILURE);
       }
-    }
-
-    ////
-    match self.globals.doh_method {
-      Some(DoHMethod::GET) => info!("Use GET method to query"),
-      Some(DoHMethod::POST) => info!("Use POST method to query"),
-      _ => bail!("Something wrong for DoH method"),
     }
 
     // spawn a thread to periodically refresh token if credential is given

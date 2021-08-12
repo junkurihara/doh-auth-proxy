@@ -1,16 +1,17 @@
 use crate::client::DoHMethod;
 use crate::constants::*;
+use crate::credential::Credential;
 use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
 use clap::Arg;
-use tokio::runtime::Handle;
-// use log::{debug, error, info, warn};
-use crate::credential::Credential;
 use dotenv;
+use log::{debug, error, info, warn};
 use std::env;
+use std::fs;
 use std::net::SocketAddr;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
+use tokio::runtime::Handle;
 
 pub async fn parse_opts(
   runtime_handle: Handle,
@@ -56,13 +57,6 @@ pub async fn parse_opts(
         .help("URL of target DoH server like \"https://dns.google/dns-query\""),
     )
     .arg(
-      Arg::with_name("token_file_path")
-        .short("s")
-        .long("token-file-path")
-        .takes_value(true)
-        .help("JWT file path like \"./token.example\""),
-    )
-    .arg(
       Arg::with_name("credential_file_path")
       .short("c")
       .long("credential-file-path")
@@ -95,6 +89,7 @@ pub async fn parse_opts(
   .collect();
 
   let bootstrap_dns: SocketAddr = matches.value_of("bootstrap_dns").unwrap().parse().unwrap();
+  info!("Bootstrap DNS: {:?}", bootstrap_dns);
   let rebootstrap_period_min: u64 = match matches.value_of("rebootstrap_period_min") {
     None => REBOOTSTRAP_PERIOD_MIN,
     Some(s) => {
@@ -102,15 +97,29 @@ pub async fn parse_opts(
       num
     }
   };
+  let rebootstrap_period_sec = Duration::from_secs(rebootstrap_period_min * 60);
+  info!(
+    "Target DoH Address is re-fetched every {:?} min",
+    rebootstrap_period_sec.as_secs() / 60
+  );
+
   let doh_target_url: String = matches.value_of("doh_target_url").unwrap().to_string();
+  info!("Target DoH URL: {:?}", doh_target_url);
 
   let doh_timeout_sec = DOH_TIMEOUT_SEC;
   let doh_method = match matches.is_present("doh_method_get") {
-    true => Some(DoHMethod::GET),
-    _ => Some(DoHMethod::POST),
+    true => {
+      info!("Use GET method to query");
+      Some(DoHMethod::GET)
+    }
+    _ => {
+      info!("Use POST method to query");
+      Some(DoHMethod::POST)
+    }
   };
 
   // If credential exists, authorization header is also enabled.
+  // TODO: login password should be stored in keychain access like secure storage rather than dotenv.
   let credential = if let Some(p) = matches.value_of("credential_file_path") {
     let cred_path = env::current_dir()?.join(p);
     dotenv::from_path(cred_path).ok();
@@ -134,13 +143,29 @@ pub async fn parse_opts(
     } else {
       bail!("Token API must be given when credential file is specified");
     };
+    info!("Token API: {}", token_api);
+    let validation_key = match env::var("validation_key") {
+      Ok(validation_key_path) => match fs::read_to_string(validation_key_path) {
+        Ok(content) => content,
+        Err(e) => {
+          bail!("Valid validation key must be given: {}", e);
+        }
+      },
+      Err(e) => {
+        bail!("No validation key path is given in credential file: {}", e);
+      }
+    };
 
-    Some(Credential::new(&username, &password, &client_id, token_api))
+    Some(Credential::new(
+      &username,
+      &password,
+      &client_id,
+      token_api,
+      &validation_key,
+    ))
   } else {
     None
   };
-
-  let rebootstrap_period_sec = Duration::from_secs(rebootstrap_period_min * 60);
 
   let globals = Arc::new(Globals {
     doh_target_url,

@@ -45,7 +45,7 @@ impl DoHClient {
     let headers: header::HeaderMap = match auth_token {
       None => get_default_header(),
       Some(t) => {
-        info!("Instantiating DoH client with http authorization header");
+        debug!("Instantiating DoH client with http authorization header");
         let mut temporary_header = get_default_header();
         let token_str = format!("Bearer {}", &t);
         temporary_header.insert(
@@ -67,7 +67,7 @@ impl DoHClient {
       globals.runtime_handle.clone(),
     )
     .await?;
-    info!(
+    debug!(
       "Via bootstrap DNS [{:?}], {:?} updated: {:?}",
       globals.bootstrap_dns, target_host_str, target_addresses
     );
