@@ -7,6 +7,7 @@ mod config;
 mod constants;
 mod credential;
 mod error;
+mod exitcodes;
 mod globals;
 mod proxy;
 mod tcpserver;
@@ -19,7 +20,7 @@ use std::env;
 use tokio;
 
 fn main() {
-    env::set_var("RUST_LOG", "debug");
+    env::set_var("RUST_LOG", "info");
     env_logger::init();
     info!("Start DoH w/ Auth Proxy");
 
