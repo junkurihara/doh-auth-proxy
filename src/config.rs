@@ -144,28 +144,8 @@ pub async fn parse_opts(
       bail!("Token API must be given when credential file is specified");
     };
     info!("Token API: {}", token_api);
-    let validation_key = match env::var("validation_key") {
-      Ok(validation_key_path) => {
-        let vk_path = cred_path.parent().unwrap().join(&validation_key_path);
-        match fs::read_to_string(vk_path) {
-          Ok(content) => content,
-          Err(e) => {
-            bail!("Valid validation key must be given: {}", e);
-          }
-        }
-      }
-      Err(e) => {
-        bail!("No validation key path is given in credential file: {}", e);
-      }
-    };
 
-    Some(Credential::new(
-      &username,
-      &password,
-      &client_id,
-      token_api,
-      &validation_key,
-    ))
+    Some(Credential::new(&username, &password, &client_id, token_api))
   } else {
     None
   };

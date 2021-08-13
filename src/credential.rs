@@ -19,7 +19,7 @@ pub struct Credential {
   token_api: String,
   id_token: Option<String>,
   refresh_token: Option<String>,
-  validation_key: String,
+  validation_key: Option<String>,
 }
 
 impl Credential {
@@ -28,7 +28,6 @@ impl Credential {
     password: &str, // TODO: This should be called "API key"?
     client_id: &str,
     token_api: &str,
-    validation_key: &str,
   ) -> Credential {
     return Credential {
       username: username.to_string(),
@@ -37,7 +36,7 @@ impl Credential {
       token_api: token_api.to_string(),
       id_token: None,
       refresh_token: None,
-      validation_key: validation_key.to_string(),
+      validation_key: None,
     };
   }
 
@@ -119,7 +118,6 @@ impl Credential {
     };
 
     // jwks retrieval process and update self
-    // TODO: this also required if self.validation_key is not properly set
     self
       .update_validation_key_matched_to_key_id(self.get_meta_from_id_token()?)
       .await?;
@@ -176,7 +174,6 @@ impl Credential {
     };
 
     // jwks retrieval process and update self
-    // TODO: this also required if self.validation_key is not properly set
     self
       .update_validation_key_matched_to_key_id(self.get_meta_from_id_token()?)
       .await?;
@@ -238,13 +235,22 @@ impl Credential {
     let jwk_string = serde_json::to_string(matched_jwk)?;
     debug!("Matched JWK given at jwks endpoint is {}", &jwk_string);
 
-    match Algorithm::from_str(meta.algorithm())? {
+    let pem = match Algorithm::from_str(meta.algorithm())? {
       Algorithm::ES256 => {
         let pk = p256::PublicKey::from_jwk_str(&jwk_string)?;
         let pem = pk.to_public_key_pem()?;
-        if self.validation_key != pem {
+        pem
+      }
+    };
+    match &self.validation_key {
+      None => {
+        self.validation_key = Some(pem);
+        debug!("Validation key was obtained and correctly set");
+      }
+      Some(p) => {
+        if p.clone() != pem {
           warn!("Validation key possibly updated!: {}", pem);
-          self.validation_key = pem;
+          self.validation_key = Some(pem);
         }
       }
     };
@@ -283,7 +289,10 @@ impl Credential {
     } else {
       bail!("No Id token is configured");
     };
-    let pk_str = &self.validation_key;
+    let pk_str = match &self.validation_key {
+      None => bail!("validation key is not configured! login first!"),
+      Some(pem) => pem,
+    };
 
     let mut options = VerificationOptions::default();
     // accept future
