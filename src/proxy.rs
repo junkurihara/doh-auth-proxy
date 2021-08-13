@@ -146,7 +146,7 @@ impl Proxy {
               std::process::exit(EXIT_ON_LOGIN_FAILURE);
             }
           };
-          info!("Sleep {:?} untill next token refresh", period);
+          info!("Sleep {:?} until next token refresh", period);
           sleep(period).await;
         }
 

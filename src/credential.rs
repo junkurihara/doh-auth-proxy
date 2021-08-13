@@ -110,7 +110,7 @@ impl Credential {
     Ok(())
   }
 
-  pub async fn refresh(&mut self, globals: &Arc<Globals>) -> Result<(), Error> {
+  pub async fn refresh(&mut self, _globals: &Arc<Globals>) -> Result<(), Error> {
     // refresh endpoint is resolved via configured system DNS resolver
     let refresh_endpoint = format!("{}{}", self.token_api, ENDPOINT_REFRESH_PATH);
     // let (target_host_str, target_addresses) = resolve_by_bootstrap(
@@ -164,6 +164,14 @@ impl Credential {
     } else {
       bail!("Invalid Id token format");
     };
+    // check validity of id token
+    match self.verify_id_token() {
+      Ok(_) => (),
+      Err(e) => bail!(
+        "Invalid Id token! Carefully check if bootstrap DNS is poisoned! {}",
+        e
+      ),
+    };
     debug!("Refreshed Id token: Refresh endpoint {}", refresh_endpoint);
 
     Ok(())
@@ -195,6 +203,8 @@ impl Credential {
     let pk_str = &self.validation_key;
 
     let mut options = VerificationOptions::default();
+    // accept future
+    options.accept_future = true;
     options.allowed_audiences = Some(HashSet::from_strings(&[&self.client_id]));
     options.allowed_issuers = Some(HashSet::from_strings(&[&self.token_api]));
 
