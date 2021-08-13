@@ -21,15 +21,8 @@ pub struct Proxy {
 
 impl Proxy {
   async fn get_credential_clone(&self) -> Option<Credential> {
-    // Result<Option<Credential>, Error> {
     let cache = self.globals_cache.read().await;
     cache.credential.clone()
-    // match self.globals_cache.try_read() {
-    //   Ok(cache) => Ok(cache.credential.clone()),
-    //   Err(e) => {
-    //     bail!("Failed to read cache: {}", e);
-    //   }
-    // }
   }
 
   async fn authenticate(&self) -> Result<(), Error> {
@@ -41,27 +34,11 @@ impl Proxy {
       }
       Some(c) => c,
     };
-    // let mut credential = match self.get_credential_clone()? {
-    //   None => {
-    //     // No credential is set (no authorization server)
-    //     return Ok(());
-    //   }
-    //   Some(c) => c,
-    // };
     credential.login(&self.globals).await?;
     {
       let mut cache = self.globals_cache.write().await;
       cache.credential = Some(credential);
       drop(cache);
-      // match self.globals_cache.try_write() {
-      //   Ok(mut cache) => {
-      //     cache.credential = Some(credential);
-      //     drop(cache);
-      //   }
-      //   Err(e) => {
-      //     bail!("Failed to read cache: {}", e);
-      //   }
-      // };
     }
     Ok(())
   }
@@ -74,12 +51,6 @@ impl Proxy {
     let (doh_client, doh_target_addrs) = DoHClient::new(self.globals.clone(), &id_token).await?;
     {
       let mut globals_cache = self.globals_cache.write().await;
-      // let mut globals_cache = match self.globals_cache.try_write() {
-      //   Ok(g) => g,
-      //   Err(e) => {
-      //     bail!("Failed to write-lock global cache: {:?}", e)
-      //   }
-      // };
       globals_cache.doh_client = Some(doh_client);
       globals_cache.doh_target_addrs = Some(doh_target_addrs);
       drop(globals_cache);
@@ -100,12 +71,6 @@ impl Proxy {
       println!("before {:#?}", credential);
       credential.refresh(&self.globals).await?;
       let mut globals_cache = self.globals_cache.write().await;
-      // let mut globals_cache = match self.globals_cache.try_write() {
-      //   Ok(g) => g,
-      //   Err(e) => {
-      //     bail!("Failed to write-lock global cache: {:?}", e)
-      //   }
-      // };
       globals_cache.credential = Some(credential);
       drop(globals_cache);
       println!("after {:#?}", self.globals_cache.read().await.credential);
@@ -134,25 +99,27 @@ impl Proxy {
   async fn run_periodic_token_refresh(self) -> () {
     // read current token in globals_cache, check its expiration, and set period
     debug!("Start periodic refresh process of Id token");
-    let mut retry_login = false;
+    let mut retry_login = 0;
     loop {
       {
-        if retry_login {
-          retry_login = false;
-          warn!("Relogin after {} secs", ENDPOINT_RELOGIN_WAITING_SEC);
+        if retry_login >= MAX_LOGIN_ATTEMPTS {
+          error!("Done too many login attempts.");
+          std::process::exit(EXIT_ON_TOO_MANY_RETRY);
+        }
+        if retry_login > 0 {
+          warn!("Retry login after {} secs", ENDPOINT_RELOGIN_WAITING_SEC);
           sleep(Duration::from_secs(ENDPOINT_RELOGIN_WAITING_SEC)).await;
           if let Err(e) = self.authenticate().await {
             warn!("Login failed. retry: {}", e);
-            retry_login = true;
+            retry_login += 1;
             continue;
-            // std::process::exit(EXIT_ON_LOGIN_FAILURE);
           }
           if let Err(e) = self.update_client().await {
-            warn!("DoH client update failed with new Id token. retry: {}", e);
-            retry_login = true;
+            warn!("DoH client update failed. retry login: {}", e);
+            retry_login += 1;
             continue;
-            // std::process::exit(EXIT_ON_CLIENT_FAILURE);
           }
+          retry_login = 0;
         }
       }
       {
@@ -173,10 +140,9 @@ impl Proxy {
             Duration::from_secs(period_secs as u64)
           }
           Err(e) => {
-            warn!("Need to relogin {}", e);
-            retry_login = true;
+            warn!("Id token is invalid. retry login: {}", e);
+            retry_login += 1;
             continue;
-            // std::process::exit(EXIT_ON_LOGIN_FAILURE);
           }
         };
         info!("Sleep {:?} until next token refresh", period);
@@ -189,16 +155,15 @@ impl Proxy {
           match self.update_client().await {
             Ok(_) => debug!("Successfully update DoH client with updated Id token"),
             Err(e) => {
-              warn!("DoH client update failed with new Id token. relogin: {}", e);
-              retry_login = true;
+              warn!("DoH client update failed. retry login: {}", e);
+              retry_login += 1;
               continue;
-              // std::process::exit(EXIT_ON_REFRESH_FAILURE);
             }
           };
         }
         Err(e) => {
-          warn!("Refresh failed. maybe token expired. relogin: {}", e);
-          retry_login = true;
+          warn!("Refresh failed. maybe token expired. retry login: {}", e);
+          retry_login += 1;
           continue;
         }
       }

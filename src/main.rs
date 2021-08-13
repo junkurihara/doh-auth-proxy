@@ -16,11 +16,11 @@ mod utils;
 use config::parse_opts;
 use log::{debug, error, info, warn};
 use proxy::Proxy;
-use std::env;
+// use std::env;
 use tokio;
 
 fn main() {
-    env::set_var("RUST_LOG", "debug");
+    // env::set_var("RUST_LOG", "debug");
     env_logger::init();
     info!("Start DoH w/ Auth Proxy");
 

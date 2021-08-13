@@ -21,15 +21,6 @@ impl TCPServer {
       Some(x) => x,
       None => bail!("DoH client is not properly configured"),
     };
-    // let doh_client = match self.clone().globals_cache.try_read() {
-    //   Ok(globals_cache) => match globals_cache.doh_client.clone() {
-    //     Some(x) => x,
-    //     None => bail!("DoH client is not properly configured"),
-    //   },
-    //   Err(_) => {
-    //     bail!("try_read failed for RwLock");
-    //   }
-    // };
 
     // read data from stream
     // first 2bytes indicates the length of dns message following from the 3rd byte

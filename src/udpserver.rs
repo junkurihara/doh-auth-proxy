@@ -22,13 +22,6 @@ impl UDPServer {
     src_addr: std::net::SocketAddr,
     res_sender: mpsc::Sender<(Vec<u8>, std::net::SocketAddr)>,
   ) -> Result<(), Error> {
-    // let self_clone = self.clone();
-    // let globals_cache = match self_clone.globals_cache.try_read() {
-    //   Ok(g) => g,
-    //   Err(e) => {
-    //     bail!("try_read failed for RwLock {:?}", e);
-    //   }
-    // };
     let self_clone = self.clone();
     let globals_cache = self_clone.globals_cache.read().await;
 
