@@ -104,7 +104,7 @@ pub async fn parse_opts(
   );
 
   let doh_target_url: String = matches.value_of("doh_target_url").unwrap().to_string();
-  info!("Target DoH URL: {:?}", doh_target_url);
+  info!("Target DoH URL: {}", doh_target_url);
 
   let doh_timeout_sec = DOH_TIMEOUT_SEC;
   let doh_method = match matches.is_present("doh_method_get") {

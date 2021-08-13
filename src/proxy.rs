@@ -68,12 +68,12 @@ impl Proxy {
     };
 
     {
-      println!("before {:#?}", credential);
+      // println!("before {:#?}", credential);
       credential.refresh(&self.globals).await?;
       let mut globals_cache = self.globals_cache.write().await;
       globals_cache.credential = Some(credential);
       drop(globals_cache);
-      println!("after {:#?}", self.globals_cache.read().await.credential);
+      // println!("after {:#?}", self.globals_cache.read().await.credential);
     }
     Ok(())
   }
