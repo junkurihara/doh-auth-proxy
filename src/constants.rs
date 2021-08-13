@@ -18,3 +18,4 @@ pub const ENDPOINT_JWKS_PATH: &str = "/jwks";
 
 pub const CREDENTIAL_REFRESH_BEFORE_EXPIRATION_IN_SECS: i64 = 300; // refresh 5 minutes before expiration
 pub const CREDENTIAL_REFRESH_MARGIN: i64 = 10; // at least 10 secs must be left to refresh
+pub const ENDPOINT_RELOGIN_WAITING_SEC: u64 = 10;

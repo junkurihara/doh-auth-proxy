@@ -2,11 +2,12 @@ use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
 use log::{debug, error, info, warn};
 use std::net::SocketAddr;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::time::Duration;
 use tokio;
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc;
+use tokio::sync::RwLock;
 
 #[derive(Clone)]
 pub struct UDPServer {
@@ -21,13 +22,15 @@ impl UDPServer {
     src_addr: std::net::SocketAddr,
     res_sender: mpsc::Sender<(Vec<u8>, std::net::SocketAddr)>,
   ) -> Result<(), Error> {
+    // let self_clone = self.clone();
+    // let globals_cache = match self_clone.globals_cache.try_read() {
+    //   Ok(g) => g,
+    //   Err(e) => {
+    //     bail!("try_read failed for RwLock {:?}", e);
+    //   }
+    // };
     let self_clone = self.clone();
-    let globals_cache = match self_clone.globals_cache.try_read() {
-      Ok(g) => g,
-      Err(e) => {
-        bail!("try_read failed for RwLock {:?}", e);
-      }
-    };
+    let globals_cache = self_clone.globals_cache.read().await;
 
     let doh_client = match globals_cache.doh_client.clone() {
       Some(x) => x,

@@ -7,11 +7,11 @@ use clap::Arg;
 use dotenv;
 use log::{debug, error, info, warn};
 use std::env;
-use std::fs;
 use std::net::SocketAddr;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use std::time::Duration;
 use tokio::runtime::Handle;
+use tokio::sync::RwLock;
 
 pub async fn parse_opts(
   runtime_handle: Handle,

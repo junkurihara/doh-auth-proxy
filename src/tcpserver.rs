@@ -2,9 +2,10 @@ use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
 use log::{debug, error, info, warn};
 use std::net::SocketAddr;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::RwLock;
 
 #[derive(Clone)]
 pub struct TCPServer {
@@ -15,15 +16,20 @@ pub struct TCPServer {
 impl TCPServer {
   async fn serve_query(self, mut stream: TcpStream, src_addr: SocketAddr) -> Result<(), Error> {
     debug!("handle query from {:?}", src_addr);
-    let doh_client = match self.clone().globals_cache.try_read() {
-      Ok(globals_cache) => match globals_cache.doh_client.clone() {
-        Some(x) => x,
-        None => bail!("DoH client is not properly configured"),
-      },
-      Err(_) => {
-        bail!("try_read failed for RwLock");
-      }
+    let globals_cache = self.globals_cache.read().await;
+    let doh_client = match globals_cache.doh_client.clone() {
+      Some(x) => x,
+      None => bail!("DoH client is not properly configured"),
     };
+    // let doh_client = match self.clone().globals_cache.try_read() {
+    //   Ok(globals_cache) => match globals_cache.doh_client.clone() {
+    //     Some(x) => x,
+    //     None => bail!("DoH client is not properly configured"),
+    //   },
+    //   Err(_) => {
+    //     bail!("try_read failed for RwLock");
+    //   }
+    // };
 
     // read data from stream
     // first 2bytes indicates the length of dns message following from the 3rd byte
