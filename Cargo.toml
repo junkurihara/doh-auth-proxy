@@ -33,7 +33,7 @@ anyhow = "1.0.42"
 dotenv = "0.15.0"
 serde_json = "1.0.66"
 jwt-simple = "0.10.3"
-p256 = "0.9.0"
+p256 = { version = "0.9.0", features = ["jwk"] }
 chrono = "0.4.19"
 
 [profile.release]

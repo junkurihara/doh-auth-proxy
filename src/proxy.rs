@@ -133,7 +133,7 @@ impl Proxy {
               return Ok(());
             }
           };
-          let period = match credential.id_token_expires_in_secs() {
+          let period = match credential.id_token_expires_in_secs().await {
             Ok(secs) => {
               let period_secs = match secs > CREDENTIAL_REFRESH_BEFORE_EXPIRATION_IN_SECS {
                 true => secs - CREDENTIAL_REFRESH_BEFORE_EXPIRATION_IN_SECS,

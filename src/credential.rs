@@ -6,6 +6,7 @@ use chrono::{DateTime, Local};
 use jwt_simple::prelude::*;
 use log::{debug, error, info, warn};
 use p256::elliptic_curve::sec1::ToEncodedPoint;
+use p256::pkcs8::ToPublicKey;
 use serde_json;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -44,21 +45,46 @@ impl Credential {
     self.id_token.clone()
   }
 
-  pub async fn login(&mut self, globals: &Arc<Globals>) -> Result<(), Error> {
-    // token endpoint is resolved via bootstrap DNS resolver
-    let token_endpoint = format!("{}{}", self.token_api, ENDPOINT_LOGIN_PATH);
-
+  async fn get_http_client_resolved_by_bootstrap(
+    &self,
+    endpoint: &str,
+    globals: &Arc<Globals>,
+  ) -> Result<reqwest::Client, Error> {
     let (target_host_str, target_addresses) = resolve_by_bootstrap(
       &globals.bootstrap_dns,
-      &token_endpoint,
+      endpoint,
       globals.runtime_handle.clone(),
     )
     .await?;
     let target_addr = target_addresses[0].clone();
     debug!(
-      "Via bootstrap DNS [{:?}], token endpoint {:?} resolved: {:?}",
-      &globals.bootstrap_dns, &token_endpoint, &target_addr
+      "Via bootstrap DNS [{:?}], endpoint {:?} resolved: {:?}",
+      &globals.bootstrap_dns, &endpoint, &target_addr
     );
+    return Ok(
+      reqwest::Client::builder()
+        .user_agent(format!("doh-auth/{}", env!("CARGO_PKG_VERSION")))
+        .resolve(&target_host_str, target_addr)
+        .trust_dns(true)
+        .build()?,
+    );
+  }
+
+  fn get_http_client(&self) -> Result<reqwest::Client, Error> {
+    return Ok(
+      reqwest::Client::builder()
+        .user_agent(format!("doh-auth/{}", env!("CARGO_PKG_VERSION")))
+        .trust_dns(true)
+        .build()?,
+    );
+  }
+
+  pub async fn login(&mut self, globals: &Arc<Globals>) -> Result<(), Error> {
+    // token endpoint is resolved via bootstrap DNS resolver
+    let token_endpoint = format!("{}{}", self.token_api, ENDPOINT_LOGIN_PATH);
+    let client = self
+      .get_http_client_resolved_by_bootstrap(&token_endpoint, globals)
+      .await?;
 
     // TODO: maybe define as a struct for strongly typed definition
     let json_request = format!(
@@ -66,26 +92,20 @@ impl Credential {
       self.username, self.password, self.client_id
     );
 
-    let client = reqwest::Client::builder()
-      .user_agent(format!("doh-auth/{}", env!("CARGO_PKG_VERSION")))
-      .resolve(&target_host_str, target_addr)
-      .trust_dns(true)
-      .build()
-      .unwrap();
-    let response = client
+    let token_response = client
       .post(&token_endpoint)
       .header(reqwest::header::CONTENT_TYPE, "application/json")
       .body(json_request)
       .send()
       .await?;
 
-    if response.status() != reqwest::StatusCode::OK {
-      error!("Login error!: {:?}", response.status());
-      bail!("{:?}", response.status());
+    if token_response.status() != reqwest::StatusCode::OK {
+      error!("Login error!: {:?}", token_response.status());
+      bail!("{:?}", token_response.status());
     }
 
     // TODO: maybe define as a struct for strongly typed definition
-    let text_body = response.text().await?;
+    let text_body = token_response.text().await?;
     let json_response: serde_json::Value = serde_json::from_str(&text_body)?;
     self.id_token = if let Some(x) = json_response["Access"]["token"]["id"].as_str() {
       Some(x.to_string())
@@ -97,8 +117,15 @@ impl Credential {
     } else {
       bail!("Invalid refresh token format");
     };
+
+    // jwks retrieval process and update self
+    // TODO: this also required if self.validation_key is not properly set
+    self
+      .update_validation_key_matched_to_key_id(self.get_meta_from_id_token()?)
+      .await?;
+
     // check validity of id token
-    match self.verify_id_token() {
+    match self.verify_id_token().await {
       Ok(_) => (),
       Err(e) => bail!(
         "Invalid Id token! Carefully check if bootstrap DNS is poisoned! {}",
@@ -113,17 +140,7 @@ impl Credential {
   pub async fn refresh(&mut self, _globals: &Arc<Globals>) -> Result<(), Error> {
     // refresh endpoint is resolved via configured system DNS resolver
     let refresh_endpoint = format!("{}{}", self.token_api, ENDPOINT_REFRESH_PATH);
-    // let (target_host_str, target_addresses) = resolve_by_bootstrap(
-    //   &globals.bootstrap_dns,
-    //   &refresh_endpoint,
-    //   globals.runtime_handle.clone(),
-    // )
-    // .await?;
-    // let target_addr = target_addresses[0].clone();
-    // info!(
-    //   "Via bootstrap DNS [{:?}], refresh endpoint {:?} resolved: {:?}",
-    //   &globals.bootstrap_dns, &refresh_endpoint, &target_addr
-    // );
+    let client = self.get_http_client()?;
 
     let refresh_token = if let Some(r) = &self.refresh_token {
       r
@@ -138,13 +155,6 @@ impl Credential {
 
     // TODO: maybe define as a struct for strongly typed definition
     let json_request = format!("{{ \"refresh_token\": \"{}\" }}", refresh_token);
-
-    let client = reqwest::Client::builder()
-      .user_agent(format!("doh-auth/{}", env!("CARGO_PKG_VERSION")))
-      // .resolve(&target_host_str, target_addr)
-      .trust_dns(true)
-      .build()
-      .unwrap();
     let response = client
       .post(&refresh_endpoint)
       .header(reqwest::header::CONTENT_TYPE, "application/json")
@@ -164,8 +174,15 @@ impl Credential {
     } else {
       bail!("Invalid Id token format");
     };
+
+    // jwks retrieval process and update self
+    // TODO: this also required if self.validation_key is not properly set
+    self
+      .update_validation_key_matched_to_key_id(self.get_meta_from_id_token()?)
+      .await?;
+
     // check validity of id token
-    match self.verify_id_token() {
+    match self.verify_id_token().await {
       Ok(_) => (),
       Err(e) => bail!(
         "Invalid Id token! Carefully check if bootstrap DNS is poisoned! {}",
@@ -177,9 +194,66 @@ impl Credential {
     Ok(())
   }
 
-  pub fn id_token_expires_in_secs(&self) -> Result<i64, Error> {
+  async fn update_validation_key_matched_to_key_id(
+    &mut self,
+    meta: TokenMetadata,
+  ) -> Result<(), Error> {
+    let jwks_endpoint = format!("{}{}", self.token_api, ENDPOINT_JWKS_PATH);
+    let client = self.get_http_client()?;
+    let jwks_response = client.get(&jwks_endpoint).send().await?;
+    let text_body = jwks_response.text().await?;
+    let json_response: serde_json::Value = serde_json::from_str(&text_body)?;
+
+    let arr_iter = if let Some(keys) = json_response.get("keys") {
+      match keys.as_array() {
+        Some(t) => t.iter(),
+        None => bail!("jwks endpoint doesn't work! Invalid response format"),
+      }
+    } else {
+      bail!("keys are missing in jwks response. jwks endpoint doesn't work!");
+    };
+    let arr_vec: Vec<&serde_json::Value> = if let Some(token_kid) = meta.key_id() {
+      arr_iter
+        .filter(|obj| {
+          if let Some(jwk_id) = obj.get("kid") {
+            jwk_id == token_kid
+          } else {
+            true // if jwk_id is not supplied at jwks endpoint, always true...
+          }
+        })
+        .collect()
+    } else {
+      arr_iter.collect()
+    };
+
+    if arr_vec.len() == 0 {
+      bail!("No JWK matched to Id token is given at jwks endpoint!");
+    }
+    let mut matched = arr_vec[0].clone();
+    let matched_jwk = match matched.as_object_mut() {
+      Some(o) => o,
+      None => bail!("Invalid jwk retrieved from jwks endpoint"),
+    };
+    matched_jwk.remove_entry("kid");
+    let jwk_string = serde_json::to_string(matched_jwk)?;
+    debug!("Matched JWK given at jwks endpoint is {}", &jwk_string);
+
+    match Algorithm::from_str(meta.algorithm())? {
+      Algorithm::ES256 => {
+        let pk = p256::PublicKey::from_jwk_str(&jwk_string)?;
+        let pem = pk.to_public_key_pem()?;
+        if self.validation_key != pem {
+          warn!("Validation key possibly updated!: {}", pem);
+          self.validation_key = pem;
+        }
+      }
+    };
+    Ok(())
+  }
+
+  pub async fn id_token_expires_in_secs(&self) -> Result<i64, Error> {
     // This returns unix time in secs
-    let clm = self.verify_id_token()?;
+    let clm = self.verify_id_token().await?;
     let expires_at: i64 = clm.expires_at.unwrap().as_secs() as i64;
     let dt: DateTime<Local> = Local::now();
     let timestamp = dt.timestamp();
@@ -192,11 +266,20 @@ impl Credential {
     Ok(expires_in_secs)
   }
 
-  fn verify_id_token(&self) -> Result<JWTClaims<NoCustomClaims>, Error> {
+  pub fn get_meta_from_id_token(&self) -> Result<TokenMetadata, Error> {
     // parse jwt
-    let (id_token, meta) = if let Some(id_token) = &self.id_token {
+    if let Some(id_token) = &self.id_token {
       let meta = Token::decode_metadata(id_token)?;
-      (id_token, meta)
+      return Ok(meta);
+    } else {
+      bail!("No Id token is configured");
+    };
+  }
+
+  async fn verify_id_token(&self) -> Result<JWTClaims<NoCustomClaims>, Error> {
+    let meta = self.get_meta_from_id_token()?;
+    let id_token = if let Some(id_token) = &self.id_token {
+      id_token
     } else {
       bail!("No Id token is configured");
     };
