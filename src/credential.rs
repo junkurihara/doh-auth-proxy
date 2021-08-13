@@ -119,7 +119,7 @@ impl Credential {
 
     // jwks retrieval process and update self
     self
-      .update_validation_key_matched_to_key_id(self.get_meta_from_id_token()?)
+      .update_validation_key_matched_to_key_id(globals, self.get_meta_from_id_token()?)
       .await?;
 
     // check validity of id token
@@ -135,7 +135,7 @@ impl Credential {
     Ok(())
   }
 
-  pub async fn refresh(&mut self, _globals: &Arc<Globals>) -> Result<(), Error> {
+  pub async fn refresh(&mut self, globals: &Arc<Globals>) -> Result<(), Error> {
     // refresh endpoint is resolved via configured system DNS resolver
     let refresh_endpoint = format!("{}{}", self.token_api, ENDPOINT_REFRESH_PATH);
     let client = self.get_http_client()?;
@@ -175,7 +175,7 @@ impl Credential {
 
     // jwks retrieval process and update self
     self
-      .update_validation_key_matched_to_key_id(self.get_meta_from_id_token()?)
+      .update_validation_key_matched_to_key_id(globals, self.get_meta_from_id_token()?)
       .await?;
 
     // check validity of id token
@@ -193,10 +193,13 @@ impl Credential {
 
   async fn update_validation_key_matched_to_key_id(
     &mut self,
+    globals: &Arc<Globals>,
     meta: TokenMetadata,
   ) -> Result<(), Error> {
     let jwks_endpoint = format!("{}{}", self.token_api, ENDPOINT_JWKS_PATH);
-    let client = self.get_http_client()?;
+    let client = self
+      .get_http_client_resolved_by_bootstrap(&jwks_endpoint, globals)
+      .await?;
     let jwks_response = client.get(&jwks_endpoint).send().await?;
     let text_body = jwks_response.text().await?;
     let json_response: serde_json::Value = serde_json::from_str(&text_body)?;

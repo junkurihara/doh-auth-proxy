@@ -20,7 +20,7 @@ use std::env;
 use tokio;
 
 fn main() {
-    env::set_var("RUST_LOG", "info");
+    env::set_var("RUST_LOG", "debug");
     env_logger::init();
     info!("Start DoH w/ Auth Proxy");
 
