@@ -98,7 +98,7 @@ impl Proxy {
 
   async fn run_periodic_token_refresh(self) -> () {
     // read current token in globals_cache, check its expiration, and set period
-    debug!("Start periodic refresh process of Id token");
+    debug!("Start periodic expiration-check and refresh process of Id token");
     let mut retry_login = 0;
     loop {
       {
@@ -124,6 +124,8 @@ impl Proxy {
         }
       }
       {
+        // every XX secs, check credential expiration (recovery from hibernation...)
+        sleep(Duration::from_secs(CREDENTIAL_CHECK_PERIOD_SECS)).await;
         let credential = {
           if let Some(c) = self.get_credential_clone().await {
             c
@@ -132,13 +134,16 @@ impl Proxy {
             return ();
           }
         };
-        let period = match credential.id_token_expires_in_secs().await {
+        match credential.id_token_expires_in_secs().await {
           Ok(secs) => {
-            let period_secs = match secs > CREDENTIAL_REFRESH_BEFORE_EXPIRATION_IN_SECS {
-              true => secs - CREDENTIAL_REFRESH_BEFORE_EXPIRATION_IN_SECS,
-              false => 1,
+            if secs > CREDENTIAL_REFRESH_BEFORE_EXPIRATION_IN_SECS {
+              // No need to refresh yet
+              debug!(
+                "Approx. {:?} secs until next token refresh",
+                secs - CREDENTIAL_REFRESH_BEFORE_EXPIRATION_IN_SECS
+              );
+              continue;
             };
-            Duration::from_secs(period_secs as u64)
           }
           Err(e) => {
             warn!("Id token is invalid. retry login: {}", e);
@@ -146,11 +151,11 @@ impl Proxy {
             continue;
           }
         };
-        info!("Sleep {:?} until next token refresh", period);
-        sleep(period).await;
       }
 
       // TODO: Refresh Tokenの更新期限も延長すべきか?
+      // Finally refresh
+      info!("Refreshing Id token");
       match self.update_id_token().await {
         Ok(_) => {
           debug!("Successfully refreshed Id token");

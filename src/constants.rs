@@ -18,5 +18,8 @@ pub const ENDPOINT_JWKS_PATH: &str = "/jwks";
 
 pub const CREDENTIAL_REFRESH_BEFORE_EXPIRATION_IN_SECS: i64 = 600; // refresh 10 minutes before expiration
 pub const CREDENTIAL_REFRESH_MARGIN: i64 = 10; // at least 10 secs must be left to refresh
+pub const CREDENTIAL_CHECK_PERIOD_SECS: u64 = 60;
+// every 60 secs, token is checked. then if the refresh condition is satisfied, refresh.
+// this is to rapidly recover from the hibernation of PC on which this is working. (at most 60 secs is needed for recovery)
 pub const ENDPOINT_RELOGIN_WAITING_SEC: u64 = 10;
 pub const MAX_LOGIN_ATTEMPTS: usize = 5;

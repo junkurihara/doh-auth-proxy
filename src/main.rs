@@ -16,7 +16,7 @@ mod utils;
 use config::parse_opts;
 use log::{debug, error, info, warn};
 use proxy::Proxy;
-use std::env;
+// use std::env;
 use std::io::Write;
 use tokio;
 
