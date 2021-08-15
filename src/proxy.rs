@@ -109,6 +109,7 @@ impl Proxy {
         if retry_login > 0 {
           warn!("Retry login after {} secs", ENDPOINT_RELOGIN_WAITING_SEC);
           sleep(Duration::from_secs(ENDPOINT_RELOGIN_WAITING_SEC)).await;
+          // TODO: ここは再ログインが正しいのか、それともrefreshが正しいのか
           if let Err(e) = self.authenticate().await {
             warn!("Login failed. retry: {}", e);
             retry_login += 1;
@@ -149,9 +150,10 @@ impl Proxy {
         sleep(period).await;
       }
 
+      // TODO: ここでRefresh Tokenの更新期限も延長しちゃう?
       match self.update_id_token().await {
         Ok(_) => {
-          debug!("Successfully refresh Id token");
+          debug!("Successfully refreshed Id token");
           match self.update_client().await {
             Ok(_) => debug!("Successfully update DoH client with updated Id token"),
             Err(e) => {
@@ -162,7 +164,10 @@ impl Proxy {
           };
         }
         Err(e) => {
-          warn!("Refresh failed. maybe token expired. retry login: {}", e);
+          warn!(
+            "Failed to refresh. maybe refresh token expired. retry login: {}",
+            e
+          );
           retry_login += 1;
           continue;
         }
@@ -173,6 +178,7 @@ impl Proxy {
   pub async fn entrypoint(self) -> Result<(), Error> {
     // 1. prepare authorization
     {
+      // TODO: 一番初めにログインさせるのが本当にいいのかは疑問。token持つだけの方がいい？
       if let Err(e) = self.authenticate().await {
         error!("Failed to login to token endpoint {:?}", e);
         std::process::exit(EXIT_ON_LOGIN_FAILURE);

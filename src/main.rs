@@ -45,7 +45,13 @@ fn main() {
     let runtime = runtime_builder.build().unwrap();
 
     runtime.block_on(async {
-        let (globals, globals_cache) = parse_opts(runtime.handle().clone()).await.unwrap();
+        let (globals, globals_cache) = match parse_opts(runtime.handle().clone()).await {
+            Ok(g) => g,
+            Err(e) => {
+                error!("{}", e);
+                std::process::exit(exitcodes::EXIT_ON_OPTION_FAILURE);
+            }
+        };
 
         let proxy = Proxy {
             globals,
