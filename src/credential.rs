@@ -145,21 +145,15 @@ impl Credential {
     } else {
       bail!("No refresh token is configured. Should login again first.");
     };
-    let id_token = if let Some(i) = &self.id_token {
-      i
-    } else {
-      bail!("No Id token is configured. Must login again first.");
-    };
 
     // TODO: maybe define as a struct for strongly typed definition
-    let json_request = format!("{{ \"refresh_token\": \"{}\" }}", refresh_token);
+    let json_request = format!(
+      "{{ \"refresh_token\": \"{}\", \"client_id\": \"{}\" }}",
+      refresh_token, self.client_id
+    );
     let response = client
       .post(&refresh_endpoint)
       .header(reqwest::header::CONTENT_TYPE, "application/json")
-      .header(
-        reqwest::header::AUTHORIZATION,
-        &format!("Bearer {}", &id_token),
-      )
       .body(json_request)
       .send()
       .await?;

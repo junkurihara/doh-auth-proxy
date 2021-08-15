@@ -150,7 +150,7 @@ impl Proxy {
         sleep(period).await;
       }
 
-      // TODO: ここでRefresh Tokenの更新期限も延長しちゃう?
+      // TODO: Refresh Tokenの更新期限も延長すべきか?
       match self.update_id_token().await {
         Ok(_) => {
           debug!("Successfully refreshed Id token");
