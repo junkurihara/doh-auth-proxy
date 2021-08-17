@@ -6,7 +6,6 @@ use log::{debug, error, info, warn};
 use reqwest::header;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use std::time::Duration;
 
 #[derive(Debug, Clone)]
 pub enum DoHMethod {
@@ -40,7 +39,7 @@ impl DoHClient {
     globals: Arc<Globals>,
     auth_token: &Option<String>,
   ) -> Result<(Self, Vec<SocketAddr>), Error> {
-    let timeout_duration = Duration::from_secs(globals.doh_timeout_sec);
+    let timeout_duration = globals.timeout_sec;
 
     let headers: header::HeaderMap = match auth_token {
       None => get_default_header(),

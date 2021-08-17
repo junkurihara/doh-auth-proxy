@@ -54,8 +54,16 @@ pub async fn parse_opts(
         .takes_value(true)
         .default_value(DOH_TARGET_URL)
         .validator(verify_target_url)
-        .help("URL of target DoH server like \"https://dns.google/dns-query\""),
+        .help("URL of (O)DoH target server like \"https://dns.google/dns-query\""),
     )
+    // .arg(
+    //   Arg::with_name("odoh_relay_url")
+    //     .short("r")
+    //     .long("relay-url")
+    //     .takes_value(true)
+    //     .validator(verify_target_url)
+    //     .help("URL of ODoH relay server like \"https://relay.example.com/relay\""),
+    // )
     .arg(
       Arg::with_name("credential_file_path")
       .short("c")
@@ -106,7 +114,6 @@ pub async fn parse_opts(
   let doh_target_url: String = matches.value_of("doh_target_url").unwrap().to_string();
   info!("Target DoH URL: {}", doh_target_url);
 
-  let doh_timeout_sec = DOH_TIMEOUT_SEC;
   let doh_method = match matches.is_present("doh_method_get") {
     true => {
       info!("Use GET method to query");
@@ -117,6 +124,11 @@ pub async fn parse_opts(
       Some(DoHMethod::POST)
     }
   };
+
+  // let odoh_relay_url: Option<String> = match matches.value_of("odoh_relay_url") {
+  //   Some(s) => Some(s.to_string()),
+  //   None => None,
+  // };
 
   // If credential exists, authorization header is also enabled.
   // TODO: login password should be stored in keychain access like secure storage rather than dotenv.
@@ -151,13 +163,14 @@ pub async fn parse_opts(
   };
 
   let globals = Arc::new(Globals {
-    doh_target_url,
     listen_addresses,
     udp_buffer_size: UDP_BUFFER_SIZE,
     udp_channel_capacity: UDP_CHANNEL_CAPACITY,
-    udp_timeout: Duration::from_secs(UDP_TIMEOUT_SEC),
-    doh_timeout_sec,
+    timeout_sec: Duration::from_secs(TIMEOUT_SEC),
+
+    doh_target_url,
     doh_method,
+    // odoh_relay_url,
     bootstrap_dns,
     rebootstrap_period_sec,
 
@@ -168,6 +181,7 @@ pub async fn parse_opts(
   let globals_cache = Arc::new(RwLock::new(GlobalsCache {
     doh_target_addrs: None,
     doh_client: None,
+    // odoh_relay_addrs: None,
     credential,
   }));
 

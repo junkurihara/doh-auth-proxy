@@ -35,6 +35,7 @@ serde_json = "1.0.66"
 jwt-simple = "0.10.3"
 p256 = { version = "0.9.0", features = ["jwk"] }
 chrono = "0.4.19"
+odoh-rs = "1.0.0-alpha.1"
 
 [profile.release]
 codegen-units = 1
