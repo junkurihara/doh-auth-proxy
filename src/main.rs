@@ -1,7 +1,6 @@
 #[macro_use]
 extern crate clap;
 
-mod bootstrap;
 mod client;
 mod config;
 mod constants;
@@ -9,6 +8,8 @@ mod credential;
 mod error;
 mod exitcodes;
 mod globals;
+mod http_bootstrap;
+mod odoh;
 mod proxy;
 mod tcpserver;
 mod udpserver;

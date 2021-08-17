@@ -1,9 +1,56 @@
 use crate::error::*;
+use crate::globals::Globals;
 use log::{debug, error, info, warn};
+use reqwest::header::HeaderMap;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use trust_dns_resolver::config::*;
 use trust_dns_resolver::TokioAsyncResolver;
 use url::Url;
+
+pub struct HttpClient {
+  pub client: reqwest::Client,
+}
+
+impl HttpClient {
+  pub async fn new(
+    globals: &Arc<Globals>,
+    endpoint_bootstrap: Option<&str>,
+    default_headers: Option<&HeaderMap>,
+  ) -> Result<Self, Error> {
+    let mut client = reqwest::Client::builder()
+      .user_agent(format!("doh-auth/{}", env!("CARGO_PKG_VERSION")))
+      .timeout(globals.timeout_sec)
+      .trust_dns(true);
+
+    client = match endpoint_bootstrap {
+      Some(endpoint) => {
+        let (target_host_str, target_addresses) = resolve_by_bootstrap(
+          &globals.bootstrap_dns,
+          endpoint,
+          globals.runtime_handle.clone(),
+        )
+        .await?;
+        let target_addr = target_addresses[0].clone();
+        debug!(
+          "Via bootstrap DNS [{:?}], endpoint {:?} resolved: {:?}",
+          &globals.bootstrap_dns, &endpoint, &target_addr
+        );
+        client.resolve(&target_host_str, target_addr)
+      }
+      None => client,
+    };
+
+    client = match default_headers {
+      Some(headers) => client.default_headers(headers.clone()),
+      None => client,
+    };
+
+    return Ok(HttpClient {
+      client: client.build()?,
+    });
+  }
+}
 
 pub async fn resolve_by_bootstrap(
   bootstrap_dns: &SocketAddr,

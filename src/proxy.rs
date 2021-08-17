@@ -1,4 +1,3 @@
-use crate::client::DoHClient;
 use crate::constants::*;
 use crate::credential::Credential;
 use crate::error::*;
@@ -25,6 +24,7 @@ impl Proxy {
     cache.credential.clone()
   }
 
+  // TODO: Should login to relay when odoh
   async fn authenticate(&self) -> Result<(), Error> {
     // Read credential first
     let mut credential = match self.get_credential_clone().await {
@@ -44,37 +44,19 @@ impl Proxy {
   }
 
   async fn update_client(&self) -> Result<(), Error> {
-    let id_token = match self.get_credential_clone().await {
-      Some(c) => c.id_token(),
-      None => None,
-    };
-    let (doh_client, doh_target_addrs) = DoHClient::new(self.globals.clone(), &id_token).await?;
-    {
-      let mut globals_cache = self.globals_cache.write().await;
-      globals_cache.doh_client = Some(doh_client);
-      globals_cache.doh_target_addrs = Some(doh_target_addrs);
-      drop(globals_cache);
-    }
+    let mut globals_cache = self.globals_cache.write().await;
+    globals_cache.update_doh_client(&self.globals).await?;
+    drop(globals_cache);
     Ok(())
   }
 
+  // TODO: update id_token for odoh_relay when odoh
   async fn update_id_token(&self) -> Result<(), Error> {
-    let mut credential = match self.get_credential_clone().await {
-      None => {
-        // This function is called only when authorized
-        bail!("No credential is configured");
-      }
-      Some(c) => c,
-    };
-
-    {
-      // println!("before {:#?}", credential);
-      credential.refresh(&self.globals).await?;
-      let mut globals_cache = self.globals_cache.write().await;
-      globals_cache.credential = Some(credential);
-      drop(globals_cache);
-      // println!("after {:#?}", self.globals_cache.read().await.credential);
-    }
+    // println!("before {:#?}", self.get_credential_clone().await.unwrap());
+    let mut globals_cache = self.globals_cache.write().await;
+    globals_cache.update_credential(&self.globals).await?;
+    drop(globals_cache);
+    // println!("after {:#?}", self.globals_cache.read().await.credential);
     Ok(())
   }
 
@@ -192,7 +174,7 @@ impl Proxy {
     // 2. prepare client
     {
       if let Err(e) = self.update_client().await {
-        error!("Failed to update DoH client with new Id token {:?}", e);
+        error!("Failed to update (O)DoH client (with new Id token) {:?}", e);
         std::process::exit(EXIT_ON_CLIENT_FAILURE);
       }
     }
@@ -240,7 +222,7 @@ impl Proxy {
 
     // wait for all future
     if let (Ok(_), _, _) = futures.await {
-      println!("Some packet acceptors are down");
+      error!("Some packet acceptors are down");
     };
 
     // for f in futures {

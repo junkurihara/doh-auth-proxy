@@ -36,7 +36,7 @@ impl TCPServer {
     let res = tokio::time::timeout(
       self.globals.timeout_sec + std::time::Duration::from_secs(1),
       // serve udp dns message here
-      doh_client.make_doh_query(packet_buf),
+      doh_client.make_doh_query(&packet_buf, &self.globals, &self.globals_cache),
     )
     .await
     .ok();

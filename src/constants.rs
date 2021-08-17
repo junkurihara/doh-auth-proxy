@@ -8,6 +8,8 @@ pub const BOOTSTRAP_DNS: &str = "1.1.1.1:53";
 pub const REBOOTSTRAP_PERIOD_MIN: u64 = 60;
 pub const DOH_TARGET_URL: &str = "https://dns.google/dns-query";
 
+pub const ODOH_CONFIG_PATH: &str = "/.well-known/odohconfigs";
+
 pub const CREDENTIAL_USERNAME_FIELD: &str = "username";
 pub const CREDENTIAL_API_KEY_FIELD: &str = "password";
 pub const CREDENTIAL_CLIENT_ID_FIELD: &str = "client_id";

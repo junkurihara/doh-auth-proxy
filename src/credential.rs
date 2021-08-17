@@ -1,7 +1,7 @@
-use crate::bootstrap::resolve_by_bootstrap;
 use crate::constants::*;
 use crate::error::*;
 use crate::globals::Globals;
+use crate::http_bootstrap::HttpClient;
 use chrono::{DateTime, Local};
 use jwt_simple::prelude::*;
 use log::{debug, error, info, warn};
@@ -44,46 +44,13 @@ impl Credential {
     self.id_token.clone()
   }
 
-  async fn get_http_client_resolved_by_bootstrap(
-    &self,
-    endpoint: &str,
-    globals: &Arc<Globals>,
-  ) -> Result<reqwest::Client, Error> {
-    let (target_host_str, target_addresses) = resolve_by_bootstrap(
-      &globals.bootstrap_dns,
-      endpoint,
-      globals.runtime_handle.clone(),
-    )
-    .await?;
-    let target_addr = target_addresses[0].clone();
-    debug!(
-      "Via bootstrap DNS [{:?}], endpoint {:?} resolved: {:?}",
-      &globals.bootstrap_dns, &endpoint, &target_addr
-    );
-    return Ok(
-      reqwest::Client::builder()
-        .user_agent(format!("doh-auth/{}", env!("CARGO_PKG_VERSION")))
-        .resolve(&target_host_str, target_addr)
-        .trust_dns(true)
-        .build()?,
-    );
-  }
-
-  fn get_http_client(&self) -> Result<reqwest::Client, Error> {
-    return Ok(
-      reqwest::Client::builder()
-        .user_agent(format!("doh-auth/{}", env!("CARGO_PKG_VERSION")))
-        .trust_dns(true)
-        .build()?,
-    );
-  }
-
   pub async fn login(&mut self, globals: &Arc<Globals>) -> Result<(), Error> {
     // token endpoint is resolved via bootstrap DNS resolver
     let token_endpoint = format!("{}{}", self.token_api, ENDPOINT_LOGIN_PATH);
-    let client = self
-      .get_http_client_resolved_by_bootstrap(&token_endpoint, globals)
-      .await?;
+    let client = HttpClient::new(globals, Some(&token_endpoint), None)
+      .await?
+      .client;
+    // let client = http_client_resolved_by_bootstrap(&token_endpoint, globals, None).await?;
 
     // TODO: maybe define as a struct for strongly typed definition
     let json_request = format!(
@@ -138,7 +105,7 @@ impl Credential {
   pub async fn refresh(&mut self, globals: &Arc<Globals>) -> Result<(), Error> {
     // refresh endpoint is resolved via configured system DNS resolver
     let refresh_endpoint = format!("{}{}", self.token_api, ENDPOINT_REFRESH_PATH);
-    let client = self.get_http_client()?;
+    let client = HttpClient::new(globals, None, None).await?.client;
 
     let refresh_token = if let Some(r) = &self.refresh_token {
       r
@@ -191,9 +158,9 @@ impl Credential {
     meta: TokenMetadata,
   ) -> Result<(), Error> {
     let jwks_endpoint = format!("{}{}", self.token_api, ENDPOINT_JWKS_PATH);
-    let client = self
-      .get_http_client_resolved_by_bootstrap(&jwks_endpoint, globals)
-      .await?;
+    let client = HttpClient::new(globals, Some(&jwks_endpoint), None)
+      .await?
+      .client;
     let jwks_response = client.get(&jwks_endpoint).send().await?;
     let text_body = jwks_response.text().await?;
     let json_response: serde_json::Value = serde_json::from_str(&text_body)?;

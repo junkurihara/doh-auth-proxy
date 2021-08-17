@@ -1,6 +1,8 @@
 use crate::client::{DoHClient, DoHMethod};
 use crate::credential::Credential;
+use crate::error::*;
 use std::net::SocketAddr;
+use std::sync::Arc;
 use std::time::Duration;
 use tokio;
 
@@ -13,7 +15,7 @@ pub struct Globals {
 
   pub doh_target_url: String,
   pub doh_method: Option<DoHMethod>,
-  // pub odoh_relay_url: Option<String>,
+  pub odoh_relay_url: Option<String>,
   pub bootstrap_dns: SocketAddr,
   pub rebootstrap_period_sec: Duration,
 
@@ -23,7 +25,38 @@ pub struct Globals {
 #[derive(Debug, Clone)]
 pub struct GlobalsCache {
   pub doh_client: Option<DoHClient>,
-  pub doh_target_addrs: Option<Vec<SocketAddr>>,
-  // pub odoh_relay_addrs: Option<Vec<SocketAddr>>,
   pub credential: Option<Credential>,
+}
+
+impl GlobalsCache {
+  pub async fn update_doh_client(&mut self, globals: &Arc<Globals>) -> Result<(), Error> {
+    let id_token = match &self.credential {
+      Some(c) => c.id_token(),
+      None => None,
+    };
+    {
+      let doh_client = DoHClient::new(globals.clone(), &id_token).await?;
+      self.doh_client = Some(doh_client);
+    }
+
+    Ok(())
+  }
+
+  // TODO: update id_token for odoh_relay when odoh.
+  // TODO: But currently if odoh, token-enabled dns doesn't start.
+  pub async fn update_credential(&mut self, globals: &Arc<Globals>) -> Result<(), Error> {
+    let mut credential = match self.credential.clone() {
+      None => {
+        // This function is called only when authorized
+        bail!("No credential is configured");
+      }
+      Some(c) => c,
+    };
+
+    {
+      credential.refresh(&globals).await?;
+      self.credential = Some(credential);
+    }
+    Ok(())
+  }
 }

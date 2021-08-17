@@ -3,7 +3,7 @@ use crate::constants::*;
 use crate::credential::Credential;
 use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
-use clap::Arg;
+use clap::{Arg, ArgGroup};
 use dotenv;
 use log::{debug, error, info, warn};
 use std::env;
@@ -56,20 +56,20 @@ pub async fn parse_opts(
         .validator(verify_target_url)
         .help("URL of (O)DoH target server like \"https://dns.google/dns-query\""),
     )
-    // .arg(
-    //   Arg::with_name("odoh_relay_url")
-    //     .short("r")
-    //     .long("relay-url")
-    //     .takes_value(true)
-    //     .validator(verify_target_url)
-    //     .help("URL of ODoH relay server like \"https://relay.example.com/relay\""),
-    // )
+    .arg(
+      Arg::with_name("odoh_relay_url")
+        .short("r")
+        .long("relay-url")
+        .takes_value(true)
+        .validator(verify_target_url)
+        .help("URL of ODoH relay server like \"https://relay.example.com/relay\"")
+    )
     .arg(
       Arg::with_name("credential_file_path")
       .short("c")
       .long("credential-file-path")
       .takes_value(true)
-      .help("Credential env file path for login endpoint like \"./credential.env\""),
+      .help("Credential env file path for login endpoint like \"./credential.env\"")
     )
     .arg(
       Arg::with_name("token_api")
@@ -77,13 +77,19 @@ pub async fn parse_opts(
       .long("token-api")
       .takes_value(true)
       .validator(verify_target_url)
-      .help("API url to retrieve and refresh tokens and validation keys (jwks) like \"https://example.com/v1.0\", where /tokens and /refresh are used for login and refresh, respectively. Also /jwks is used for jwks retrieval."),
+      .help("API url to retrieve and refresh tokens and validation keys (jwks) like \"https://example.com/v1.0\", where /tokens and /refresh are used for login and refresh, respectively. Also /jwks is used for jwks retrieval.")
     )
     .arg(
       Arg::with_name("doh_method_get")
         .short("g")
         .long("use-get-method")
         .help("Use Get method to query"),
+    )
+    .arg(
+      Arg::with_name("debug_mode")
+        .short("d")
+        .long("debug-mode")
+        .help("Use debug mode to issue authorized query even in odoh. just for development.")
     );
 
   let matches = options.get_matches();
@@ -125,10 +131,10 @@ pub async fn parse_opts(
     }
   };
 
-  // let odoh_relay_url: Option<String> = match matches.value_of("odoh_relay_url") {
-  //   Some(s) => Some(s.to_string()),
-  //   None => None,
-  // };
+  let odoh_relay_url: Option<String> = match matches.value_of("odoh_relay_url") {
+    Some(s) => Some(s.to_string()),
+    None => None,
+  };
 
   // If credential exists, authorization header is also enabled.
   // TODO: login password should be stored in keychain access like secure storage rather than dotenv.
@@ -162,6 +168,15 @@ pub async fn parse_opts(
     None
   };
 
+  ////////////////////////
+  warn!("Currently, we do not accept authorized queries for ODoH architecture");
+  if let (Some(_), Some(_)) = (&credential, &odoh_relay_url) {
+    if !matches.is_present("debug_mode") {
+      bail!("ODoH cannot be used when credential is configured since it is leaked to relay (not the target server).");
+    }
+  }
+  ////////////////////////
+
   let globals = Arc::new(Globals {
     listen_addresses,
     udp_buffer_size: UDP_BUFFER_SIZE,
@@ -170,18 +185,15 @@ pub async fn parse_opts(
 
     doh_target_url,
     doh_method,
-    // odoh_relay_url,
+    odoh_relay_url,
     bootstrap_dns,
     rebootstrap_period_sec,
 
     runtime_handle,
-    // client,
   });
 
   let globals_cache = Arc::new(RwLock::new(GlobalsCache {
-    doh_target_addrs: None,
     doh_client: None,
-    // odoh_relay_addrs: None,
     credential,
   }));
 
