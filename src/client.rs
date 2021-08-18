@@ -122,7 +122,7 @@ impl DoHClient {
   ) -> Result<ODoHClientContext, Error> {
     // TODO: Add auth token when fetching config?
     // fetch public key from odoh target (well-known)
-    info!("ODoH: Fetch server public key from {}", ODOH_CONFIG_PATH);
+    info!("[ODoH] Fetch server public key from {}", ODOH_CONFIG_PATH);
     let url = Url::parse(&globals.doh_target_url)?;
     let scheme = url.scheme(); // already checked at config.rs
     let host_str = url.host_str().unwrap();

@@ -132,7 +132,10 @@ pub async fn parse_opts(
   };
 
   let odoh_relay_url: Option<String> = match matches.value_of("odoh_relay_url") {
-    Some(s) => Some(s.to_string()),
+    Some(s) => {
+      info!("[ODoH] Oblivious DNS over HTTPS is enabled");
+      Some(s.to_string())
+    }
     None => None,
   };
 
