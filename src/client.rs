@@ -6,6 +6,7 @@ use crate::odoh::ODoHClientContext;
 use data_encoding::BASE64URL_NOPAD;
 use log::{debug, error, info, warn};
 use reqwest::header;
+use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -46,26 +47,34 @@ impl DoHClient {
   pub async fn new(globals: Arc<Globals>, auth_token: &Option<String>) -> Result<Self, Error> {
     let (doh_type, nexthop_url) = match &globals.odoh_relay_url {
       Some(u) => {
-        info!("ODoH is enabled: relay {}", u);
+        debug!("ODoH is enabled: relay {}", u);
+        // Sample: "https://odoh1.surfdomeinen.nl/proxy?targethost=odoh.cloudflare-dns.com&targetpath=/dns-query"
         let relay_url = Url::parse(u)?;
         let relay_scheme = relay_url.scheme();
-        let relay_host_str = relay_url.host_str().unwrap();
+        let relay_host_str = match relay_url.port() {
+          Some(port) => format!("{}:{}", relay_url.host_str().unwrap(), port),
+          None => relay_url.host_str().unwrap().to_string(),
+        };
         let relay_path_str = relay_url.path();
+        let base = format!("{}://{}{}", relay_scheme, relay_host_str, relay_path_str);
+
         let target_url = Url::parse(&globals.doh_target_url)?;
-        let target_host_str = target_url.host_str().unwrap();
-        let target_path_str = target_url.path();
-        (
-          DoHType::Oblivious,
-          // TODO: mu-ODNSへ拡張するならばいじるのはこの部分だけ
-          format!(
-            "{}://{}{}?targethost={}&targetpath={}",
-            relay_scheme, relay_host_str, relay_path_str, target_host_str, target_path_str
-          ),
-          // "https://odoh1.surfdomeinen.nl/proxy?targethost=odoh.cloudflare-dns.com&targetpath=/dns-query".to_string()
-        )
+        let target_host_str = match target_url.port() {
+          Some(port) => format!("{}:{}", target_url.host_str().unwrap(), port),
+          None => target_url.host_str().unwrap().to_string(),
+        };
+        let mut qs = HashMap::new();
+        qs.insert("targethost", target_host_str);
+        qs.insert("targetpath", target_url.path().to_string());
+
+        let combined = Url::parse_with_params(&base, qs)?.to_string();
+
+        // TODO: mu-ODNSへ拡張するならばいじるのはこの部分をvecにする,
+        (DoHType::Oblivious, combined)
       }
       None => (DoHType::Standard, globals.doh_target_url.clone()),
     };
+    info!("Target (O)DoH URL: {}", nexthop_url);
 
     // build client
     let mut headers = header::HeaderMap::new();
