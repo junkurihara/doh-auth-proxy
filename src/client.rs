@@ -56,6 +56,7 @@ impl DoHClient {
         let target_path_str = target_url.path();
         (
           DoHType::Oblivious,
+          // TODO: mu-ODNSへ拡張するならばいじるのはこの部分だけ
           format!(
             "{}://{}{}?targethost={}&targetpath={}",
             relay_scheme, relay_host_str, relay_path_str, target_host_str, target_path_str
@@ -65,7 +66,6 @@ impl DoHClient {
       }
       None => (DoHType::Standard, globals.doh_target_url.clone()),
     };
-    println!("xxx {}", nexthop_url);
 
     // build client
     let mut headers = header::HeaderMap::new();
@@ -96,7 +96,7 @@ impl DoHClient {
       DoHType::Oblivious => Some(DoHClient::fetch_odoh_config_from_well_known(&globals).await?),
       DoHType::Standard => None,
     };
-    println!("{:#?}", odoh_client_context);
+    // println!("{:#?}", odoh_client_context);
 
     Ok(DoHClient {
       doh_type,
