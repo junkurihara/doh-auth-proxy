@@ -38,6 +38,7 @@ chrono = "0.4.19"
 odoh-rs = "1.0.0-alpha.1"
 rand = "0.8.4"
 bytes = "1.0.1"
+urlencoding = "2.1.0"
 
 [profile.release]
 codegen-units = 1
