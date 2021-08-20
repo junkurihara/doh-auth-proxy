@@ -1,7 +1,7 @@
 // Based on https://github.com/DNSCrypt/doh-server/blob/master/src/libdoh/src/odoh.rs
 use crate::error::*;
+use crate::log::*;
 use bytes::Bytes;
-use log::{debug, error, info, warn};
 use odoh_rs::{
   parse, ObliviousDoHConfigContents, ObliviousDoHConfigs, ObliviousDoHMessage,
   ObliviousDoHMessagePlaintext, OdohSecret,

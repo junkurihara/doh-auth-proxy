@@ -1,6 +1,6 @@
 use crate::error::*;
 use crate::globals::Globals;
-use log::{debug, error, info, warn};
+use crate::log::*;
 use reqwest::header::HeaderMap;
 use std::net::SocketAddr;
 use std::sync::Arc;

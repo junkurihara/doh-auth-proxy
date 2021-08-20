@@ -4,7 +4,7 @@ use crate::globals::{Globals, GlobalsCache};
 use crate::http_bootstrap::HttpClient;
 use crate::odoh::ODoHClientContext;
 use data_encoding::BASE64URL_NOPAD;
-use log::{debug, error, info, warn};
+pub use log::{debug, error, info, warn};
 use reqwest::header;
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -140,7 +140,10 @@ impl DoHClient {
     info!("[ODoH] Fetch server public key from {}", ODOH_CONFIG_PATH);
     let url = Url::parse(&globals.doh_target_url)?;
     let scheme = url.scheme(); // already checked at config.rs
-    let host_str = url.host_str().unwrap();
+    let host_str = match url.port() {
+      Some(port) => format!("{}:{}", url.host_str().unwrap(), port),
+      None => url.host_str().unwrap().to_string(),
+    };
 
     let simple_client = HttpClient::new(&globals, Some(&globals.doh_target_url), None)
       .await?

@@ -1,6 +1,6 @@
 use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
-use log::{debug, error, info, warn};
+use crate::log::*;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
