@@ -87,6 +87,15 @@ impl DoHClient {
     let ct = doh_type.as_str();
     headers.insert("Accept", header::HeaderValue::from_str(&ct).unwrap());
     headers.insert("Content-Type", header::HeaderValue::from_str(&ct).unwrap());
+    match doh_type {
+      DoHType::Oblivious => {
+        headers.insert(
+          "Cache-Control",
+          header::HeaderValue::from_str("no-cache, no-store").unwrap(),
+        );
+      }
+      _ => (),
+    };
     if let Some(t) = auth_token {
       debug!("Instantiating DoH client with http authorization header");
       let token_str = format!("Bearer {}", &t);
