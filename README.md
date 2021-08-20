@@ -18,7 +18,6 @@ USAGE:
     doh-auth-proxy [FLAGS] [OPTIONS]
 
 FLAGS:
-    -d, --debug-mode        Use debug mode to issue authorized query even in odoh. just for development.
     -g, --use-get-method    Use Get method to query
     -h, --help              Prints help information
     -V, --version           Prints version information

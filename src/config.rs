@@ -3,9 +3,9 @@ use crate::constants::*;
 use crate::credential::Credential;
 use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
+use crate::log::*;
 use clap::Arg;
 use dotenv;
-pub use log::{debug, error, info, warn};
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -84,12 +84,6 @@ pub async fn parse_opts(
         .short("g")
         .long("use-get-method")
         .help("Use Get method to query"),
-    )
-    .arg(
-      Arg::with_name("debug_mode")
-        .short("d")
-        .long("debug-mode")
-        .help("Use debug mode to issue authorized query even in odoh. just for development.")
     );
 
   let matches = options.get_matches();
@@ -172,11 +166,18 @@ pub async fn parse_opts(
   };
 
   ////////////////////////
-  warn!("Currently, we do not accept authorized queries for ODoH architecture");
+
   if let (Some(_), Some(_)) = (&credential, &odoh_relay_url) {
-    if !matches.is_present("debug_mode") {
-      bail!("ODoH cannot be used when credential is configured since it is leaked to relay (not the target server).");
-    }
+    warn!("-----------------------------------");
+    warn!("[NOTE!!!!] Both credential and ODoH proxy is set up.");
+    warn!("[NOTE!!!!] This means the authorization token will be sent not to target but to proxy.");
+    warn!("[NOTE!!!!] Check if this is your intended behavior.");
+    warn!("-----------------------------------");
+  } else if let (Some(_), None) = (&credential, &odoh_relay_url) {
+    warn!("-----------------------------------");
+    warn!("[NOTE!!!!] Authorization token will be sent to the target server!");
+    warn!("[NOTE!!!!] Check if this is your intended behavior.");
+    warn!("-----------------------------------");
   }
   ////////////////////////
 
