@@ -1,5 +1,6 @@
 # doh-auth-proxy
-DoH local proxy with http authorization header, written in Rust
+
+DoH and Oblivious DoH local proxy supporting authenticated connection, written in Rust
 
 ## Build
 
@@ -41,3 +42,13 @@ OPTIONS:
             API url to retrieve and refresh tokens and validation keys (jwks) like "https://example.com/v1.0", where
             /tokens and /refresh are used for login and refresh, respectively. Also /jwks is used for jwks retrieval.
 ```
+
+## Authentication at the next hop node (DoH target or ODoH relay)
+
+This proxy provides **authenticated connection** to a DoH target resolver (in DoH) or to an ODoH relay (in ODoH).
+This function avoids the nexthop node to be private to users.
+To leverage the function, an authentication server issueing Authorization Bearer tokens and an authentication-enabled DoH target/ODoH relay, given in the following.
+
+- [`doh-server` (`jwt-auth` branch)](https://github.com/junkurihara/doh-server/tree/jwt-auth): A fork of [`DNSCrypt/doh-server`](https://github.com/DNSCrypt/doh-server) enabling the ODoH relay function, and authenticated connection with Authorization Bearer token.
+
+- [`rust-token-server`](https://github.com/junkurihara/rust-token-server): An implementation of authentication server issueing `id_token` in the context of OIDC.
