@@ -75,7 +75,11 @@ impl DoHClient {
           .map_err(|e| anyhow!(e))?
           .to_string();
 
-        // TODO: mu-ODNSへ拡張するならばいじるのはこの部分をvecにする,
+        // TODO: mu-ODNS拡張検討
+        //   combined=nexthop_urlについての扱い。
+        //   (intermediate_host, intermediate_path) の順序の扱いをどうするか？
+        //   randomizedしたpathを作って、vec[combined]を生成するか、
+        //   vec[(intermediate_candidates)]を用意して、都度randomized pathを生成してcombinedを作るか。
         (DoHType::Oblivious, combined)
       }
       None => (DoHType::Standard, globals.doh_target_url.clone()),
@@ -136,7 +140,7 @@ impl DoHClient {
     globals: &Arc<Globals>,
   ) -> Result<ODoHClientContext, Error> {
     // TODO: Add auth token when fetching config?
-    // fetch public key from odoh target (well-known)
+    // fetch public key from odoh target (/.well-known)
     info!("[ODoH] Fetch server public key from {}", ODOH_CONFIG_PATH);
     let url = Url::parse(&globals.doh_target_url)?;
     let scheme = url.scheme(); // already checked at config.rs
@@ -177,7 +181,7 @@ impl DoHClient {
   }
 
   async fn serve_doh_query(&self, packet_buf: &Vec<u8>) -> Result<Vec<u8>, Error> {
-    // TODO: メッセージバッファの中身を一切確認していない。DNSメッセージの体裁を取っているか確認すべき？
+    // TODO: [NEED FIXED] メッセージバッファの中身を一切確認していない。DNSメッセージの体裁を取っているか確認すべき？
     let response = match self.method {
       DoHMethod::GET => {
         let query_b64u = BASE64URL_NOPAD.encode(&packet_buf);

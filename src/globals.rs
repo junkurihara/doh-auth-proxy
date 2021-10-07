@@ -29,6 +29,9 @@ pub struct GlobalsCache {
 }
 
 impl GlobalsCache {
+  // This updates doh_client in globals_cache in order to
+  // - re-fetch the resolver address by the bootstrap DNS (Do53)
+  // - re-fetch the ODoH configs when ODoH
   pub async fn update_doh_client(&mut self, globals: &Arc<Globals>) -> Result<(), Error> {
     let id_token = match &self.credential {
       Some(c) => c.id_token(),
@@ -42,8 +45,7 @@ impl GlobalsCache {
     Ok(())
   }
 
-  // TODO: update id_token for odoh_relay when odoh.
-  // TODO: But currently if odoh, token-enabled dns doesn't start.
+  // This refreshes id_token for doh_target when doh, or for odoh_relay when odoh.
   pub async fn update_credential(&mut self, globals: &Arc<Globals>) -> Result<(), Error> {
     let mut credential = match self.credential.clone() {
       None => {

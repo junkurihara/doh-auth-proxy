@@ -1,3 +1,13 @@
+/*
+  credential.rs
+*/
+/*
+  [Memo] 2021-10-07
+  TODO: JSON requests and responses to a token server are not
+  defined as strongly-typed ones. This may be need to be fixed
+  by defining struct.
+*/
+
 use crate::constants::*;
 use crate::error::*;
 use crate::globals::Globals;

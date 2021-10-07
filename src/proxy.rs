@@ -67,7 +67,7 @@ impl Proxy {
     loop {
       sleep(period).await;
       match self.update_client().await {
-        Ok(_) => debug!("Successfully re-fetched target resolver addresses via bootstrap DNS"),
+        Ok(_) => debug!("Successfully re-fetched target resolver (DoH) / relay (ODoH) addresses via bootstrap DNS"),
         Err(e) => error!(
           "Failed to update DoH client with new DoH resolver addresses {:?}",
           e
