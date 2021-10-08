@@ -75,24 +75,42 @@ FLAGS:
     -V, --version           Prints version information
 
 OPTIONS:
-    -b, --bootstrap-dns <bootstrap_dns>                  DNS (Do53) resolver address for bootstrap [default: 1.1.1.1:53]
-    -c, --credential-file-path <credential_file_path>
-            Credential env file path for login endpoint like "./credential.env"
+    -b, --bootstrap-dns <bootstrap_dns>
+            DNS (Do53) resolver address for bootstrap
+            [default: 1.1.1.1:53]
 
     -t, --target-url <doh_target_url>
-            URL of (O)DoH target server like "https://dns.google/dns-query" [default: https://dns.google/dns-query]
+            URL of (O)DoH target server like "https://dns.google/dns-query"
+            [default: https://dns.google/dns-query]
 
     -l, --listen-address <listen_addresses>...
-            Address to listen to. To specify multiple addresses, set args like "--listen-address=127.0.0.1:50053
-            --listen-address='[::1]:50053'"
-    -r, --relay-url <odoh_relay_url>                     URL of ODoH relay server like "https://relay.example.com/relay"
+            Address to listen to. To specify multiple
+            addresses, set args like
+            "--listen-address=127.0.0.1:50053 --listen-address='[::1]:50053'"
+
     -p, --reboot-period <rebootstrap_period_min>
-            Minutes to re-fetch the IP addr of the target url host via the bootstrap DNS
+            Minutes to re-fetch the IP addr of the target
+            url host via the bootstrap DNS
+
+---
+OPTION FOR OBLIVIOUS DNS OVER HTTPS:
+    -r, --relay-url <odoh_relay_url>
+            URL of ODoH relay server like "https://relay.example.com/relay".
+            If specified, ODoH is enabled.
+
+---
+OPTIONS FOR AUTHORIZED ACCESS TO THE NEXT HOP:
+    -c, --credential-file-path <credential_file_path>
+            Credential env file path for login endpoint like
+            "./credential.env"
 
     -a, --token-api <token_api>
-            API url to retrieve and refresh tokens and validation keys (jwks) like "https://example.com/v1.0", where
-            /tokens and /refresh are used for login and refresh, respectively. Also /jwks is used for jwks retrieval.
+            API url to retrieve and refresh tokens and
+            validation keys (jwks) like "https://example.com/v1.0",
+            where /tokens and /refresh are used for login and refresh,
+            respectively. Also /jwks is used for jwks retrieval.
 ```
+
 ## Authentication at the next hop node (DoH target or ODoH relay)
 
 This proxy provides **authenticated connection** to a DoH target resolver (in DoH) or to an ODoH relay (in ODoH).
@@ -107,4 +125,5 @@ To leverage the function, an authentication server issueing Authorization Bearer
 
 - Check the consistency of the query buffer as DNS message.
 - Manage the number of TCP connection to the proxy.
-- Cache
+- Cache of DNS response messages
+- `crates.io`
