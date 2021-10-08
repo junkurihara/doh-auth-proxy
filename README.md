@@ -12,7 +12,7 @@ $ cargo build
 $ cargo build --release
 ```
 
-Now you have a compiled executable binary `doh-auth-proxy` in `./target/debug/` or `target/release/`.
+Now you have a compiled executable binary `doh-auth-proxy` in `./target/debug/` or `./target/release/`.
 
 ## Basic example
 
@@ -65,7 +65,7 @@ where this takes more round-trip time than the above ordinary DoH example due to
 
 ## All options
 
-```bash
+```:bash
 USAGE:
     doh-auth-proxy [FLAGS] [OPTIONS]
 
