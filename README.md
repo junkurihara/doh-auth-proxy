@@ -111,6 +111,39 @@ OPTIONS FOR AUTHORIZED ACCESS TO THE NEXT HOP:
             respectively. Also /jwks is used for jwks retrieval.
 ```
 
+## Docker images
+
+You can run this proxy as a docker container, where the docker image is hosted at [Docker Hub](https://hub.docker.com/r/jqtype/doh-auth-proxy). You can run the docker container by appropriately configure `.env` file as
+
+```:.env
+## Common to DoH and ODoH
+### Required
+# TARGET_URL=https://dns.google/dns-query
+TARGET_URL=https://odoh.cloudflare-dns.com/dns-query
+LOG_DIR=./log
+
+### Optional
+BOOTSTRAP_DNS_ADDR=1.1.1.1
+BOOTSTRAP_DNS_PORT=53
+DEBUG=true
+LOG_NUM=3
+LOG_SIZE=10M
+
+## ODoH
+## If specified, ODoH is enabled.
+ODOH_RELAY_URL=https://odoh1.surfdomeinen.nl/proxy
+```
+
+and execute `docker-compose` as
+
+```:bash
+$ docker-compose up -d
+```
+
+which listens at the port `50553`. You should configure params in `docker-compose.yml` as you like in addition to `.env`.
+
+**NOTE**: Authorized access to the next hop node is not supported in docker container at this point.
+
 ## Authentication at the next hop node (DoH target or ODoH relay)
 
 This proxy provides **authenticated connection** to a DoH target resolver (in DoH) or to an ODoH relay (in ODoH).
