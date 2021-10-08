@@ -1,6 +1,7 @@
 use crate::client::{DoHClient, DoHMethod};
 use crate::credential::Credential;
 use crate::error::*;
+use crate::counter::Counter;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -19,6 +20,8 @@ pub struct Globals {
   pub bootstrap_dns: SocketAddr,
   pub rebootstrap_period_sec: Duration,
 
+  pub max_connections: usize,
+  pub counter: Counter,
   pub runtime_handle: tokio::runtime::Handle,
 }
 

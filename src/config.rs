@@ -193,6 +193,8 @@ pub async fn parse_opts(
     bootstrap_dns,
     rebootstrap_period_sec,
 
+    max_connections: MAX_CONNECTIONS,
+    counter: Default::default(),
     runtime_handle,
   });
 

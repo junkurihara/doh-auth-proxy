@@ -1,5 +1,6 @@
 pub const UDP_BUFFER_SIZE: usize = 2048; // TODO: バッファサイズめちゃ適当
 pub const UDP_CHANNEL_CAPACITY: usize = 1024; // TODO: channelキャパシティめちゃ適当
+pub const MAX_CONNECTIONS: usize = 128; // TODO: 最大接続数(UDP+TCP)めちゃ適当
 pub const TIMEOUT_SEC: u64 = 10;
 
 pub const LISTEN_ADDRESSES: &[&str] = &["127.0.0.1:50053", "[::1]:50053"];

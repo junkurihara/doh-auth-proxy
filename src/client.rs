@@ -126,6 +126,7 @@ impl DoHClient {
     };
     // println!("{:#?}", odoh_client_context);
 
+    // TODO: Ping here to check client-server connection
     Ok(DoHClient {
       doh_type,
       client,

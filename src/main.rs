@@ -4,6 +4,7 @@ extern crate clap;
 mod client;
 mod config;
 mod constants;
+mod counter;
 mod credential;
 mod error;
 mod exitcodes;

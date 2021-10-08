@@ -1,3 +1,4 @@
+use crate::counter::CounterType;
 use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
 use crate::log::*;
@@ -101,20 +102,38 @@ impl UDPServer {
     // receive from src
     let udp_socket_service = async {
       loop {
+        let counter = self.globals.counter.clone();
         let (buf_size, src_addr) = match socket_receiver.recv_from(&mut udp_buf).await {
           Err(e) => {
             error!("Error in UDP acceptor: {}", e);
             continue;
           }
-          Ok(res) => res,
+          Ok(res) => {
+            // increment connection counter
+            if counter.increment(CounterType::UDP) >= self.globals.max_connections {
+              error!("Too many connections: max = {} (udp+tcp)", self.globals.max_connections);
+              counter.decrement(CounterType::UDP);
+              continue;
+            }
+            debug!("UDP connection count++: {} (total = {})", counter.get_current(CounterType::UDP), counter.get_current_total());
+            res
+          },
         };
         let packet_buf = udp_buf[..buf_size].to_vec();
         // too many threads?
-        self.globals.runtime_handle.spawn(self.clone().serve_query(
-          packet_buf,
-          src_addr,
-          channel_sender.clone(),
-        ));
+        let self_clone = self.clone();
+        let channel_sender_clone = channel_sender.clone();
+        self.globals.runtime_handle.spawn(async move {
+          let res = self_clone.serve_query(
+            packet_buf,
+            src_addr,
+            channel_sender_clone,
+          ).await;
+          // decrement connection counter
+          counter.decrement(CounterType::UDP);
+          debug!("UDP connection count--: {} (total = {})", counter.get_current(CounterType::UDP), counter.get_current_total());
+          res
+        });
       }
     };
     udp_socket_service.await;

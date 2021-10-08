@@ -1,3 +1,4 @@
+use crate::counter::CounterType;
 use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
 use crate::log::*;
@@ -59,21 +60,33 @@ impl TCPServer {
     info!("Listening on TCP: {:?}", tcp_listener.local_addr()?);
 
     // receive from src
-    // TODO: アクティブな同時接続数の管理
     let tcp_listener_service = async {
       loop {
+        let counter = self.globals.counter.clone();
         let (stream, src_addr) = match tcp_listener.accept().await {
           Err(e) => {
             error!("Error in TCP acceptor: {}", e);
             continue;
           }
-          Ok(res) => res,
+          Ok(res) => {
+            // increment connection counter
+            if counter.increment(CounterType::TCP) >= self.globals.max_connections {
+              error!("Too many connections: max = {} (udp+tcp)", self.globals.max_connections);
+              counter.decrement(CounterType::TCP);
+              continue;
+            }
+            debug!("TCP connection count++: {} (total = {})", counter.get_current(CounterType::TCP), counter.get_current_total());
+            res
+          },
         };
         let self_clone = self.clone();
         self.globals.runtime_handle.spawn(async move {
           if let Err(e) = self_clone.serve_query(stream, src_addr).await {
-            error!("Failed to handle query: {:?}", e);
+            error!("Failed to handle query: {}", e);
           }
+          // decrement connection counter
+          counter.decrement(CounterType::TCP);
+          debug!("TCP connection count--: {} (total = {})", counter.get_current(CounterType::TCP), counter.get_current_total());
         });
       }
     };

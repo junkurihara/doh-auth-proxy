@@ -157,6 +157,6 @@ To leverage the function, an authentication server issueing Authorization Bearer
 ## TODO
 
 - Check the consistency of the query buffer as DNS message.
-- Manage the number of TCP connection to the proxy.
 - Cache of DNS response messages
+- Ping to the target DNS resolver when DoH client instance is created and refreshed.
 - `crates.io`
