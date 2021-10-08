@@ -111,7 +111,7 @@ OPTIONS FOR AUTHORIZED ACCESS TO THE NEXT HOP:
             respectively. Also /jwks is used for jwks retrieval.
 ```
 
-## Docker images
+## Docker container
 
 You can run this proxy as a docker container, where the docker image is hosted at [Docker Hub](https://hub.docker.com/r/jqtype/doh-auth-proxy). You can run the docker container by appropriately configure `.env` file as
 
@@ -125,7 +125,7 @@ LOG_DIR=./log
 ### Optional
 BOOTSTRAP_DNS_ADDR=1.1.1.1
 BOOTSTRAP_DNS_PORT=53
-DEBUG=true
+DEBUG=true # If set, it outputs debug log
 LOG_NUM=3
 LOG_SIZE=10M
 
@@ -140,7 +140,7 @@ and execute `docker-compose` as
 $ docker-compose up -d
 ```
 
-which listens at the port `50553`. You should configure params in `docker-compose.yml` as you like in addition to `.env`.
+which listens at the port `50553` as default and outputs a log file to `./log` directory. You should configure params in `docker-compose.yml` as you like in addition to `.env`.
 
 **NOTE**: Authorized access to the next hop node is not supported in docker container at this point.
 
