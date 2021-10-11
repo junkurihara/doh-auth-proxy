@@ -9,8 +9,8 @@ services:
     restart: unless-stopped
     env_file: .env
     ports:
-      - 50053:50053/udp
-      - 50053:50053/tcp
+      - 50053:53/udp
+      - 50053:53/tcp
     logging:
       options:
         max-size: "10m"

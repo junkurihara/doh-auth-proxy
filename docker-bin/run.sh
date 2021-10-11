@@ -85,7 +85,7 @@ else
   echo "Running as DoH mode"
   echo "DoH target ${TARGET_URL}"
   RUST_LOG=${LOG_LEVEL} /opt/doh-auth-proxy/sbin/doh-auth-proxy \
-      --listen-address=0.0.0.0:50053 \
+      --listen-address=0.0.0.0:53 \
       --target-url=${TARGET_URL} \
       --bootstrap-dns=${BOOTSTRAP_DNS_ADDR}:${BOOTSTRAP_DNS_PORT}
 fi
