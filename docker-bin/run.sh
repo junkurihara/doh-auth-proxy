@@ -77,7 +77,7 @@ if [ ${ODOH_RELAY_URL} ]; then
   echo "ODoH target ${TARGET_URL}"
   echo "ODoH relay  ${ODOH_RELAY_URL}"
   RUST_LOG=${LOG_LEVEL} /opt/doh-auth-proxy/sbin/doh-auth-proxy \
-      --listen-address=0.0.0.0:50053 \
+      --listen-address=0.0.0.0:53 \
       --target-url=${TARGET_URL} \
       --relay-url=${ODOH_RELAY_URL} \
       --bootstrap-dns=${BOOTSTRAP_DNS_ADDR}:${BOOTSTRAP_DNS_PORT}
