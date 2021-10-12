@@ -156,7 +156,10 @@ To leverage the function, an authentication server issueing Authorization Bearer
 
 ## TODO
 
-- Check the consistency of the query buffer as DNS message.
-- Cache of DNS response messages
+- Better handling DNS query/response
+  - Cache of DNS response messages
+  - EDNS0 padding options
+    https://datatracker.ietf.org/doc/html/rfc7830
+    https://datatracker.ietf.org/doc/html/rfc8467
 - Ping to the target DNS resolver when DoH client instance is created and refreshed.
 - `crates.io`
