@@ -1,11 +1,13 @@
 use crate::constants::*;
 use crate::error::*;
+use crate::dns_message;
 use crate::globals::{Globals, GlobalsCache};
 use crate::http_bootstrap::HttpClient;
 use crate::log::*;
 use crate::odoh::ODoHClientContext;
 use data_encoding::BASE64URL_NOPAD;
 use reqwest::header;
+use std::any::Any;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -171,18 +173,45 @@ impl DoHClient {
     globals: &Arc<Globals>,
     globals_cache: &Arc<RwLock<GlobalsCache>>,
   ) -> Result<Vec<u8>, Error> {
-    match self.doh_type {
+    // Check if the given packet buffer is consistent as a DNS query
+    match dns_message::is_query(packet_buf){
+      Ok(msg) => {
+        debug!("Ok as a DNS query");
+        debug!("TODO: check cache here for {:?} {:?}", msg.type_id(), msg.id());
+      }
+      Err(_) => {
+        bail!("Invalid or not a DNS query") // Should build and return a synthetic reject response message?
+      }
+    }
+
+    let response_result = match self.doh_type {
       DoHType::Standard => self.serve_doh_query(packet_buf).await,
       DoHType::Oblivious => {
         self
           .serve_oblivious_doh_query(packet_buf, globals, globals_cache)
           .await
       }
+    };
+
+    match response_result {
+      Ok(response_buf) => {
+        // Check if the returned packet buffer is consistent as a DNS response
+        match dns_message::is_response(&response_buf){
+          Ok(_msg) => {
+            debug!("Ok as a DNS response"); // TODO: should rebuild buffer from decoded dns response _msg?
+            Ok(response_buf)
+          }
+          Err(_) => {
+            bail!("Invalid or not a DNS response") // Should build and return a synthetic reject response message?
+          }
+        }
+      }
+      Err(e) => Err(e)
     }
+
   }
 
   async fn serve_doh_query(&self, packet_buf: &Vec<u8>) -> Result<Vec<u8>, Error> {
-    // TODO: [NEED FIXED] メッセージバッファの中身を一切確認していない。DNSメッセージの体裁を取っているか確認すべき？
     let response = match self.method {
       DoHMethod::GET => {
         let query_b64u = BASE64URL_NOPAD.encode(&packet_buf);

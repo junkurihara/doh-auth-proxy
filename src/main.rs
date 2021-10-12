@@ -6,6 +6,7 @@ mod config;
 mod constants;
 mod counter;
 mod credential;
+mod dns_message;
 mod error;
 mod exitcodes;
 mod globals;
