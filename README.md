@@ -163,3 +163,6 @@ To leverage the function, an authentication server issueing Authorization Bearer
     https://datatracker.ietf.org/doc/html/rfc8467
 - Ping to the target DNS resolver when DoH client instance is created and refreshed.
 - `crates.io`
+- `docker` supporting authorization
+- Public servers for ODoH with authorization at the first hop (relay) (i.e., maybe this includes the deployment of user management server...)
+- Extension to mu-ODNS based on ODoH (with server)
