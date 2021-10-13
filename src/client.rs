@@ -177,7 +177,7 @@ impl DoHClient {
     match dns_message::is_query(packet_buf){
       Ok(msg) => {
         debug!("Ok as a DNS query");
-        debug!("TODO: check cache here for {:?} {:?}", msg.type_id(), msg.id());
+        debug!("TODO: check cache here {:?}", msg.queries());
       }
       Err(_) => {
         bail!("Invalid or not a DNS query") // Should build and return a synthetic reject response message?
