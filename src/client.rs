@@ -7,7 +7,6 @@ use crate::log::*;
 use crate::odoh::ODoHClientContext;
 use data_encoding::BASE64URL_NOPAD;
 use reqwest::header;
-use std::any::Any;
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
