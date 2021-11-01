@@ -1,11 +1,13 @@
 use crate::constants::*;
-use crate::error::*;
 use crate::dns_message;
+use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
 use crate::http_bootstrap::HttpClient;
 use crate::log::*;
 use crate::odoh::ODoHClientContext;
 use data_encoding::BASE64URL_NOPAD;
+use rand::seq::SliceRandom;
+use rand::{thread_rng, Rng};
 use reqwest::header;
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -41,7 +43,7 @@ pub struct DoHClient {
   client: reqwest::Client,
   method: DoHMethod,
   bootstrap_dns: SocketAddr,
-  nexthop_url: String, // target for DoH, relay for ODoH
+  nexthop_url: String, // domain: target for DoH, nexthop relay for ODoH (path including target, not mid-relays for dynamic randamization)
   odoh_client_context: Option<ODoHClientContext>, // for odoh
 }
 
@@ -81,6 +83,7 @@ impl DoHClient {
         //   (intermediate_host, intermediate_path) の順序の扱いをどうするか？
         //   randomizedしたpathを作って、vec[combined]を生成するか、
         //   vec[(intermediate_candidates)]を用意して、都度randomized pathを生成してcombinedを作るか。
+
         (DoHType::Oblivious, combined)
       }
       None => (DoHType::Standard, globals.doh_target_url.clone()),
@@ -173,7 +176,7 @@ impl DoHClient {
     globals_cache: &Arc<RwLock<GlobalsCache>>,
   ) -> Result<Vec<u8>, Error> {
     // Check if the given packet buffer is consistent as a DNS query
-    match dns_message::is_query(packet_buf){
+    match dns_message::is_query(packet_buf) {
       Ok(msg) => {
         debug!("Ok as a DNS query");
         debug!("TODO: check cache here {:?}", msg.queries());
@@ -195,7 +198,7 @@ impl DoHClient {
     match response_result {
       Ok(response_buf) => {
         // Check if the returned packet buffer is consistent as a DNS response
-        match dns_message::is_response(&response_buf){
+        match dns_message::is_response(&response_buf) {
           Ok(_msg) => {
             debug!("Ok as a DNS response"); // TODO: should rebuild buffer from decoded dns response _msg?
             Ok(response_buf)
@@ -205,9 +208,8 @@ impl DoHClient {
           }
         }
       }
-      Err(e) => Err(e)
+      Err(e) => Err(e),
     }
-
   }
 
   async fn serve_doh_query(&self, packet_buf: &Vec<u8>) -> Result<Vec<u8>, Error> {
@@ -253,17 +255,23 @@ impl DoHClient {
       Err(e) => bail!("[ODoH] Failed to encrypt!: {}", e),
     };
 
+    let mid_relay_str = if let Some(s) = self.get_randomized_mid_relay_str(globals) {
+      s
+    } else {
+      "".to_string()
+    };
+
     let response = match self.method {
       DoHMethod::GET => {
         let query_b64u = BASE64URL_NOPAD.encode(&encrypted_query_body);
-        let query_url = format!("{}?dns={}", &self.nexthop_url, query_b64u);
+        let query_url = format!("{}{}?dns={}", &self.nexthop_url, mid_relay_str, query_b64u);
         debug!("query url: {:?}", query_url);
         self.client.get(query_url).send().await?
       }
       DoHMethod::POST => {
         self
           .client
-          .post(&self.nexthop_url) // TODO: bootstrap resolver must be used to get resolver_url, maybe hyper is better?
+          .post(&format!("{}{}", self.nexthop_url, mid_relay_str)) // TODO: bootstrap resolver must be used to get resolver_url, maybe hyper is better?
           .body(encrypted_query_body)
           .send()
           .await?
@@ -293,5 +301,33 @@ impl DoHClient {
     let dec_bytes = client_ctx.decrypt_response(&odoh_plaintext_query, &body, secret)?;
 
     Ok(dec_bytes.to_vec())
+  }
+
+  fn get_randomized_mid_relay_str(&self, globals: &Arc<Globals>) -> Option<String> {
+    // add randomized order of mu-ODoH intermediate relays
+    let mut mid_relay_str = "".to_string();
+    if let (Some(mid_relay_urls), Some(max_mid_relays)) =
+      (&globals.mid_relay_urls, &globals.max_mid_relays)
+    {
+      let mut copied = mid_relay_urls.clone();
+      let mut rng = thread_rng();
+      copied.shuffle(&mut rng);
+      let num = rng.gen_range(1..*max_mid_relays + 1);
+      for idx in 0..num {
+        let rurl = Url::parse(&copied[idx as usize]).unwrap();
+        let rhost_str = match rurl.port() {
+          Some(port) => format!("{}:{}", rurl.host_str().unwrap(), port),
+          None => rurl.host_str().unwrap().to_string(),
+        };
+        let rpath_str = rurl.path().to_string();
+        mid_relay_str = format!(
+          "{}&relayhost[{}]={}&relaypath[{}]={}",
+          mid_relay_str, idx, rhost_str, idx, rpath_str
+        );
+      }
+      Some(mid_relay_str)
+    } else {
+      None
+    }
   }
 }

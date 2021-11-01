@@ -94,6 +94,14 @@ pub async fn parse_opts(
         .validator(verify_target_url)
         .number_of_values(1)
         .help("URL of multiple-relay-based ODoH's intermediate relay like \"https://relay.example.com/inter-relay\"")
+    )
+    .arg(
+      Arg::with_name("max_mid_relays")
+        .short("n")
+        .long("max-mid-relays")
+        .takes_value(true)
+        .default_value("0")
+        .help("Maximum number of intermediate relays between nexthop and target"),
     );
 
   let matches = options.get_matches();
@@ -155,6 +163,19 @@ pub async fn parse_opts(
     }
     None => None,
   };
+  let max_mid_relays = if let Some(_) = mid_relay_urls {
+    let n = match matches.value_of("max_mid_relays") {
+      None => 1,
+      Some(s) => s.parse().unwrap(),
+    };
+    info!(
+      "[m-ODoH] Maximum number of intermediate relays after the nexthop: {}",
+      n
+    );
+    Some(n)
+  } else {
+    None
+  };
 
   // If credential exists, authorization header is also enabled.
   // TODO: login password should be stored in keychain access like secure storage rather than dotenv.
@@ -214,6 +235,7 @@ pub async fn parse_opts(
     doh_method,
     odoh_relay_url,
     mid_relay_urls,
+    max_mid_relays,
     bootstrap_dns,
     rebootstrap_period_sec,
 
