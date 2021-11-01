@@ -62,7 +62,7 @@ pub async fn parse_opts(
         .long("relay-url")
         .takes_value(true)
         .validator(verify_target_url)
-        .help("URL of ODoH relay server like \"https://relay.example.com/relay\"")
+        .help("URL of ODoH nexthop relay server like \"https://relay.example.com/relay\"")
     )
     .arg(
       Arg::with_name("credential_file_path")
@@ -84,6 +84,16 @@ pub async fn parse_opts(
         .short("g")
         .long("use-get-method")
         .help("Use Get method to query"),
+    )
+    .arg(
+      Arg::with_name("mid_relay_url")
+        .short("m")
+        .long("mid-relay-url")
+        .takes_value(true)
+        .multiple(true)
+        .validator(verify_target_url)
+        .number_of_values(1)
+        .help("URL of multiple-relay-based ODoH's intermediate relay like \"https://relay.example.com/inter-relay\"")
     );
 
   let matches = options.get_matches();
@@ -128,7 +138,20 @@ pub async fn parse_opts(
   let odoh_relay_url: Option<String> = match matches.value_of("odoh_relay_url") {
     Some(s) => {
       info!("[ODoH] Oblivious DNS over HTTPS is enabled");
+      info!("[ODoH] Nexthop relay URL: {}", s);
       Some(s.to_string())
+    }
+    None => None,
+  };
+
+  let mid_relay_urls: Option<Vec<String>> = match matches.values_of("mid_relay_url") {
+    Some(s) => {
+      info!("[m-ODoH] Multiple-relay-based Oblivious DNS over HTTPS is enabled");
+      info!(
+        "[m-ODoH] Intermediate relay URLs: {:?}",
+        s.clone().collect::<Vec<&str>>()
+      );
+      Some(s.map(|x| x.to_string()).collect())
     }
     None => None,
   };
@@ -169,8 +192,8 @@ pub async fn parse_opts(
 
   if let (Some(_), Some(_)) = (&credential, &odoh_relay_url) {
     warn!("-----------------------------------");
-    warn!("[NOTE!!!!] Both credential and ODoH proxy is set up.");
-    warn!("[NOTE!!!!] This means the authorization token will be sent not to target but to proxy.");
+    warn!("[NOTE!!!!] Both credential and ODoH nexthop proxy is set up.");
+    warn!("[NOTE!!!!] This means the authorization token will be sent not to the target but to the proxy.");
     warn!("[NOTE!!!!] Check if this is your intended behavior.");
     warn!("-----------------------------------");
   } else if let (Some(_), None) = (&credential, &odoh_relay_url) {
@@ -190,6 +213,7 @@ pub async fn parse_opts(
     doh_target_url,
     doh_method,
     odoh_relay_url,
+    mid_relay_urls,
     bootstrap_dns,
     rebootstrap_period_sec,
 

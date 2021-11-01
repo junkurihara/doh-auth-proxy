@@ -1,7 +1,7 @@
 use crate::client::{DoHClient, DoHMethod};
+use crate::counter::Counter;
 use crate::credential::Credential;
 use crate::error::*;
-use crate::counter::Counter;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -17,6 +17,7 @@ pub struct Globals {
   pub doh_target_url: String,
   pub doh_method: Option<DoHMethod>,
   pub odoh_relay_url: Option<String>,
+  pub mid_relay_urls: Option<Vec<String>>,
   pub bootstrap_dns: SocketAddr,
   pub rebootstrap_period_sec: Duration,
 
