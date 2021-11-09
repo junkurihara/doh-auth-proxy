@@ -1,6 +1,6 @@
 # doh-auth-proxy
 
-DoH and Oblivious DoH local proxy supporting authenticated connection, written in Rust
+Local proxy for DoH, Oblivious DoH and Mutualized ODoH supporting authenticated connection, written in Rust.
 
 ## Build
 
@@ -109,6 +109,16 @@ OPTIONS FOR AUTHORIZED ACCESS TO THE NEXT HOP:
             validation keys (jwks) like "https://example.com/v1.0",
             where /tokens and /refresh are used for login and refresh,
             respectively. Also /jwks is used for jwks retrieval.
+
+---
+OPTIONS FOR MULTI-HOP ACCESS IN THE CONCEPT OF MUTUALIZED ODOH
+    -n, --max-mid-relays <max_mid_relays>
+            Maximum number of intermediate relays between nexthop
+            and target [default: 0] (0 = same as ODoH)
+
+    -m, --mid-relay-url <mid_relay_url>...
+            URL of multiple-relay-based ODoH's intermediate relay
+            like "https://relay.example.com/inter-relay"
 ```
 
 ## Docker container
@@ -172,4 +182,5 @@ To leverage the function, an authentication server issueing Authorization Bearer
     https://datatracker.ietf.org/doc/html/rfc8467
 - Ping to the target DNS resolver when DoH client instance is created and refreshed.
 - `crates.io`
-- Extension to mu-ODNS based on ODoH (with server)
+- Sophistication of mu-ODNS based on ODoH, such as loop detection
+- Docker container packaged with token server (server-side)
