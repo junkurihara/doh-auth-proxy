@@ -1,6 +1,6 @@
 [package]
 name = "doh-auth-proxy"
-description = "DoH and ODoH proxy with authorization"
+description = "DNS Proxy for DoH, ODoH and Mutualized ODoH with Authorization"
 version = "0.1.0"
 authors = ["Jun Kurihara"]
 homepage = "https://github.com/junkurihara/doh-auth-proxy"
@@ -20,6 +20,7 @@ keywords = [
   "doh",
   "oblivious-dns-over-https",
   "odoh",
+  "mutualized-odoh",
   "proxy",
   "authorization",
 ]
