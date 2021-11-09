@@ -4,8 +4,8 @@ services:
     image: jqtype/doh-auth-proxy:latest
     container_name: doh-auth-proxy
     ## Uncomment if you build by yourself
-    build:
-      context: ./
+    # build:
+    #   context: ./
     restart: unless-stopped
     env_file: .env
     ports:
