@@ -32,7 +32,7 @@ data-encoding = "2.3.2"
 clap = "2.33.3"
 env_logger = "0.9.0"
 log = "0.4.14"
-tokio = { version = "1.12.0", features = [
+tokio = { version = "1.13.0", features = [
   "net",
   "rt-multi-thread",
   "parking_lot",
@@ -44,10 +44,10 @@ reqwest = { version = "0.11.6", features = ["default", "trust-dns", "json"] }
 url = "2.2.2"
 trust-dns-proto = "0.20.3"
 trust-dns-resolver = "0.20.3"
-anyhow = "1.0.44"
+anyhow = "1.0.45"
 dotenv = "0.15.0"
-serde_json = "1.0.68"
-jwt-simple = "0.10.6"
+serde_json = "1.0.69"
+jwt-simple = "0.10.7"
 p256 = { version = "0.9.0", features = ["jwk"] }
 chrono = "0.4.19"
 odoh-rs = "1.0.0-alpha.1"
