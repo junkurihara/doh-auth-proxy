@@ -132,6 +132,15 @@ LOG_SIZE=10M
 ## ODoH
 ## If specified, ODoH is enabled.
 ODOH_RELAY_URL=https://odoh1.surfdomeinen.nl/proxy
+
+## Authentication at the nexthop
+## If specified, authentication is enabled at
+## - DoH: Target DoH server, i.e., TARGET_URL.
+## - ODoH/Mutualized ODoH: Nexthop relay url, i.e., ODOH_RELAY_URL.
+# TOKEN_API=https://xxx.token.com/v1.0 # i.e., token issuer
+# USERNAME=user
+# PASSWORD=password
+# CLIENT_ID=xxxxxxx # i.e., app_id
 ```
 
 and execute `docker-compose` as
@@ -163,6 +172,4 @@ To leverage the function, an authentication server issueing Authorization Bearer
     https://datatracker.ietf.org/doc/html/rfc8467
 - Ping to the target DNS resolver when DoH client instance is created and refreshed.
 - `crates.io`
-- `docker` supporting authorization
-- Public servers for ODoH with authorization at the first hop (relay) (i.e., maybe this includes the deployment of user management server...)
 - Extension to mu-ODNS based on ODoH (with server)

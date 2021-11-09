@@ -70,22 +70,52 @@ if [ ${DEBUG} ]; then
   LOG_LEVEL=debug
 fi
 
-echo "bootstrap dns: ${BOOTSTRAP_DNS_ADDR}:${BOOTSTRAP_DNS_PORT}"
+echo "Bootstrap dns: ${BOOTSTRAP_DNS_ADDR}:${BOOTSTRAP_DNS_PORT}"
+
+
+if [ ${TOKEN_API} ] && [ ${USERNAME} ] && [ ${PASSWORD} ] && [ ${CLIENT_ID} ]; then
+  CREDENTIAL_FILE_PATH=/etc/doh_auth
+  cat > ${CREDENTIAL_FILE_PATH} << EOF
+username=${USERNAME}
+password=${PASSWORD}
+client_id=${CLIENT_ID}
+EOF
+  echo "Authorization is enabled to the token API: ${TOKEN_API}"
+fi
 
 if [ ${ODOH_RELAY_URL} ]; then
   echo "Running as ODoH mode"
   echo "ODoH target ${TARGET_URL}"
   echo "ODoH relay  ${ODOH_RELAY_URL}"
-  RUST_LOG=${LOG_LEVEL} /opt/doh-auth-proxy/sbin/doh-auth-proxy \
-      --listen-address=0.0.0.0:53 \
-      --target-url=${TARGET_URL} \
-      --relay-url=${ODOH_RELAY_URL} \
-      --bootstrap-dns=${BOOTSTRAP_DNS_ADDR}:${BOOTSTRAP_DNS_PORT}
+  if [ ${CREDENTIAL_FILE_PATH} ]; then
+    RUST_LOG=${LOG_LEVEL} /opt/doh-auth-proxy/sbin/doh-auth-proxy \
+        --listen-address=0.0.0.0:53 \
+        --target-url=${TARGET_URL} \
+        --relay-url=${ODOH_RELAY_URL} \
+        --bootstrap-dns=${BOOTSTRAP_DNS_ADDR}:${BOOTSTRAP_DNS_PORT} \
+        --token-api=${TOKEN_API} \
+        --credential-file-path=${CREDENTIAL_FILE_PATH}
+  else
+    RUST_LOG=${LOG_LEVEL} /opt/doh-auth-proxy/sbin/doh-auth-proxy \
+        --listen-address=0.0.0.0:53 \
+        --target-url=${TARGET_URL} \
+        --relay-url=${ODOH_RELAY_URL} \
+        --bootstrap-dns=${BOOTSTRAP_DNS_ADDR}:${BOOTSTRAP_DNS_PORT}
+  fi
 else
   echo "Running as DoH mode"
   echo "DoH target ${TARGET_URL}"
-  RUST_LOG=${LOG_LEVEL} /opt/doh-auth-proxy/sbin/doh-auth-proxy \
-      --listen-address=0.0.0.0:53 \
-      --target-url=${TARGET_URL} \
-      --bootstrap-dns=${BOOTSTRAP_DNS_ADDR}:${BOOTSTRAP_DNS_PORT}
+  if [ ${CREDENTIAL_FILE_PATH} ]; then
+    RUST_LOG=${LOG_LEVEL} /opt/doh-auth-proxy/sbin/doh-auth-proxy \
+        --listen-address=0.0.0.0:53 \
+        --target-url=${TARGET_URL} \
+        --bootstrap-dns=${BOOTSTRAP_DNS_ADDR}:${BOOTSTRAP_DNS_PORT} \
+        --token-api=${TOKEN_API} \
+        --credential-file-path=${CREDENTIAL_FILE_PATH}
+  else
+    RUST_LOG=${LOG_LEVEL} /opt/doh-auth-proxy/sbin/doh-auth-proxy \
+        --listen-address=0.0.0.0:53 \
+        --target-url=${TARGET_URL} \
+        --bootstrap-dns=${BOOTSTRAP_DNS_ADDR}:${BOOTSTRAP_DNS_PORT}
+  fi
 fi
