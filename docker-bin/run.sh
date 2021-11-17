@@ -100,7 +100,7 @@ if [ ${ODOH_RELAY_URL} ]; then
     echo "Multiple relay-based ODoH is enabled"
     for i in ${MODOH_MID_RELAY_URL_ARRAY[@]}; do
       OPTION_STRING+=" --mid-relay-url=${i}"
-      "MODoH Mid relay ${i}"
+      echo "MODoH Mid relay ${i}"
     done
     OPTION_STRING+=" --max-mid-relays=${MODOH_MAX_MID_RELAYS}"
   fi
