@@ -30,18 +30,18 @@ edition = "2018"
 
 [dependencies]
 data-encoding = "2.3.2"
-clap = "2.33.3"
+clap = "2.34.0"
 env_logger = "0.9.0"
 log = "0.4.14"
 tokio = { version = "1.14.0", features = [  "net",  "rt-multi-thread",  "parking_lot",  "time",  "sync",] }
-futures = "0.3.17"
-reqwest = { version = "0.11.6", features = ["default", "trust-dns", "json"] }
+futures = "0.3.18"
+reqwest = { version = "0.11.7", features = ["default", "trust-dns", "json"] }
 url = "2.2.2"
 trust-dns-proto = "0.20.3"
 trust-dns-resolver = "0.20.3"
-anyhow = "1.0.47"
+anyhow = "1.0.51"
 dotenv = "0.15.0"
-serde_json = "1.0.71"
+serde_json = "1.0.72"
 jwt-simple = "0.10.7"
 p256 = { version = "0.9.0", features = ["jwk"] }
 chrono = "0.4.19"
