@@ -2,6 +2,8 @@ use crate::client::{DoHClient, DoHMethod};
 use crate::counter::Counter;
 use crate::credential::Credential;
 use crate::error::*;
+use futures::future;
+use rand::Rng;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
@@ -13,7 +15,7 @@ pub struct Globals {
   pub udp_channel_capacity: usize,
   pub timeout_sec: Duration,
 
-  pub doh_target_url: String,
+  pub doh_target_urls: Vec<String>,
   pub doh_method: Option<DoHMethod>,
   pub odoh_relay_url: Option<String>,
   pub mid_relay_urls: Option<Vec<String>>,
@@ -28,7 +30,7 @@ pub struct Globals {
 
 #[derive(Debug, Clone)]
 pub struct GlobalsCache {
-  pub doh_client: Option<DoHClient>,
+  pub doh_clients: Option<Vec<DoHClient>>,
   pub credential: Option<Credential>,
 }
 
@@ -42,11 +44,31 @@ impl GlobalsCache {
       None => None,
     };
     {
-      let doh_client = DoHClient::new(globals.clone(), &id_token).await?;
-      self.doh_client = Some(doh_client);
+      let doh_target_urls = globals.doh_target_urls.clone();
+      // let doh_clients: Result<Vec<DoHClient>, Error> =
+      let polls = doh_target_urls
+        .into_iter()
+        .map(|target_url| DoHClient::new(target_url, globals.clone(), &id_token));
+      let doh_clients = future::join_all(polls)
+        .await
+        .into_iter()
+        .collect::<Result<Vec<DoHClient>, Error>>()?;
+      self.doh_clients = Some(doh_clients);
     }
 
     Ok(())
+  }
+
+  pub fn get_random_client(&self) -> Result<DoHClient, Error> {
+    if let Some(clients) = &self.doh_clients {
+      let num_clients = clients.len();
+      let mut rng = rand::thread_rng();
+      let idx = rng.gen::<usize>() % num_clients;
+      if let Some(client) = clients.get(idx) {
+        return Ok(client.clone());
+      }
+    }
+    bail!("DoH client is not properly configured");
   }
 
   // This refreshes id_token for doh_target when doh, or for odoh_relay when odoh.

@@ -53,9 +53,10 @@ pub async fn parse_opts(
         .short("t")
         .long("target-url")
         .takes_value(true)
+        .multiple(true)
         .default_value(DOH_TARGET_URL)
         .validator(verify_target_url)
-        .help("URL of (O)DoH target server like \"https://dns.google/dns-query\""),
+        .help("URL of (O)DoH target server like \"https://dns.google/dns-query\". You can specify multiple servers by repeatedly set this option, then one of given servers is randomly chosen every time."),
     )
     .arg(
       Arg::with_name("odoh_relay_url")
@@ -130,8 +131,12 @@ pub async fn parse_opts(
     rebootstrap_period_sec.as_secs() / 60
   );
 
-  let doh_target_url: String = matches.value_of("doh_target_url").unwrap().to_string();
-  info!("Target DoH URL: {}", doh_target_url);
+  let doh_target_urls: Vec<String> = matches
+    .values_of("doh_target_url")
+    .unwrap()
+    .map(|x| x.to_string())
+    .collect();
+  info!("Target (O)DoH resolvers: {:?}", doh_target_urls);
 
   let doh_method = match matches.is_present("doh_method_get") {
     true => {
@@ -232,7 +237,7 @@ pub async fn parse_opts(
     udp_channel_capacity: UDP_CHANNEL_CAPACITY,
     timeout_sec: Duration::from_secs(TIMEOUT_SEC),
 
-    doh_target_url,
+    doh_target_urls,
     doh_method,
     odoh_relay_url,
     mid_relay_urls,
@@ -246,7 +251,7 @@ pub async fn parse_opts(
   });
 
   let globals_cache = Arc::new(RwLock::new(GlobalsCache {
-    doh_client: None,
+    doh_clients: None,
     credential,
   }));
 

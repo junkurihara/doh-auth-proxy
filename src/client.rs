@@ -43,12 +43,17 @@ pub struct DoHClient {
   client: reqwest::Client,
   method: DoHMethod,
   bootstrap_dns: SocketAddr,
+  target_url: String,
   nexthop_url: String, // domain: target for DoH, nexthop relay for ODoH (path including target, not mid-relays for dynamic randamization)
   odoh_client_context: Option<ODoHClientContext>, // for odoh
 }
 
 impl DoHClient {
-  pub async fn new(globals: Arc<Globals>, auth_token: &Option<String>) -> Result<Self, Error> {
+  pub async fn new(
+    target_url_str: String,
+    globals: Arc<Globals>,
+    auth_token: &Option<String>,
+  ) -> Result<Self, Error> {
     let (doh_type, nexthop_url) = match &globals.odoh_relay_url {
       Some(u) => {
         debug!("ODoH is enabled: relay {}", u);
@@ -62,7 +67,7 @@ impl DoHClient {
         let relay_path_str = relay_url.path();
         let base = format!("{}://{}{}", relay_scheme, relay_host_str, relay_path_str);
 
-        let target_url = Url::parse(&globals.doh_target_url)?;
+        let target_url = Url::parse(&target_url_str)?;
         let target_host_str = match target_url.port() {
           Some(port) => format!("{}:{}", target_url.host_str().unwrap(), port),
           None => target_url.host_str().unwrap().to_string(),
@@ -80,7 +85,7 @@ impl DoHClient {
 
         (DoHType::Oblivious, combined)
       }
-      None => (DoHType::Standard, globals.doh_target_url.clone()),
+      None => (DoHType::Standard, target_url_str.clone()),
     };
     info!("Target (O)DoH URL: {}", nexthop_url);
 
@@ -117,7 +122,9 @@ impl DoHClient {
 
     // When ODoH, first fetch configs
     let odoh_client_context = match doh_type {
-      DoHType::Oblivious => Some(DoHClient::fetch_odoh_config_from_well_known(&globals).await?),
+      DoHType::Oblivious => {
+        Some(DoHClient::fetch_odoh_config_from_well_known(&target_url_str, &globals).await?)
+      }
       DoHType::Standard => None,
     };
 
@@ -125,6 +132,7 @@ impl DoHClient {
     Ok(DoHClient {
       doh_type,
       client,
+      target_url: target_url_str,
       method: doh_method,
       bootstrap_dns: globals.bootstrap_dns,
       nexthop_url,
@@ -133,25 +141,25 @@ impl DoHClient {
   }
 
   async fn fetch_odoh_config_from_well_known(
+    target_url_str: &str,
     globals: &Arc<Globals>,
   ) -> Result<ODoHClientContext, Error> {
     // TODO: Add auth token when fetching config?
     // fetch public key from odoh target (/.well-known)
-    info!("[ODoH] Fetch server public key from {}", ODOH_CONFIG_PATH);
-    let url = Url::parse(&globals.doh_target_url)?;
+    let url = Url::parse(target_url_str)?;
     let scheme = url.scheme(); // already checked at config.rs
     let host_str = match url.port() {
       Some(port) => format!("{}:{}", url.host_str().unwrap(), port),
       None => url.host_str().unwrap().to_string(),
     };
 
-    let simple_client = HttpClient::new(globals, Some(&globals.doh_target_url), None)
+    let destination = format!("{}://{}{}", scheme, host_str, ODOH_CONFIG_PATH);
+    info!("[ODoH] Fetch server public key from {}", destination);
+
+    let simple_client = HttpClient::new(globals, Some(target_url_str), None)
       .await?
       .client;
-    let response = simple_client
-      .get(format!("{}://{}{}", scheme, host_str, ODOH_CONFIG_PATH))
-      .send()
-      .await?;
+    let response = simple_client.get(destination).send().await?;
     if response.status() != reqwest::StatusCode::OK {
       error!("Failed to fetch ODoH config!: {:?}", response.status());
       bail!("{:?}", response.status());
@@ -162,15 +170,15 @@ impl DoHClient {
 
   pub async fn make_doh_query(
     &self,
-    packet_buf: &Vec<u8>,
+    packet_buf: &[u8],
     globals: &Arc<Globals>,
     globals_cache: &Arc<RwLock<GlobalsCache>>,
   ) -> Result<Vec<u8>, Error> {
     // Check if the given packet buffer is consistent as a DNS query
-    match dns_message::is_query(packet_buf) {
+    match dns_message::is_query(&packet_buf.to_owned()) {
       Ok(msg) => {
         debug!("Ok as a DNS query");
-        debug!("TODO: check cache here {:?}", msg.queries());
+        // debug!("TODO: check cache here {:?}", msg.queries());
       }
       Err(_) => {
         bail!("Invalid or not a DNS query") // Should build and return a synthetic reject response message?
@@ -178,10 +186,10 @@ impl DoHClient {
     }
 
     let response_result = match self.doh_type {
-      DoHType::Standard => self.serve_doh_query(packet_buf).await,
+      DoHType::Standard => self.serve_doh_query(&packet_buf.to_owned()).await,
       DoHType::Oblivious => {
         self
-          .serve_oblivious_doh_query(packet_buf, globals, globals_cache)
+          .serve_oblivious_doh_query(&packet_buf.to_owned(), globals, globals_cache)
           .await
       }
     };

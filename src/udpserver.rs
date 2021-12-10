@@ -25,10 +25,7 @@ impl UDPServer {
     let self_clone = self.clone();
     let globals_cache = self_clone.globals_cache.read().await;
 
-    let doh_client = match globals_cache.doh_client.clone() {
-      Some(x) => x,
-      None => bail!("DoH client is not properly configured"),
-    };
+    let doh_client = globals_cache.get_random_client()?;
     self.globals.runtime_handle.clone().spawn(async move {
       debug!("handle query from {:?}", src_addr);
       let res = tokio::time::timeout(

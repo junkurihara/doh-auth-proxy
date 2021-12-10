@@ -18,10 +18,7 @@ impl TCPServer {
   async fn serve_query(self, mut stream: TcpStream, src_addr: SocketAddr) -> Result<(), Error> {
     debug!("handle query from {:?}", src_addr);
     let globals_cache = self.globals_cache.read().await;
-    let doh_client = match globals_cache.doh_client.clone() {
-      Some(x) => x,
-      None => bail!("DoH client is not properly configured"),
-    };
+    let doh_client = globals_cache.get_random_client()?;
 
     // read data from stream
     // first 2bytes indicates the length of dns message following from the 3rd byte
