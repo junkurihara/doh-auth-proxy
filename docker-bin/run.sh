@@ -88,8 +88,8 @@ fi
 
 if [ ${ODOH_RELAY_URL} ]; then
   echo "Running as ODoH mode"
-  echo "ODoH target ${TARGET_URL}"
-  echo "ODoH relay  ${ODOH_RELAY_URL}"
+  echo "ODoH relay ${ODOH_RELAY_URL}"
+
   OPTION_STRING+=" --relay-url=${ODOH_RELAY_URL}"
 
   if [ ${MODOH_MID_RELAY_URLS} ]; then
@@ -100,16 +100,22 @@ if [ ${ODOH_RELAY_URL} ]; then
     echo "Multiple relay-based ODoH is enabled"
     for i in ${MODOH_MID_RELAY_URL_ARRAY[@]}; do
       OPTION_STRING+=" --mid-relay-url=${i}"
-      echo "MODoH Mid relay ${i}"
+      echo "MODoH mid relay ${i}"
     done
     OPTION_STRING+=" --max-mid-relays=${MODOH_MAX_MID_RELAYS}"
   fi
 else
   echo "Running as DoH mode"
-  echo "DoH target ${TARGET_URL}"
+fi
+
+if [ ${TARGET_URLS} ]; then
+  TARGET_URL_ARRAY=( `echo ${TARGET_URLS} | tr -s ',' ' '`)
+  for i in ${MODOH_MID_RELAY_URL_ARRAY[@]}; do
+    OPTION_STRING+=" --target-url=${i}"
+    echo "(O)DoH target url ${i}"
+  done
 fi
 
 echo ${OPTION_STRING} | RUST_LOG=${LOG_LEVEL} xargs /opt/doh-auth-proxy/sbin/doh-auth-proxy \
   --listen-address=0.0.0.0:53 \
-  --target-url=${TARGET_URL} \
   --bootstrap-dns=${BOOTSTRAP_DNS_ADDR}:${BOOTSTRAP_DNS_PORT}

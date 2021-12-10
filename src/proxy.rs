@@ -78,7 +78,7 @@ impl Proxy {
     }
   }
 
-  async fn run_periodic_token_refresh(self) -> () {
+  async fn run_periodic_token_refresh(self) {
     // read current token in globals_cache, check its expiration, and set period
     debug!("Start periodic expiration-check and refresh process of Id token");
     let mut retry_login = 0;
@@ -113,7 +113,7 @@ impl Proxy {
             c
           } else {
             // No need to refresh, stash thread
-            return ();
+            return;
           }
         };
         match credential.id_token_expires_in_secs().await {

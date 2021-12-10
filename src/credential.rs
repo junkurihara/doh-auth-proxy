@@ -17,7 +17,6 @@ use chrono::{DateTime, Local};
 use jwt_simple::prelude::*;
 use p256::elliptic_curve::sec1::ToEncodedPoint;
 use p256::pkcs8::ToPublicKey;
-use serde_json;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -39,7 +38,7 @@ impl Credential {
     client_id: &str,
     token_api: &str,
   ) -> Credential {
-    return Credential {
+    Credential {
       username: username.to_string(),
       password: password.to_string(),
       client_id: client_id.to_string(),
@@ -47,7 +46,7 @@ impl Credential {
       id_token: None,
       refresh_token: None,
       validation_key: None,
-    };
+    }
   }
 
   pub fn id_token(&self) -> Option<String> {
@@ -197,7 +196,7 @@ impl Credential {
       arr_iter.collect()
     };
 
-    if arr_vec.len() == 0 {
+    if arr_vec.is_empty() {
       bail!("No JWK matched to Id token is given at jwks endpoint!");
     }
     let mut matched = arr_vec[0].clone();
@@ -212,8 +211,7 @@ impl Credential {
     let pem = match Algorithm::from_str(meta.algorithm())? {
       Algorithm::ES256 => {
         let pk = p256::PublicKey::from_jwk_str(&jwk_string)?;
-        let pem = pk.to_public_key_pem()?;
-        pem
+        pk.to_public_key_pem()?
       }
     };
     match &self.validation_key {
@@ -250,10 +248,10 @@ impl Credential {
     // parse jwt
     if let Some(id_token) = &self.id_token {
       let meta = Token::decode_metadata(id_token)?;
-      return Ok(meta);
+      Ok(meta)
     } else {
       bail!("No Id token is configured");
-    };
+    }
   }
 
   async fn verify_id_token(&self) -> Result<JWTClaims<NoCustomClaims>, Error> {

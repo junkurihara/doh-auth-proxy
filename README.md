@@ -181,13 +181,14 @@ To leverage the function, an authentication server issueing Authorization Bearer
 
 - [`rust-token-server`](https://github.com/junkurihara/rust-token-server): An implementation of authentication server issueing `id_token` in the context of OIDC.
 
-## Randomly chosen multiple targets
+## Distribution of queries to multiple target resolvers
 
 Referring to the recent paper from Princeton University, we added a function to distribute queries among multiple target resolver. This is in order to support "design for choice".
 
 > A. Hounsel, et al., "Designing for Tussle in Encrypted DNS", ACM HotNets'21
 
 Currently if you specify multiple resolvers by repeatedly use `--target_url` option, your query is dispatched towards one of specified resolvers chosen in a random fashion. We plan to kinds of 'round-robin' based distribution and other variants.
+
 ## TODO
 
 - Better handling DNS query/response
@@ -199,3 +200,4 @@ Currently if you specify multiple resolvers by repeatedly use `--target_url` opt
 - `crates.io`
 - Sophistication of mu-ODNS based on ODoH, such as loop detection
 - Docker container packaged with token server (server-side)
+- Toml configuration file (ASAP...)

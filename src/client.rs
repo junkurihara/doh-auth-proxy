@@ -175,8 +175,8 @@ impl DoHClient {
     globals_cache: &Arc<RwLock<GlobalsCache>>,
   ) -> Result<Vec<u8>, Error> {
     // Check if the given packet buffer is consistent as a DNS query
-    match dns_message::is_query(&packet_buf.to_owned()) {
-      Ok(msg) => {
+    match dns_message::is_query(packet_buf) {
+      Ok(_) => {
         debug!("Ok as a DNS query");
         // debug!("TODO: check cache here {:?}", msg.queries());
       }
@@ -211,7 +211,7 @@ impl DoHClient {
     }
   }
 
-  async fn serve_doh_query(&self, packet_buf: &Vec<u8>) -> Result<Vec<u8>, Error> {
+  async fn serve_doh_query(&self, packet_buf: &[u8]) -> Result<Vec<u8>, Error> {
     let response = match self.method {
       DoHMethod::Get => {
         let query_b64u = BASE64URL_NOPAD.encode(packet_buf);
@@ -223,7 +223,7 @@ impl DoHClient {
         self
           .client
           .post(&self.nexthop_url) // TODO: bootstrap resolver must be used to get resolver_url, maybe hyper is better?
-          .body(packet_buf.clone())
+          .body(packet_buf.to_owned())
           .send()
           .await?
       }
@@ -240,7 +240,7 @@ impl DoHClient {
 
   async fn serve_oblivious_doh_query(
     &self,
-    packet_buf: &Vec<u8>,
+    packet_buf: &[u8],
     globals: &Arc<Globals>,
     globals_cache: &Arc<RwLock<GlobalsCache>>,
   ) -> Result<Vec<u8>, Error> {
