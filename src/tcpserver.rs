@@ -70,14 +70,21 @@ impl TCPServer {
           }
           Ok(res) => {
             // increment connection counter
-            if counter.increment(CounterType::TCP) >= self.globals.max_connections {
-              error!("Too many connections: max = {} (udp+tcp)", self.globals.max_connections);
-              counter.decrement(CounterType::TCP);
+            if counter.increment(CounterType::Tcp) >= self.globals.max_connections {
+              error!(
+                "Too many connections: max = {} (udp+tcp)",
+                self.globals.max_connections
+              );
+              counter.decrement(CounterType::Tcp);
               continue;
             }
-            debug!("TCP connection count++: {} (total = {})", counter.get_current(CounterType::TCP), counter.get_current_total());
+            debug!(
+              "TCP connection count++: {} (total = {})",
+              counter.get_current(CounterType::Tcp),
+              counter.get_current_total()
+            );
             res
-          },
+          }
         };
         let self_clone = self.clone();
         self.globals.runtime_handle.spawn(async move {
@@ -85,8 +92,12 @@ impl TCPServer {
             error!("Failed to handle query: {}", e);
           }
           // decrement connection counter
-          counter.decrement(CounterType::TCP);
-          debug!("TCP connection count--: {} (total = {})", counter.get_current(CounterType::TCP), counter.get_current_total());
+          counter.decrement(CounterType::Tcp);
+          debug!(
+            "TCP connection count--: {} (total = {})",
+            counter.get_current(CounterType::Tcp),
+            counter.get_current_total()
+          );
         });
       }
     };

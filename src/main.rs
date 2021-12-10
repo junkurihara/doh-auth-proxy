@@ -22,7 +22,6 @@ use config::parse_opts;
 use proxy::Proxy;
 // use std::env;
 use std::io::Write;
-use tokio;
 
 fn main() {
   // env::set_var("RUST_LOG", "info");

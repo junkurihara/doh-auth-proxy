@@ -31,7 +31,7 @@ impl HttpClient {
           globals.runtime_handle.clone(),
         )
         .await?;
-        let target_addr = target_addresses[0].clone();
+        let target_addr = target_addresses[0];
         debug!(
           "Via bootstrap DNS [{:?}], endpoint {:?} resolved: {:?}",
           &globals.bootstrap_dns, &endpoint, &target_addr
@@ -46,9 +46,9 @@ impl HttpClient {
       None => client,
     };
 
-    return Ok(HttpClient {
+    Ok(HttpClient {
       client: client.build()?,
-    });
+    })
   }
 }
 
@@ -88,10 +88,11 @@ pub async fn resolve_by_bootstrap(
   //  this can return IPv4 and/or IPv6 addresses
   let mut target_addresses: Vec<SocketAddr> = vec![];
   let mut response_iter = response.iter();
-  while let Some(address) = response_iter.next() {
+
+  for address in &mut response_iter {
     target_addresses.push(format!("{}:{}", address, port).parse().unwrap());
   }
-  if target_addresses.len() == 0 {
+  if target_addresses.is_empty() {
     bail!("Unable to obtain target resolver address");
   }
   debug!(

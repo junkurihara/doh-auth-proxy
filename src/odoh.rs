@@ -15,7 +15,7 @@ pub struct ODoHClientContext {
 
 impl ODoHClientContext {
   pub fn new(configs_vec: &[u8]) -> Result<Self, Error> {
-    let odoh_configs: ObliviousDoHConfigs = parse(&mut (configs_vec.clone()))?;
+    let odoh_configs: ObliviousDoHConfigs = parse(&mut (<&[u8]>::clone(&configs_vec)))?;
     info!("[ODoH] ODoH configs fetched");
     let client_config = match odoh_configs.into_iter().next() {
       Some(t) => t,
@@ -30,7 +30,7 @@ impl ODoHClientContext {
 
   pub fn encrypt_query(
     &self,
-    plaintext_query: &Vec<u8>,
+    plaintext_query: &[u8],
   ) -> Result<(ObliviousDoHMessagePlaintext, Bytes, OdohSecret), Error> {
     debug!("[ODoH] Encrypt query");
     let mut rng = StdRng::from_entropy();

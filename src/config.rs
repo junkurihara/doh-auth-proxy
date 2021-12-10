@@ -5,7 +5,6 @@ use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
 use crate::log::*;
 use clap::Arg;
-use dotenv;
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -17,7 +16,9 @@ pub async fn parse_opts(
   runtime_handle: Handle,
 ) -> Result<(Arc<Globals>, Arc<RwLock<GlobalsCache>>), Error> {
   use crate::utils::{verify_sock_addr, verify_target_url};
-  // TODO: Args Optionで上書き
+  // TODO: According to the suggestion in "Designing for Tussle in Encrypted DNS" (HotNets'21),
+  // multiple (O)DoH servers should be specified and used in randomized fashion in this proxy.
+  // To this end, 'Global' objects should have Vec<DoHClient> object as clients configured with different target servers.
 
   let _ = include_str!("../Cargo.toml");
   let options = app_from_crate!()
@@ -135,11 +136,11 @@ pub async fn parse_opts(
   let doh_method = match matches.is_present("doh_method_get") {
     true => {
       info!("Use GET method to query");
-      Some(DoHMethod::GET)
+      Some(DoHMethod::Get)
     }
     _ => {
       info!("Use POST method to query");
-      Some(DoHMethod::POST)
+      Some(DoHMethod::Post)
     }
   };
 
@@ -163,7 +164,7 @@ pub async fn parse_opts(
     }
     None => None,
   };
-  let max_mid_relays = if let Some(_) = mid_relay_urls {
+  let max_mid_relays = if mid_relay_urls.is_some() {
     let n = match matches.value_of("max_mid_relays") {
       None => 1,
       Some(s) => s.parse().unwrap(),

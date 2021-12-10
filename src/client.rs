@@ -33,8 +33,8 @@ impl DoHType {
 
 #[derive(Debug, Clone)]
 pub enum DoHMethod {
-  GET,
-  POST,
+  Get,
+  Post,
 }
 
 #[derive(Debug, Clone)]
@@ -78,12 +78,6 @@ impl DoHClient {
           .map_err(|e| anyhow!(e))?
           .to_string();
 
-        // TODO: mu-ODNS拡張検討
-        //   combined=nexthop_urlについての扱い。
-        //   (intermediate_host, intermediate_path) の順序の扱いをどうするか？
-        //   randomizedしたpathを作って、vec[combined]を生成するか、
-        //   vec[(intermediate_candidates)]を用意して、都度randomized pathを生成してcombinedを作るか。
-
         (DoHType::Oblivious, combined)
       }
       None => (DoHType::Standard, globals.doh_target_url.clone()),
@@ -95,15 +89,13 @@ impl DoHClient {
     let ct = doh_type.as_str();
     headers.insert("Accept", header::HeaderValue::from_str(&ct).unwrap());
     headers.insert("Content-Type", header::HeaderValue::from_str(&ct).unwrap());
-    match doh_type {
-      DoHType::Oblivious => {
-        headers.insert(
-          "Cache-Control",
-          header::HeaderValue::from_str("no-cache, no-store").unwrap(),
-        );
-      }
-      _ => (),
-    };
+    if let DoHType::Oblivious = doh_type {
+      headers.insert(
+        "Cache-Control",
+        header::HeaderValue::from_str("no-cache, no-store").unwrap(),
+      );
+    }
+
     if let Some(t) = auth_token {
       debug!("Instantiating DoH client with http authorization header");
       let token_str = format!("Bearer {}", &t);
@@ -119,7 +111,7 @@ impl DoHClient {
       .client;
 
     let doh_method = match globals.doh_method.clone() {
-      None => DoHMethod::POST,
+      None => DoHMethod::Post,
       Some(t) => t,
     };
 
@@ -128,7 +120,6 @@ impl DoHClient {
       DoHType::Oblivious => Some(DoHClient::fetch_odoh_config_from_well_known(&globals).await?),
       DoHType::Standard => None,
     };
-    // println!("{:#?}", odoh_client_context);
 
     // TODO: Ping here to check client-server connection
     Ok(DoHClient {
@@ -154,7 +145,7 @@ impl DoHClient {
       None => url.host_str().unwrap().to_string(),
     };
 
-    let simple_client = HttpClient::new(&globals, Some(&globals.doh_target_url), None)
+    let simple_client = HttpClient::new(globals, Some(&globals.doh_target_url), None)
       .await?
       .client;
     let response = simple_client
@@ -214,13 +205,13 @@ impl DoHClient {
 
   async fn serve_doh_query(&self, packet_buf: &Vec<u8>) -> Result<Vec<u8>, Error> {
     let response = match self.method {
-      DoHMethod::GET => {
-        let query_b64u = BASE64URL_NOPAD.encode(&packet_buf);
+      DoHMethod::Get => {
+        let query_b64u = BASE64URL_NOPAD.encode(packet_buf);
         let query_url = format!("{}?dns={}", &self.nexthop_url, query_b64u);
         debug!("query url: {:?}", query_url);
         self.client.get(query_url).send().await?
       }
-      DoHMethod::POST => {
+      DoHMethod::Post => {
         self
           .client
           .post(&self.nexthop_url) // TODO: bootstrap resolver must be used to get resolver_url, maybe hyper is better?
@@ -262,13 +253,13 @@ impl DoHClient {
     };
 
     let response = match self.method {
-      DoHMethod::GET => {
+      DoHMethod::Get => {
         let query_b64u = BASE64URL_NOPAD.encode(&encrypted_query_body);
         let query_url = format!("{}{}?dns={}", &self.nexthop_url, mid_relay_str, query_b64u);
         debug!("query url: {:?}", query_url);
         self.client.get(query_url).send().await?
       }
-      DoHMethod::POST => {
+      DoHMethod::Post => {
         self
           .client
           .post(&format!("{}{}", self.nexthop_url, mid_relay_str)) // TODO: bootstrap resolver must be used to get resolver_url, maybe hyper is better?
@@ -289,7 +280,7 @@ impl DoHClient {
     {
       warn!("ODoH public key is expired. Refetch.");
       let mut gc = globals_cache.write().await;
-      gc.update_doh_client(&globals).await?;
+      gc.update_doh_client(globals).await?;
       drop(gc);
     }
     if response.status() != reqwest::StatusCode::OK {

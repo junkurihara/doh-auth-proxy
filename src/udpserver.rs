@@ -5,7 +5,6 @@ use crate::log::*;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio;
 use tokio::net::UdpSocket;
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
@@ -42,10 +41,12 @@ impl UDPServer {
       // debug!("response from DoH server: {:?}", res);
       // send response via channel to the dispatch socket
       if let Some(Ok(r)) = res {
-        match res_sender.send((r, src_addr)).await {
-          Err(e) => error!("res_sender on channel fail: {:?}", e),
-          Ok(_) => (), // debug!("res_sender on channel success"),
+        if let Err(e) = res_sender.send((r, src_addr)).await {
+          error!("res_sender on channel fail: {:?}", e);
         }
+        // else {
+        //   debug!("res_sender on channel success"),
+        // }
       }
     });
 
@@ -110,28 +111,37 @@ impl UDPServer {
           }
           Ok(res) => {
             // increment connection counter
-            if counter.increment(CounterType::UDP) >= self.globals.max_connections {
-              error!("Too many connections: max = {} (udp+tcp)", self.globals.max_connections);
-              counter.decrement(CounterType::UDP);
+            if counter.increment(CounterType::Udp) >= self.globals.max_connections {
+              error!(
+                "Too many connections: max = {} (udp+tcp)",
+                self.globals.max_connections
+              );
+              counter.decrement(CounterType::Udp);
               continue;
             }
-            debug!("UDP connection count++: {} (total = {})", counter.get_current(CounterType::UDP), counter.get_current_total());
+            debug!(
+              "UDP connection count++: {} (total = {})",
+              counter.get_current(CounterType::Udp),
+              counter.get_current_total()
+            );
             res
-          },
+          }
         };
         let packet_buf = udp_buf[..buf_size].to_vec();
         // too many threads?
         let self_clone = self.clone();
         let channel_sender_clone = channel_sender.clone();
         self.globals.runtime_handle.spawn(async move {
-          let res = self_clone.serve_query(
-            packet_buf,
-            src_addr,
-            channel_sender_clone,
-          ).await;
+          let res = self_clone
+            .serve_query(packet_buf, src_addr, channel_sender_clone)
+            .await;
           // decrement connection counter
-          counter.decrement(CounterType::UDP);
-          debug!("UDP connection count--: {} (total = {})", counter.get_current(CounterType::UDP), counter.get_current_total());
+          counter.decrement(CounterType::Udp);
+          debug!(
+            "UDP connection count--: {} (total = {})",
+            counter.get_current(CounterType::Udp),
+            counter.get_current_total()
+          );
           res
         });
       }

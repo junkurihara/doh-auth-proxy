@@ -5,7 +5,6 @@ use crate::error::*;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
-use tokio;
 
 #[derive(Debug, Clone)]
 pub struct Globals {
@@ -61,7 +60,7 @@ impl GlobalsCache {
     };
 
     {
-      credential.refresh(&globals).await?;
+      credential.refresh(globals).await?;
       self.credential = Some(credential);
     }
     Ok(())
