@@ -110,7 +110,7 @@ fi
 
 if [ ${TARGET_URLS} ]; then
   TARGET_URL_ARRAY=( `echo ${TARGET_URLS} | tr -s ',' ' '`)
-  for i in ${MODOH_MID_RELAY_URL_ARRAY[@]}; do
+  for i in ${TARGET_URL_ARRAY[@]}; do
     OPTION_STRING+=" --target-url=${i}"
     echo "(O)DoH target url ${i}"
   done
