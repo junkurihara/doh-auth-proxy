@@ -35,27 +35,29 @@ impl Counter {
   }
 
   pub fn decrement(&self, ctype: CounterType) {
-    let mut cnt;
+    let cnt;
     match ctype {
       CounterType::Tcp => {
-        while {
+        let res = {
           cnt = self.cnt_tcp.load(Ordering::Relaxed);
           cnt > 0
             && self
               .cnt_tcp
               .compare_exchange(cnt, cnt - 1, Ordering::Relaxed, Ordering::Relaxed)
               != Ok(cnt)
-        } {}
+        };
+        if res {}
       }
       CounterType::Udp => {
-        while {
+        let res = {
           cnt = self.cnt_udp.load(Ordering::Relaxed);
           cnt > 0
             && self
               .cnt_udp
               .compare_exchange(cnt, cnt - 1, Ordering::Relaxed, Ordering::Relaxed)
               != Ok(cnt)
-        } {}
+        };
+        if res {}
       }
     };
     self.cnt_total.store(

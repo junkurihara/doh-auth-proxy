@@ -16,7 +16,6 @@ use crate::log::*;
 use chrono::{DateTime, Local};
 use jwt_simple::prelude::*;
 use p256::elliptic_curve::sec1::ToEncodedPoint;
-use p256::pkcs8::ToPublicKey;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -211,7 +210,7 @@ impl Credential {
     let pem = match Algorithm::from_str(meta.algorithm())? {
       Algorithm::ES256 => {
         let pk = p256::PublicKey::from_jwk_str(&jwk_string)?;
-        pk.to_public_key_pem()?
+        pk.to_string()
       }
     };
     match &self.validation_key {
@@ -266,11 +265,12 @@ impl Credential {
       Some(pem) => pem,
     };
 
-    let mut options = VerificationOptions::default();
-    // accept future
-    options.accept_future = true;
-    options.allowed_audiences = Some(HashSet::from_strings(&[&self.client_id]));
-    options.allowed_issuers = Some(HashSet::from_strings(&[&self.token_api]));
+    let options = VerificationOptions {
+      accept_future: true, // accept future
+      allowed_audiences: Some(HashSet::from_strings(&[&self.client_id])),
+      allowed_issuers: Some(HashSet::from_strings(&[&self.token_api])),
+      ..Default::default()
+    };
 
     let clm: JWTClaims<NoCustomClaims> = match Algorithm::from_str(meta.algorithm())? {
       Algorithm::ES256 => {
