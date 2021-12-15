@@ -130,8 +130,8 @@ You can run this proxy as a docker container, where the docker image is hosted a
 ```:.env
 ## Common to DoH and ODoH
 ### Required
-# TARGET_URL=https://dns.google/dns-query
-TARGET_URL=https://odoh.cloudflare-dns.com/dns-query
+# TARGET_URLS=https://dns.google/dns-query
+TARGET_URLS=https://odoh.cloudflare-dns.com/dns-query
 LOG_DIR=./log
 
 ### Optional
