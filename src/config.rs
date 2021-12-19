@@ -1,10 +1,10 @@
 use crate::client::DoHMethod;
+use crate::config_toml::ConfigToml;
 use crate::constants::*;
 use crate::credential::Credential;
 use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
 use crate::log::*;
-use crate::toml::ConfigToml;
 use clap::Arg;
 use std::env;
 use std::net::SocketAddr;
@@ -121,7 +121,7 @@ pub async fn parse_opts(
   /////////////////////////////
   if let Some(file_path) = matches.value_of("config_file") {
     let parsed_toml = ConfigToml::new(file_path);
-    println!("{:?}", parsed_toml);
+    println!("{:#?}", parsed_toml);
   }
   /////////////////////////////
 

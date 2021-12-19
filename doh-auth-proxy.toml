@@ -9,3 +9,35 @@
 ##################################
 
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
+
+bootstrap_dns = "8.8.8.8:53"
+
+reboot_period = 3 # minutes
+
+target_urls = ["https://odoh.cloudflare-dns.com/dns-query"]
+
+# use_get_method = false
+
+
+##################################
+#         Auth settings          #
+##################################
+[Authentication]
+
+# token_api = "https://token.api.example.org/v1.0"
+
+# credential_file = "./.credential"
+
+
+##################################
+#         Anon settings          #
+##################################
+[Anonymization]
+
+relay_url = ["https://odoh1.surfdomeinen.nl/proxy"]
+
+relay_randomization = true
+
+# mid_relay_urls = ["htps://relay.url.after.surfdomeinen.example.org/proxy"]
+
+# max_mid_relays = 2

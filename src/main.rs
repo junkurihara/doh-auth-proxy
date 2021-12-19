@@ -3,6 +3,7 @@ extern crate clap;
 
 mod client;
 mod config;
+mod config_toml;
 mod constants;
 mod counter;
 mod credential;
@@ -15,7 +16,6 @@ mod log;
 mod odoh;
 mod proxy;
 mod tcpserver;
-mod toml;
 mod udpserver;
 mod utils;
 use crate::log::*;
