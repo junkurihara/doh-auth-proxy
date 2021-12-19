@@ -17,7 +17,7 @@ pub struct Globals {
 
   pub doh_target_urls: Vec<String>,
   pub doh_method: Option<DoHMethod>,
-  pub odoh_relay_url: Option<String>,
+  pub odoh_relay_urls: Option<Vec<String>>,
   pub mid_relay_urls: Option<Vec<String>>,
   pub max_mid_relays: Option<u64>,
   pub bootstrap_dns: SocketAddr,
@@ -45,15 +45,35 @@ impl GlobalsCache {
     };
     {
       let doh_target_urls = globals.doh_target_urls.clone();
-      // let doh_clients: Result<Vec<DoHClient>, Error> =
-      let polls = doh_target_urls
-        .into_iter()
-        .map(|target_url| DoHClient::new(target_url, globals.clone(), &id_token));
-      let doh_clients = future::join_all(polls)
-        .await
-        .into_iter()
-        .collect::<Result<Vec<DoHClient>, Error>>()?;
-      self.doh_clients = Some(doh_clients);
+
+      // doh clients are configured for targets x nexthop relays.
+      // namely, if you have 2 targets and 2 nexthop relays, then 4 clients are configured.
+      // TODO: authentication token is configured once only for single specified token api.
+      // so it must be common to all nexthop nodes (i.e., targets for doh, nexthop relays to (m)odoh).
+      if let Some(relay_urls) = &globals.odoh_relay_urls {
+        // anonymization
+        let polls = doh_target_urls.iter().flat_map(|target| {
+          relay_urls
+            .iter()
+            .map(|relay| DoHClient::new(target, Some(relay.clone()), globals.clone(), &id_token))
+            .collect::<Vec<_>>()
+        });
+        let doh_clients = future::join_all(polls)
+          .await
+          .into_iter()
+          .collect::<Result<Vec<DoHClient>, Error>>()?;
+        self.doh_clients = Some(doh_clients);
+      } else {
+        // non-anonymization
+        let polls = doh_target_urls
+          .iter()
+          .map(|target| DoHClient::new(target, None, globals.clone(), &id_token));
+        let doh_clients = future::join_all(polls)
+          .await
+          .into_iter()
+          .collect::<Result<Vec<DoHClient>, Error>>()?;
+        self.doh_clients = Some(doh_clients);
+      }
     }
 
     Ok(())

@@ -20,7 +20,7 @@ pub async fn parse_opts(
   // TODO: According to the suggestion in "Designing for Tussle in Encrypted DNS" (HotNets'21),
   // multiple (O)DoH servers should be specified and used in randomized fashion in this proxy.
   // To this end, 'Global' objects should have Vec<DoHClient> object as clients configured with different target servers.
-  // TODO: This also should be applied for "mutilple relays". reconsider how to store Vec<DoHClient> in global config.
+  // TODO: This also should be applied for "multiple relays". reconsider how to store Vec<DoHClient> in global config.
 
   let _ = include_str!("../Cargo.toml");
   let options = app_from_crate!()
@@ -65,7 +65,9 @@ pub async fn parse_opts(
         .short("r")
         .long("relay-url")
         .takes_value(true)
+        .multiple(true)
         .validator(verify_target_url)
+        .number_of_values(1)
         .help("URL of ODoH nexthop relay server like \"https://relay.example.com/relay\"")
     )
     .arg(
@@ -166,11 +168,14 @@ pub async fn parse_opts(
     }
   };
 
-  let odoh_relay_url: Option<String> = match matches.value_of("odoh_relay_url") {
+  let odoh_relay_urls: Option<Vec<String>> = match matches.values_of("odoh_relay_url") {
     Some(s) => {
       info!("[ODoH] Oblivious DNS over HTTPS is enabled");
-      info!("[ODoH] Nexthop relay URL: {}", s);
-      Some(s.to_string())
+      info!(
+        "[ODoH] Nexthop relay URL: {:?}",
+        s.clone().collect::<Vec<&str>>()
+      );
+      Some(s.map(|x| x.to_string()).collect())
     }
     None => None,
   };
@@ -234,13 +239,13 @@ pub async fn parse_opts(
 
   ////////////////////////
 
-  if let (Some(_), Some(_)) = (&credential, &odoh_relay_url) {
+  if let (Some(_), Some(_)) = (&credential, &odoh_relay_urls) {
     warn!("-----------------------------------");
     warn!("[NOTE!!!!] Both credential and ODoH nexthop proxy is set up.");
     warn!("[NOTE!!!!] This means the authorization token will be sent not to the target but to the proxy.");
     warn!("[NOTE!!!!] Check if this is your intended behavior.");
     warn!("-----------------------------------");
-  } else if let (Some(_), None) = (&credential, &odoh_relay_url) {
+  } else if let (Some(_), None) = (&credential, &odoh_relay_urls) {
     warn!("-----------------------------------");
     warn!("[NOTE!!!!] Authorization token will be sent to the target server!");
     warn!("[NOTE!!!!] Check if this is your intended behavior.");
@@ -256,7 +261,7 @@ pub async fn parse_opts(
 
     doh_target_urls,
     doh_method,
-    odoh_relay_url,
+    odoh_relay_urls,
     mid_relay_urls,
     max_mid_relays,
     bootstrap_dns,

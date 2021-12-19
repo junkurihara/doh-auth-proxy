@@ -50,11 +50,12 @@ pub struct DoHClient {
 
 impl DoHClient {
   pub async fn new(
-    target_url_str: String,
+    target_url_str: &str,
+    relay_url_str: Option<String>,
     globals: Arc<Globals>,
     auth_token: &Option<String>,
   ) -> Result<Self, Error> {
-    let (doh_type, nexthop_url) = match &globals.odoh_relay_url {
+    let (doh_type, nexthop_url) = match &relay_url_str {
       Some(u) => {
         debug!("ODoH is enabled: relay {}", u);
         // Sample: "https://odoh1.surfdomeinen.nl/proxy?targethost=odoh.cloudflare-dns.com&targetpath=/dns-query"
@@ -67,7 +68,7 @@ impl DoHClient {
         let relay_path_str = relay_url.path();
         let base = format!("{}://{}{}", relay_scheme, relay_host_str, relay_path_str);
 
-        let target_url = Url::parse(&target_url_str)?;
+        let target_url = Url::parse(target_url_str)?;
         let target_host_str = match target_url.port() {
           Some(port) => format!("{}:{}", target_url.host_str().unwrap(), port),
           None => target_url.host_str().unwrap().to_string(),
@@ -85,9 +86,9 @@ impl DoHClient {
 
         (DoHType::Oblivious, combined)
       }
-      None => (DoHType::Standard, target_url_str.clone()),
+      None => (DoHType::Standard, target_url_str.to_owned()),
     };
-    info!("Target (O)DoH URL: {}", nexthop_url);
+    info!("Target (O)DoH URL: {:?}", nexthop_url);
 
     // build client
     let mut headers = header::HeaderMap::new();
@@ -123,7 +124,7 @@ impl DoHClient {
     // When ODoH, first fetch configs
     let odoh_client_context = match doh_type {
       DoHType::Oblivious => {
-        Some(DoHClient::fetch_odoh_config_from_well_known(&target_url_str, &globals).await?)
+        Some(DoHClient::fetch_odoh_config_from_well_known(target_url_str, &globals).await?)
       }
       DoHType::Standard => None,
     };
@@ -132,7 +133,7 @@ impl DoHClient {
     Ok(DoHClient {
       doh_type,
       client,
-      target_url: target_url_str,
+      target_url: target_url_str.to_string(),
       method: doh_method,
       bootstrap_dns: globals.bootstrap_dns,
       nexthop_url,
