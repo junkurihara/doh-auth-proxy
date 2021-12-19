@@ -4,6 +4,7 @@ use crate::credential::Credential;
 use crate::error::*;
 use crate::globals::{Globals, GlobalsCache};
 use crate::log::*;
+use crate::toml::ConfigToml;
 use clap::Arg;
 use std::env;
 use std::net::SocketAddr;
@@ -19,6 +20,7 @@ pub async fn parse_opts(
   // TODO: According to the suggestion in "Designing for Tussle in Encrypted DNS" (HotNets'21),
   // multiple (O)DoH servers should be specified and used in randomized fashion in this proxy.
   // To this end, 'Global' objects should have Vec<DoHClient> object as clients configured with different target servers.
+  // TODO: This also should be applied for "mutilple relays". reconsider how to store Vec<DoHClient> in global config.
 
   let _ = include_str!("../Cargo.toml");
   let options = app_from_crate!()
@@ -104,9 +106,24 @@ pub async fn parse_opts(
         .takes_value(true)
         .default_value("0")
         .help("Maximum number of intermediate relays between nexthop and target"),
+    )
+    .arg(
+      Arg::with_name("config_file")
+      .long("config")
+      .takes_value(true)
+      .help("Configuration file path like \"doh-auth-proxy.toml\""),
     );
 
   let matches = options.get_matches();
+
+  /////////////////////////////
+  // reading toml file first //
+  /////////////////////////////
+  if let Some(file_path) = matches.value_of("config_file") {
+    let parsed_toml = ConfigToml::new(file_path);
+    println!("{:?}", parsed_toml);
+  }
+  /////////////////////////////
 
   let listen_addresses: Vec<SocketAddr> = (match matches.values_of("listen_addresses") {
     None => LISTEN_ADDRESSES.to_vec(),

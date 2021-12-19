@@ -15,6 +15,7 @@ mod log;
 mod odoh;
 mod proxy;
 mod tcpserver;
+mod toml;
 mod udpserver;
 mod utils;
 use crate::log::*;
