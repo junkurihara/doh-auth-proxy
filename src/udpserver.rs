@@ -24,8 +24,18 @@ impl UDPServer {
   ) -> Result<(), Error> {
     let self_clone = self.clone();
     let globals_cache = self_clone.globals_cache.read().await;
-
     let doh_client = globals_cache.get_random_client(&self.globals)?;
+    let counter = self.globals.counter.clone();
+
+    if counter.increment(CounterType::Udp) >= self.globals.max_connections {
+      error!(
+        "Too many connections: max = {} (udp+tcp)",
+        self.globals.max_connections
+      );
+      counter.decrement(CounterType::Udp);
+      bail!("Too many connections");
+    }
+
     self.globals.runtime_handle.clone().spawn(async move {
       debug!("handle query from {:?}", src_addr);
       let res = tokio::time::timeout(
@@ -45,6 +55,7 @@ impl UDPServer {
         //   debug!("res_sender on channel success"),
         // }
       }
+      counter.decrement(CounterType::Udp);
     });
 
     Ok(())
@@ -100,46 +111,21 @@ impl UDPServer {
     // receive from src
     let udp_socket_service = async {
       loop {
-        let counter = self.globals.counter.clone();
         let (buf_size, src_addr) = match socket_receiver.recv_from(&mut udp_buf).await {
           Err(e) => {
             error!("Error in UDP acceptor: {}", e);
             continue;
           }
-          Ok(res) => {
-            // increment connection counter
-            if counter.increment(CounterType::Udp) >= self.globals.max_connections {
-              error!(
-                "Too many connections: max = {} (udp+tcp)",
-                self.globals.max_connections
-              );
-              counter.decrement(CounterType::Udp);
-              continue;
-            }
-            debug!(
-              "UDP connection count++: {} (total = {})",
-              counter.get_current(CounterType::Udp),
-              counter.get_current_total()
-            );
-            res
-          }
+          Ok(res) => res,
         };
         let packet_buf = udp_buf[..buf_size].to_vec();
         // too many threads?
         let self_clone = self.clone();
         let channel_sender_clone = channel_sender.clone();
         self.globals.runtime_handle.spawn(async move {
-          let res = self_clone
+          self_clone
             .serve_query(packet_buf, src_addr, channel_sender_clone)
-            .await;
-          // decrement connection counter
-          counter.decrement(CounterType::Udp);
-          debug!(
-            "UDP connection count--: {} (total = {})",
-            counter.get_current(CounterType::Udp),
-            counter.get_current_total()
-          );
-          res
+            .await
         });
       }
     };

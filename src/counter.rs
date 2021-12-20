@@ -1,3 +1,4 @@
+use crate::log::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -28,10 +29,18 @@ impl Counter {
 
   pub fn increment(&self, ctype: CounterType) -> usize {
     self.cnt_total.fetch_add(1, Ordering::Relaxed);
-    match ctype {
+    let c = match ctype {
       CounterType::Tcp => self.cnt_tcp.fetch_add(1, Ordering::Relaxed),
       CounterType::Udp => self.cnt_udp.fetch_add(1, Ordering::Relaxed),
-    }
+    };
+
+    debug!(
+      "{} connection count++: {} (total = {})",
+      Self::get_typename(&ctype),
+      self.get_current(ctype),
+      self.get_current_total()
+    );
+    c
   }
 
   pub fn decrement(&self, ctype: CounterType) {
@@ -64,5 +73,19 @@ impl Counter {
       self.cnt_udp.load(Ordering::Relaxed) + self.cnt_tcp.load(Ordering::Relaxed),
       Ordering::Relaxed,
     );
+
+    debug!(
+      "{} connection count--: {} (total = {})",
+      Self::get_typename(&ctype),
+      self.get_current(ctype),
+      self.get_current_total()
+    );
+  }
+
+  fn get_typename<'a>(ctype: &CounterType) -> &'a str {
+    match ctype {
+      CounterType::Tcp => "TCP",
+      CounterType::Udp => "UDP",
+    }
   }
 }

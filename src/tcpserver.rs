@@ -19,6 +19,16 @@ impl TCPServer {
     debug!("handle query from {:?}", src_addr);
     let globals_cache = self.globals_cache.read().await;
     let doh_client = globals_cache.get_random_client(&self.globals)?;
+    let counter = self.globals.counter.clone();
+
+    if counter.increment(CounterType::Tcp) >= self.globals.max_connections {
+      error!(
+        "Too many connections: max = {} (udp+tcp)",
+        self.globals.max_connections
+      );
+      counter.decrement(CounterType::Tcp);
+      bail!("Too many connections");
+    }
 
     // read data from stream
     // first 2bytes indicates the length of dns message following from the 3rd byte
@@ -41,6 +51,7 @@ impl TCPServer {
 
     // debug!("response from DoH server: {:?}", res);
     // send response via stream
+    counter.decrement(CounterType::Tcp); // decrement counter anyways
     if let Some(Ok(r)) = res {
       ensure!(r.len() <= (u16::MAX as usize), "Invalid response size");
       let length_buf = u16::to_be_bytes(r.len() as u16);
@@ -49,6 +60,7 @@ impl TCPServer {
     } else {
       bail!("Failed to make a DoH query");
     }
+
     Ok(())
   }
 
@@ -59,42 +71,18 @@ impl TCPServer {
     // receive from src
     let tcp_listener_service = async {
       loop {
-        let counter = self.globals.counter.clone();
         let (stream, src_addr) = match tcp_listener.accept().await {
           Err(e) => {
             error!("Error in TCP acceptor: {}", e);
             continue;
           }
-          Ok(res) => {
-            // increment connection counter
-            if counter.increment(CounterType::Tcp) >= self.globals.max_connections {
-              error!(
-                "Too many connections: max = {} (udp+tcp)",
-                self.globals.max_connections
-              );
-              counter.decrement(CounterType::Tcp);
-              continue;
-            }
-            debug!(
-              "TCP connection count++: {} (total = {})",
-              counter.get_current(CounterType::Tcp),
-              counter.get_current_total()
-            );
-            res
-          }
+          Ok(res) => res,
         };
         let self_clone = self.clone();
         self.globals.runtime_handle.spawn(async move {
           if let Err(e) = self_clone.serve_query(stream, src_addr).await {
             error!("Failed to handle query: {}", e);
           }
-          // decrement connection counter
-          counter.decrement(CounterType::Tcp);
-          debug!(
-            "TCP connection count--: {} (total = {})",
-            counter.get_current(CounterType::Tcp),
-            counter.get_current_total()
-          );
         });
       }
     };
