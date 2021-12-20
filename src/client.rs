@@ -116,10 +116,7 @@ impl DoHClient {
       .await?
       .client;
 
-    let doh_method = match globals.doh_method.clone() {
-      None => DoHMethod::Post,
-      Some(t) => t,
-    };
+    let doh_method = globals.doh_method.clone();
 
     // When ODoH, first fetch configs
     let odoh_client_context = match doh_type {

@@ -17,7 +17,7 @@ pub struct Globals {
 
   pub doh_target_urls: Vec<String>,
   pub target_randomization: bool,
-  pub doh_method: Option<DoHMethod>,
+  pub doh_method: DoHMethod,
 
   pub odoh_relay_urls: Option<Vec<String>>,
   pub odoh_relay_randomization: bool,
