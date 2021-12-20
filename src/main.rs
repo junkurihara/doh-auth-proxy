@@ -3,6 +3,7 @@ extern crate clap;
 
 mod client;
 mod config;
+mod config_toml;
 mod constants;
 mod counter;
 mod credential;

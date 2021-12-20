@@ -1,0 +1,72 @@
+##############################################
+#                                            #
+#        doh-auth-proxy configuration        #
+#                                            #
+##############################################
+
+##################################
+#         Global settings        #
+##################################
+
+## Address to listen to.
+listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
+
+## DNS (Do53) resolver address for bootstrap
+bootstrap_dns = "8.8.8.8:53"
+
+## Minutes to re-fetch the IP addr of the target url host via the bootstrap DNS
+reboot_period = 3
+
+## URL of (O)DoH target server like "https://dns.google/dns-query".
+## You can specify multiple servers by repeatedly set this option, then one of given
+## servers is randomly chosen every time.
+target_urls = ["https://odoh.cloudflare-dns.com/dns-query"]
+
+## According to the suggestion in "Designing for Tussle in Encrypted DNS" (HotNets'21),
+## multiple (O)DoH servers should be specified and used in randomized fashion in this
+## proxy when "target_randomization = true". Otherwise, the first one is always chosen.
+## To this end, 'Global' objects should have Vec<DoHClient> object as clients configured
+## with different target servers. Default value is true
+target_randomization = true
+
+## Use Get method to query if true. Default is false
+# use_get_method = false
+
+
+##################################
+#         Auth settings          #
+##################################
+[authentication]
+
+## (optional)
+## API url to retrieve and refresh tokens and validation keys (jwks) like "https://example.com/v1.0",
+## where /tokens and /refresh are used for login and refresh, respectively.
+## Also /jwks is used for jwks retrieval.
+# token_api = "https://token.api.example.org/v1.0"
+
+## (optional)
+## Credential env file path for login endpoint like "./credential.env"
+# credential_file = "./.credential"
+
+
+##################################
+#         Anon settings          #
+##################################
+[anonymization]
+
+## (optional) URL of ODoH nexthop relay server like "https://relay.example.com/relay"
+odoh_relay_urls = ["https://odoh1.surfdomeinen.nl/proxy"]
+
+
+## (optional)
+## Choose ODoH relay in a randomized fashion from `odoh_relay_urls`.
+odoh_relay_randomization = true
+
+## (optional)
+## URL of multiple-relay-based ODoH's intermediate relay like "https://relay.example.com/inter-relay".
+## Specified relay is used after the relay of 'odoh_relay_url' in a randomized fashion.
+# mid_relay_urls = ["htps://relay.url.after.surfdomeinen.example.org/proxy"]
+
+## (optional)
+## Maximum number of intermediate relays between nexthop and target.
+# max_mid_relays = 2

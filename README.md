@@ -19,11 +19,14 @@ Now you have a compiled executable binary `doh-auth-proxy` in `./target/debug/` 
 ### Connecting to Google public DoH server
 
 ```:bash
-$ ./path/to/doh-auth-proxy \
-    --listen-address=127.0.0.1:50053 \
-    --listen-address="[::1]:50053" \
-    --target-url=https://dns.google/dns-query \
-    --bootstrap-dns=1.1.1.1:53
+$ ./path/to/doh-auth-proxy --config config.toml
+```
+
+```:config.toml
+listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
+bootstrap_dns = "8.8.8.8:53"
+
+target_urls = ["https://dns.google/dns-query"]
 ```
 
 Now you can query through `127.0.0.1:50053` as
@@ -41,12 +44,17 @@ The parameter `bootstrap-dns` is used to resolve the IP address of the host of `
 ### Connecting to Cloudflare ODoH server via `surfdomeinen.nl` ODoH relay
 
 ```:bash
-$ ./path/to/doh-auth-proxy \
-    --listen-address=127.0.0.1:50053 \
-    --listen-address="[::1]:50053" \
-    --target-url=https://odoh.cloudflare-dns.com/dns-query \
-    --relay-url=https://odoh1.surfdomeinen.nl/proxy \
-    --bootstrap-dns=1.1.1.1:53
+$ ./path/to/doh-auth-proxy --config config.toml
+```
+
+```:config.toml
+listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
+bootstrap_dns = "8.8.8.8:53"
+
+target_urls = ["https://odoh.cloudflare-dns.com/dns-query"]
+
+[anonymization]
+odoh_relay_urls = ["https://odoh1.surfdomeinen.nl/proxy"]
 ```
 
 This example issues ODoH encrypted queries by an URL `https://odoh1.surfdomeinen.nl/proxy?targethost=odoh.cloudflare-dns.com&targetpath=/dns-query`.
@@ -63,64 +71,94 @@ github.com.             11      IN      A       140.82.121.4
 
 where this takes more round-trip time than the above ordinary DoH example due to the intermediate relay (especially when it is far from your location).
 
-## All options
+## All options in a configuration file
 
 ```:bash
 USAGE:
-    doh-auth-proxy [FLAGS] [OPTIONS]
+    doh-auth-proxy --config <config_file>
 
 FLAGS:
-    -g, --use-get-method    Use Get method to query
-    -h, --help              Prints help information
-    -V, --version           Prints version information
+    -h, --help       Prints help information
+    -V, --version    Prints version information
 
 OPTIONS:
-    -b, --bootstrap-dns <bootstrap_dns>
-            DNS (Do53) resolver address for bootstrap
-            [default: 1.1.1.1:53]
+    -c, --config <config_file>    Configuration file path like "doh-auth-proxy.toml"
+```
 
-    -t, --target-url <doh_target_url>
-            URL of (O)DoH target server like \"https://dns.google/dns-query\".
-            You can specify multiple servers by repeatedly set this option,
-            then one of given servers is randomly chosen every time.
-            [default: https://dns.google/dns-query]
+```:config.toml
+##############################################
+#                                            #
+#        doh-auth-proxy configuration        #
+#                                            #
+##############################################
 
-    -l, --listen-address <listen_addresses>...
-            Address to listen to. To specify multiple
-            addresses, set args like
-            "--listen-address=127.0.0.1:50053 --listen-address='[::1]:50053'"
+##################################
+#         Global settings        #
+##################################
 
-    -p, --reboot-period <rebootstrap_period_min>
-            Minutes to re-fetch the IP addr of the target
-            url host via the bootstrap DNS
+## Address to listen to.
+listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
 
----
-OPTION FOR OBLIVIOUS DNS OVER HTTPS:
-    -r, --relay-url <odoh_relay_url>
-            URL of ODoH relay server like "https://relay.example.com/relay".
-            If specified, ODoH is enabled.
+## DNS (Do53) resolver address for bootstrap
+bootstrap_dns = "8.8.8.8:53"
 
----
-OPTIONS FOR AUTHORIZED ACCESS TO THE NEXT HOP:
-    -c, --credential-file-path <credential_file_path>
-            Credential env file path for login endpoint like
-            "./credential.env"
+## Minutes to re-fetch the IP addr of the target url host via the bootstrap DNS
+reboot_period = 3
 
-    -a, --token-api <token_api>
-            API url to retrieve and refresh tokens and
-            validation keys (jwks) like "https://example.com/v1.0",
-            where /tokens and /refresh are used for login and refresh,
-            respectively. Also /jwks is used for jwks retrieval.
+## URL of (O)DoH target server like "https://dns.google/dns-query".
+## You can specify multiple servers by repeatedly set this option, then one of given
+## servers is randomly chosen every time.
+target_urls = ["https://odoh.cloudflare-dns.com/dns-query"]
 
----
-OPTIONS FOR MULTI-HOP ACCESS IN THE CONCEPT OF MUTUALIZED ODOH
-    -n, --max-mid-relays <max_mid_relays>
-            Maximum number of intermediate relays between nexthop
-            and target [default: 0] (0 = same as ODoH)
+## According to the suggestion in "Designing for Tussle in Encrypted DNS" (HotNets'21),
+## multiple (O)DoH servers should be specified and used in randomized fashion in this
+## proxy when "target_randomization = true". Otherwise, the first one is always chosen.
+## To this end, 'Global' objects should have Vec<DoHClient> object as clients configured
+## with different target servers. Default value is true
+target_randomization = true
 
-    -m, --mid-relay-url <mid_relay_url>...
-            URL of multiple-relay-based ODoH's intermediate relay
-            like "https://relay.example.com/inter-relay"
+## Use Get method to query if true. Default is false
+# use_get_method = false
+
+
+##################################
+#         Auth settings          #
+##################################
+[authentication]
+
+## (optional)
+## API url to retrieve and refresh tokens and validation keys (jwks) like "https://example.com/v1.0",
+## where /tokens and /refresh are used for login and refresh, respectively.
+## Also /jwks is used for jwks retrieval.
+# token_api = "https://token.api.example.org/v1.0"
+
+## (optional)
+## Credential env file path for login endpoint like "./credential.env"
+# credential_file = "./.credential"
+
+
+##################################
+#         Anon settings          #
+##################################
+[anonymization]
+
+## (optional) URL of ODoH nexthop relay server like "https://relay.example.com/relay"
+odoh_relay_urls = ["https://odoh1.surfdomeinen.nl/proxy"]
+
+
+## (optional)
+## Choose ODoH relay in a randomized fashion from `odoh_relay_urls`.
+odoh_relay_randomization = true
+
+## (optional)
+## URL of multiple-relay-based ODoH's intermediate relay like "https://relay.example.com/inter-relay".
+## Specified relay is used after the relay of 'odoh_relay_url' in a randomized fashion.
+# mid_relay_urls = ["htps://relay.url.after.surfdomeinen.example.org/proxy"]
+
+## (optional)
+## Maximum number of intermediate relays between nexthop and target.
+# max_mid_relays = 2
+
 ```
 
 ## Docker container
@@ -143,7 +181,7 @@ LOG_SIZE=10M
 
 ## ODoH
 ## If specified, ODoH is enabled.
-ODOH_RELAY_URL=https://odoh1.surfdomeinen.nl/proxy
+ODOH_RELAY_URLS=https://odoh1.surfdomeinen.nl/proxy
 
 ## Mutualized ODoH
 ## If specified, ODoH queries are transferred over multiple hops,
@@ -200,4 +238,4 @@ Currently if you specify multiple resolvers by repeatedly use `--target_url` opt
 - `crates.io`
 - Sophistication of mu-ODNS based on ODoH, such as loop detection
 - Docker container packaged with token server (server-side)
-- Toml configuration file (ASAP...)
+- Override with command line options over TOML configuration

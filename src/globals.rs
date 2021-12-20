@@ -16,10 +16,14 @@ pub struct Globals {
   pub timeout_sec: Duration,
 
   pub doh_target_urls: Vec<String>,
-  pub doh_method: Option<DoHMethod>,
-  pub odoh_relay_url: Option<String>,
+  pub target_randomization: bool,
+  pub doh_method: DoHMethod,
+
+  pub odoh_relay_urls: Option<Vec<String>>,
+  pub odoh_relay_randomization: bool,
   pub mid_relay_urls: Option<Vec<String>>,
-  pub max_mid_relays: Option<u64>,
+  pub max_mid_relays: usize,
+
   pub bootstrap_dns: SocketAddr,
   pub rebootstrap_period_sec: Duration,
 
@@ -30,7 +34,7 @@ pub struct Globals {
 
 #[derive(Debug, Clone)]
 pub struct GlobalsCache {
-  pub doh_clients: Option<Vec<DoHClient>>,
+  pub doh_clients: Option<Vec<Vec<DoHClient>>>,
   pub credential: Option<Credential>,
 }
 
@@ -45,27 +49,65 @@ impl GlobalsCache {
     };
     {
       let doh_target_urls = globals.doh_target_urls.clone();
-      // let doh_clients: Result<Vec<DoHClient>, Error> =
-      let polls = doh_target_urls
-        .into_iter()
-        .map(|target_url| DoHClient::new(target_url, globals.clone(), &id_token));
-      let doh_clients = future::join_all(polls)
-        .await
-        .into_iter()
-        .collect::<Result<Vec<DoHClient>, Error>>()?;
-      self.doh_clients = Some(doh_clients);
+
+      // doh clients are configured for targets x nexthop relays.
+      // namely, if you have 2 targets and 2 nexthop relays, then 4 clients are configured.
+      // TODO: authentication token is configured once only for single specified token api.
+      // so it must be common to all nexthop nodes (i.e., targets for doh, nexthop relays to (m)odoh).
+      if let Some(relay_urls) = &globals.odoh_relay_urls {
+        // anonymization
+        let polls = doh_target_urls.iter().map(|target| {
+          let polls_inner = relay_urls
+            .iter()
+            .map(|relay| DoHClient::new(target, Some(relay.clone()), globals.clone(), &id_token))
+            .collect::<Vec<_>>();
+          future::join_all(polls_inner)
+        });
+        let inner = polls.map(|p| async {
+          p.await
+            .into_iter()
+            .collect::<Result<Vec<DoHClient>, Error>>()
+        });
+        let doh_clients = future::join_all(inner)
+          .await
+          .into_iter()
+          .collect::<Result<Vec<Vec<DoHClient>>, Error>>()?;
+        self.doh_clients = Some(doh_clients);
+      } else {
+        // non-anonymization
+        let polls = doh_target_urls
+          .iter()
+          .map(|target| DoHClient::new(target, None, globals.clone(), &id_token));
+        let doh_clients = future::join_all(polls)
+          .await
+          .into_iter()
+          .collect::<Result<Vec<DoHClient>, Error>>()?;
+        self.doh_clients = Some(doh_clients.into_iter().map(|x| vec![x]).collect());
+      }
     }
 
     Ok(())
   }
 
-  pub fn get_random_client(&self) -> Result<DoHClient, Error> {
+  pub fn get_random_client(&self, globals: &Arc<Globals>) -> Result<DoHClient, Error> {
     if let Some(clients) = &self.doh_clients {
-      let num_clients = clients.len();
-      let mut rng = rand::thread_rng();
-      let idx = rng.gen::<usize>() % num_clients;
-      if let Some(client) = clients.get(idx) {
-        return Ok(client.clone());
+      let num_targets = clients.len();
+      let target_idx = if globals.target_randomization {
+        let mut rng = rand::thread_rng();
+        rng.gen::<usize>() % num_targets
+      } else {
+        0
+      };
+      if let Some(clients_specific_target) = clients.get(target_idx) {
+        let relay_idx = if globals.odoh_relay_randomization && globals.odoh_relay_urls.is_some() {
+          let mut rng = rand::thread_rng();
+          rng.gen::<usize>() % clients_specific_target.len()
+        } else {
+          0
+        };
+        if let Some(clients_specific_relay) = clients_specific_target.get(relay_idx) {
+          return Ok(clients_specific_relay.clone());
+        }
       }
     }
     bail!("DoH client is not properly configured");
