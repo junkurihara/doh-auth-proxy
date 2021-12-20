@@ -125,6 +125,8 @@ pub async fn parse_opts(
     let parsed_toml = ConfigToml::new(file_path);
     println!("{:#?}", parsed_toml);
   }
+  let target_randomization = true;
+  let odoh_relay_randomization = true;
   /////////////////////////////
 
   let listen_addresses: Vec<SocketAddr> = (match matches.values_of("listen_addresses") {
@@ -180,30 +182,31 @@ pub async fn parse_opts(
     None => None,
   };
 
-  let mid_relay_urls: Option<Vec<String>> = match matches.values_of("mid_relay_url") {
-    Some(s) => {
-      info!("[m-ODoH] Multiple-relay-based Oblivious DNS over HTTPS is enabled");
-      info!(
-        "[m-ODoH] Intermediate relay URLs: {:?}",
-        s.clone().collect::<Vec<&str>>()
-      );
-      Some(s.map(|x| x.to_string()).collect())
+  let mid_relay_urls: Option<Vec<String>> = matches
+    .values_of("mid_relay_url")
+    .map(|s| s.map(|x| x.to_string()).collect());
+  let max_mid_relays = match matches.value_of("max_mid_relays") {
+    None => {
+      if mid_relay_urls.is_some() {
+        1usize
+      } else {
+        0usize
+      }
     }
-    None => None,
+    Some(s) => s.parse().unwrap(),
   };
-  let max_mid_relays = if mid_relay_urls.is_some() {
-    let n = match matches.value_of("max_mid_relays") {
-      None => 1,
-      Some(s) => s.parse().unwrap(),
-    };
+
+  if mid_relay_urls.is_some() {
+    info!("[m-ODoH] Multiple-relay-based Oblivious DNS over HTTPS is enabled");
+    info!(
+      "[m-ODoH] Intermediate relay URLs employed after the next hop: {:?}",
+      mid_relay_urls.clone().unwrap()
+    );
     info!(
       "[m-ODoH] Maximum number of intermediate relays after the nexthop: {}",
-      n
+      max_mid_relays
     );
-    Some(n)
-  } else {
-    None
-  };
+  }
 
   // If credential exists, authorization header is also enabled.
   // TODO: login password should be stored in keychain access like secure storage rather than dotenv.
@@ -260,8 +263,10 @@ pub async fn parse_opts(
     timeout_sec: Duration::from_secs(TIMEOUT_SEC),
 
     doh_target_urls,
+    target_randomization,
     doh_method,
     odoh_relay_urls,
+    odoh_relay_randomization,
     mid_relay_urls,
     max_mid_relays,
     bootstrap_dns,

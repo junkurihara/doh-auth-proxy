@@ -8,15 +8,16 @@ pub struct ConfigToml {
   pub bootstrap_dns: Option<String>,
   pub reboot_period: Option<usize>,
   pub target_urls: Option<Vec<String>>,
+  pub target_randomization: Option<bool>,
   pub use_get_method: Option<bool>,
-  pub route_randomization: Option<bool>,
   pub authentication: Option<Authentication>,
   pub anonymization: Option<Anonymization>,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct Anonymization {
-  pub relay_urls: Vec<String>,
+  pub odoh_relay_urls: Vec<String>,
+  pub odoh_relay_randomization: Option<bool>,
   pub mid_relay_urls: Option<Vec<String>>,
   pub max_mid_relays: Option<usize>,
 }

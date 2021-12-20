@@ -306,9 +306,8 @@ impl DoHClient {
   fn get_randomized_mid_relay_str(&self, globals: &Arc<Globals>) -> Option<String> {
     // add randomized order of mu-ODoH intermediate relays
     let mut mid_relay_str = "".to_string();
-    if let (Some(mid_relay_urls), Some(max_mid_relays)) =
-      (&globals.mid_relay_urls, &globals.max_mid_relays)
-    {
+    let max_mid_relays = &globals.max_mid_relays;
+    if let Some(mid_relay_urls) = &globals.mid_relay_urls {
       let mut copied = mid_relay_urls.clone();
       let mut rng = thread_rng();
       copied.shuffle(&mut rng);

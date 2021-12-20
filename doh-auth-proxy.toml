@@ -16,13 +16,15 @@ reboot_period = 3 # minutes
 
 target_urls = ["https://odoh.cloudflare-dns.com/dns-query"]
 
+target_randomization = true
+
 # use_get_method = false
 
 
 ##################################
 #         Auth settings          #
 ##################################
-[Authentication]
+[authentication]
 
 # token_api = "https://token.api.example.org/v1.0"
 
@@ -32,11 +34,11 @@ target_urls = ["https://odoh.cloudflare-dns.com/dns-query"]
 ##################################
 #         Anon settings          #
 ##################################
-[Anonymization]
+[anonymization]
 
-relay_url = ["https://odoh1.surfdomeinen.nl/proxy"]
+odoh_relay_url = ["https://odoh1.surfdomeinen.nl/proxy"]
 
-relay_randomization = true
+odoh_relay_randomization = true
 
 # mid_relay_urls = ["htps://relay.url.after.surfdomeinen.example.org/proxy"]
 
