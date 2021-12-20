@@ -181,7 +181,7 @@ LOG_SIZE=10M
 
 ## ODoH
 ## If specified, ODoH is enabled.
-ODOH_RELAY_URL=https://odoh1.surfdomeinen.nl/proxy
+ODOH_RELAY_URLS=https://odoh1.surfdomeinen.nl/proxy
 
 ## Mutualized ODoH
 ## If specified, ODoH queries are transferred over multiple hops,

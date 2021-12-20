@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 LOG_FILE=/var/log/doh-auth-proxy/doh-auth-proxy.log
+CONFIG_FILE=/etc/doh-auth-proxy.toml
 LOG_SIZE=10M
 LOG_NUM=10
 
@@ -72,8 +73,6 @@ fi
 
 echo "Bootstrap dns: ${BOOTSTRAP_DNS_ADDR}:${BOOTSTRAP_DNS_PORT}"
 
-OPTION_STRING=""
-
 if [ ${TOKEN_API} ] && [ ${USERNAME} ] && [ ${PASSWORD} ] && [ ${CLIENT_ID} ]; then
   CREDENTIAL_FILE_PATH=/etc/doh_auth
   cat > ${CREDENTIAL_FILE_PATH} << EOF
@@ -82,40 +81,66 @@ password=${PASSWORD}
 client_id=${CLIENT_ID}
 EOF
   echo "Authorization is enabled to the token API: ${TOKEN_API}"
-  OPTION_STRING+=" --credential-file-path=${CREDENTIAL_FILE_PATH}"
-  OPTION_STRING+=" --token-api=${TOKEN_API}"
+  CREDENTIAL_FP="credential_file = \"${CREDENTIAL_FILE_PATH}\""
+  CREDENTIAL_API="token_api = \"${TOKEN_API}\""
 fi
 
-if [ ${ODOH_RELAY_URL} ]; then
+RELAY_URLS=""
+if [ ${ODOH_RELAY_URLS} ]; then
   echo "Running as ODoH mode"
-  echo "ODoH relay ${ODOH_RELAY_URL}"
-
-  OPTION_STRING+=" --relay-url=${ODOH_RELAY_URL}"
+  ODOH_RELAY_URL_STRING="odoh_relay_urls = ["
+  ODOH_RELAY_URL_ARRAY=( `echo ${ODOH_RELAY_URLS} | tr -s ',' ' '`)
+  for i in ${ODOH_RELAY_URL_ARRAY[@]}; do
+    ODOH_RELAY_URL_STRING+="\"${i}\", "
+    echo "(O)DoH relay url ${i}"
+  done
+  ODOH_RELAY_URL_STRING+="]"
+  ODOH_RELAY_RAND_STRING="odoh_relay_randomization = true"
 
   if [ ${MODOH_MID_RELAY_URLS} ]; then
+    MODOH_MID_RELAY_URL_STRING="mid_relay_urls = ["
     MODOH_MID_RELAY_URL_ARRAY=( `echo ${MODOH_MID_RELAY_URLS} | tr -s ',' ' '`)
     if [ -z ${MODOH_MAX_MID_RELAYS} ]; then
       MODOH_MAX_MID_RELAYS=1
     fi
     echo "Multiple relay-based ODoH is enabled"
     for i in ${MODOH_MID_RELAY_URL_ARRAY[@]}; do
-      OPTION_STRING+=" --mid-relay-url=${i}"
+      MODOH_MID_RELAY_URL_STRING+="\"${i}\","
       echo "MODoH mid relay ${i}"
     done
-    OPTION_STRING+=" --max-mid-relays=${MODOH_MAX_MID_RELAYS}"
+    MODOH_MID_RELAY_URL_STRING+="]"
+    MAX_MID_RELAYS_STRING+="max_mid_relays = ${MODOH_MAX_MID_RELAYS}"
   fi
 else
   echo "Running as DoH mode"
 fi
 
 if [ ${TARGET_URLS} ]; then
+  TARGET_URL_STRING="target_urls = ["
   TARGET_URL_ARRAY=( `echo ${TARGET_URLS} | tr -s ',' ' '`)
   for i in ${TARGET_URL_ARRAY[@]}; do
-    OPTION_STRING+=" --target-url=${i}"
+    TARGET_URL_STRING+="\"${i}\", "
     echo "(O)DoH target url ${i}"
   done
+  TARGET_URL_STRING+="]"
 fi
 
-echo ${OPTION_STRING} | RUST_LOG=${LOG_LEVEL} xargs /opt/doh-auth-proxy/sbin/doh-auth-proxy \
-  --listen-address=0.0.0.0:53 \
-  --bootstrap-dns=${BOOTSTRAP_DNS_ADDR}:${BOOTSTRAP_DNS_PORT}
+cat > ${CONFIG_FILE} << EOF
+listen_addresses = ["0.0.0.0:53"]
+bootstrap_dns = "${BOOTSTRAP_DNS_ADDR}:${BOOTSTRAP_DNS_PORT}"
+${TARGET_URL_STRING}
+target_randomization = true
+
+[authentication]
+${CREDENTIAL_API}
+${CREDENTIAL_FP}
+
+[anonymization]
+${ODOH_RELAY_URL_STRING}
+${ODOH_RELAY_RAND_STRING}
+${MODOH_MID_RELAY_URL_STRING}
+${MAX_MID_RELAYS_STRING}
+EOF
+cat ${CONFIG_FILE}
+
+RUST_LOG=${LOG_LEVEL} /opt/doh-auth-proxy/sbin/doh-auth-proxy --config ${CONFIG_FILE}
