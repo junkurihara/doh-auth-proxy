@@ -95,7 +95,11 @@ if [ ${ODOH_RELAY_URLS} ]; then
     echo "(O)DoH relay url ${i}"
   done
   ODOH_RELAY_URL_STRING+="]"
-  ODOH_RELAY_RAND_STRING="odoh_relay_randomization = true"
+
+  if [ -z ${ODOH_RELAY_RANDOMIZATION}]; then
+    ODOH_RELAY_RANDOMIZATION="true"
+  fi
+  ODOH_RELAY_RAND_STRING="odoh_relay_randomization = ${ODOH_RELAY_RANDOMIZATION}"
 
   if [ ${MODOH_MID_RELAY_URLS} ]; then
     MODOH_MID_RELAY_URL_STRING="mid_relay_urls = ["
@@ -125,11 +129,16 @@ if [ ${TARGET_URLS} ]; then
   TARGET_URL_STRING+="]"
 fi
 
+if [ -z ${TARGET_RANDOMIZATION} ]; then
+  TARGET_RANDOMIZATION="true"
+fi
+TARGET_RAND_STRING="target_randomization = ${TARGET_RANDOMIZATION}"
+
 cat > ${CONFIG_FILE} << EOF
 listen_addresses = ["0.0.0.0:53"]
 bootstrap_dns = "${BOOTSTRAP_DNS_ADDR}:${BOOTSTRAP_DNS_PORT}"
 ${TARGET_URL_STRING}
-target_randomization = true
+${TARGET_RAND_STRING}
 
 [authentication]
 ${CREDENTIAL_API}
@@ -141,6 +150,5 @@ ${ODOH_RELAY_RAND_STRING}
 ${MODOH_MID_RELAY_URL_STRING}
 ${MAX_MID_RELAYS_STRING}
 EOF
-cat ${CONFIG_FILE}
 
 RUST_LOG=${LOG_LEVEL} /opt/doh-auth-proxy/sbin/doh-auth-proxy --config ${CONFIG_FILE}
