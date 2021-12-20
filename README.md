@@ -173,6 +173,7 @@ TARGET_URLS=https://odoh.cloudflare-dns.com/dns-query
 LOG_DIR=./log
 
 ### Optional
+TARGET_RANDOMIZATION=true
 BOOTSTRAP_DNS_ADDR=1.1.1.1
 BOOTSTRAP_DNS_PORT=53
 DEBUG=true # If set, it outputs debug log
@@ -182,6 +183,7 @@ LOG_SIZE=10M
 ## ODoH
 ## If specified, ODoH is enabled.
 ODOH_RELAY_URLS=https://odoh1.surfdomeinen.nl/proxy
+ODOH_RELAY_RANDOMIZATION=true
 
 ## Mutualized ODoH
 ## If specified, ODoH queries are transferred over multiple hops,
@@ -207,7 +209,6 @@ $ docker-compose up -d
 ```
 
 which listens at the port `50553` as default and outputs a log file to `./log` directory. You should configure params in `docker-compose.yml` as you like in addition to `.env`.
-
 
 ## Authentication at the next hop node (DoH target or ODoH relay)
 
