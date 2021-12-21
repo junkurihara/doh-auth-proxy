@@ -11,7 +11,6 @@ use rand::seq::SliceRandom;
 use rand::{thread_rng, Rng};
 use reqwest::header;
 use std::collections::HashMap;
-use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use url::Url;
@@ -43,7 +42,6 @@ pub struct DoHClient {
   doh_type: DoHType,
   clients: Vec<HttpClient>, // configured for different relays (if ODoH) with a target
   method: DoHMethod,
-  bootstrap_dns: SocketAddr,
   target_url: String,
   odoh_client_context: Option<ODoHClientContext>, // for odoh
 }
@@ -143,7 +141,6 @@ impl DoHClient {
       clients,
       target_url: target_url_str.to_string(),
       method: doh_method,
-      bootstrap_dns: globals.bootstrap_dns,
       odoh_client_context,
     })
   }
