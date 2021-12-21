@@ -209,51 +209,54 @@ pub async fn parse_opts(
   /////////////////////////////
   // Anonnymization
   if let Some(anon) = config.anonymization {
-    if !anon
-      .odoh_relay_urls
-      .iter()
-      .all(|x| verify_target_url(x.to_string()).is_ok())
-    {
-      bail!("Invalid ODoH relay urls");
-    }
-    globals_local.odoh_relay_urls = Some(anon.odoh_relay_urls);
-    info!("[ODoH] Oblivious DNS over HTTPS is enabled");
-    info!(
-      "[ODoH] Nexthop relay URL: {:?}",
-      globals_local.odoh_relay_urls.clone().unwrap()
-    );
-
-    if let Some(val) = anon.odoh_relay_randomization {
-      globals_local.odoh_relay_randomization = val;
-    }
-    if globals_local.odoh_relay_randomization {
-      info!("ODoH relay randomization is enabled");
-    }
-
-    if let Some(val) = anon.mid_relay_urls {
-      if !val.iter().all(|x| verify_target_url(x.to_string()).is_ok()) {
-        bail!("Invalid mid relay urls");
+    if let Some(odoh_relay_urls) = anon.odoh_relay_urls {
+      if !odoh_relay_urls
+        .iter()
+        .all(|x| verify_target_url(x.to_string()).is_ok())
+      {
+        bail!("Invalid ODoH relay urls");
       }
-      globals_local.mid_relay_urls = Some(val);
-    }
-    if let Some(val) = anon.max_mid_relays {
-      globals_local.max_mid_relays = val;
-    } else if globals_local.mid_relay_urls.is_some() {
-      globals_local.max_mid_relays = 1usize;
-    } else {
-      globals_local.max_mid_relays = 0usize;
-    }
+      globals_local.odoh_relay_urls = Some(odoh_relay_urls);
+      info!("[ODoH] Oblivious DNS over HTTPS is enabled");
+      info!(
+        "[ODoH] Nexthop relay URL: {:?}",
+        globals_local.odoh_relay_urls.clone().unwrap()
+      );
 
-    if globals_local.mid_relay_urls.is_some() {
-      info!("[m-ODoH] Multiple-relay-based Oblivious DNS over HTTPS is enabled");
-      info!(
-        "[m-ODoH] Intermediate relay URLs employed after the next hop: {:?}",
-        globals_local.mid_relay_urls.clone().unwrap()
-      );
-      info!(
-        "[m-ODoH] Maximum number of intermediate relays after the nexthop: {}",
-        anon.max_mid_relays.unwrap()
-      );
+      if let Some(val) = anon.odoh_relay_randomization {
+        globals_local.odoh_relay_randomization = val;
+      }
+      if globals_local.odoh_relay_randomization {
+        info!("ODoH relay randomization is enabled");
+      }
+
+      if let Some(val) = anon.mid_relay_urls {
+        if !val.iter().all(|x| verify_target_url(x.to_string()).is_ok()) {
+          bail!("Invalid mid relay urls");
+        }
+        if !val.is_empty() {
+          globals_local.mid_relay_urls = Some(val);
+        }
+      }
+      if let Some(val) = anon.max_mid_relays {
+        globals_local.max_mid_relays = val;
+      } else if globals_local.mid_relay_urls.is_some() {
+        globals_local.max_mid_relays = 1usize;
+      } else {
+        globals_local.max_mid_relays = 0usize;
+      }
+
+      if globals_local.mid_relay_urls.is_some() {
+        info!("[m-ODoH] Multiple-relay-based Oblivious DNS over HTTPS is enabled");
+        info!(
+          "[m-ODoH] Intermediate relay URLs employed after the next hop: {:?}",
+          globals_local.mid_relay_urls.clone().unwrap()
+        );
+        info!(
+          "[m-ODoH] Maximum number of intermediate relays after the nexthop: {}",
+          anon.max_mid_relays.unwrap()
+        );
+      }
     }
   }
 
@@ -262,32 +265,35 @@ pub async fn parse_opts(
   // If credential exists, authorization header is also enabled.
   // TODO: login password should be stored in keychain access like secure storage rather than dotenv.
   let credential = if let Some(auth) = config.authentication {
-    let cred_path = env::current_dir()?.join(auth.credential_file);
-    dotenv::from_path(&cred_path).ok();
-    let username = if let Ok(x) = env::var(CREDENTIAL_USERNAME_FIELD) {
-      x
-    } else {
-      bail!("No username is given in the credential file.");
-    };
-    let password = if let Ok(x) = env::var(CREDENTIAL_API_KEY_FIELD) {
-      x
-    } else {
-      bail!("No password is given in the credential file.");
-    };
-    let client_id = if let Ok(x) = env::var(CREDENTIAL_CLIENT_ID_FIELD) {
-      x
-    } else {
-      bail!("No client_id is given in the credential file.");
-    };
-    let token_api = auth.token_api;
-    if verify_target_url(token_api.clone()).is_err() {
-      bail!("Invalid target urls");
-    }
-    info!("Token API: {}", token_api);
+    if let (Some(credential_file), Some(token_api)) = (auth.credential_file, auth.token_api) {
+      let cred_path = env::current_dir()?.join(credential_file);
+      dotenv::from_path(&cred_path).ok();
+      let username = if let Ok(x) = env::var(CREDENTIAL_USERNAME_FIELD) {
+        x
+      } else {
+        bail!("No username is given in the credential file.");
+      };
+      let password = if let Ok(x) = env::var(CREDENTIAL_API_KEY_FIELD) {
+        x
+      } else {
+        bail!("No password is given in the credential file.");
+      };
+      let client_id = if let Ok(x) = env::var(CREDENTIAL_CLIENT_ID_FIELD) {
+        x
+      } else {
+        bail!("No client_id is given in the credential file.");
+      };
+      if verify_target_url(token_api.clone()).is_err() {
+        bail!("Invalid target urls");
+      }
+      info!("Token API: {}", token_api);
 
-    Some(Credential::new(
-      &username, &password, &client_id, &token_api,
-    ))
+      Some(Credential::new(
+        &username, &password, &client_id, &token_api,
+      ))
+    } else {
+      None
+    }
   } else {
     None
   };

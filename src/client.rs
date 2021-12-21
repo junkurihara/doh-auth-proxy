@@ -6,6 +6,7 @@ use crate::http_bootstrap::HttpClient;
 use crate::log::*;
 use crate::odoh::ODoHClientContext;
 use data_encoding::BASE64URL_NOPAD;
+use futures::future;
 use rand::seq::SliceRandom;
 use rand::{thread_rng, Rng};
 use reqwest::header;
@@ -40,55 +41,58 @@ pub enum DoHMethod {
 #[derive(Debug, Clone)]
 pub struct DoHClient {
   doh_type: DoHType,
-  client: reqwest::Client,
+  clients: Vec<HttpClient>, // configured for different relays (if ODoH) with a target
   method: DoHMethod,
   bootstrap_dns: SocketAddr,
   target_url: String,
-  nexthop_url: String, // domain: target for DoH, nexthop relay for ODoH (path including target, not mid-relays for dynamic randamization)
   odoh_client_context: Option<ODoHClientContext>, // for odoh
 }
 
 impl DoHClient {
   pub async fn new(
     target_url_str: &str,
-    relay_url_str: Option<String>,
+    relay_urls_str: Option<Vec<String>>,
     globals: Arc<Globals>,
     auth_token: &Option<String>,
   ) -> Result<Self, Error> {
-    let (doh_type, nexthop_url) = match &relay_url_str {
-      Some(u) => {
-        debug!("ODoH is enabled: relay {}", u);
-        // Sample: "https://odoh1.surfdomeinen.nl/proxy?targethost=odoh.cloudflare-dns.com&targetpath=/dns-query"
-        let relay_url = Url::parse(u)?;
-        let relay_scheme = relay_url.scheme();
-        let relay_host_str = match relay_url.port() {
-          Some(port) => format!("{}:{}", relay_url.host_str().unwrap(), port),
-          None => relay_url.host_str().unwrap().to_string(),
-        };
-        let relay_path_str = relay_url.path();
-        let base = format!("{}://{}{}", relay_scheme, relay_host_str, relay_path_str);
+    let (doh_type, nexthop_urls) = match &relay_urls_str {
+      Some(vect_u) => {
+        let mut combined_vect: Vec<String> = Vec::new();
+        for u in vect_u.iter() {
+          debug!("ODoH is enabled: relay {}", u);
+          // Sample: "https://odoh1.surfdomeinen.nl/proxy?targethost=odoh.cloudflare-dns.com&targetpath=/dns-query"
+          let relay_url = Url::parse(u)?;
+          let relay_scheme = relay_url.scheme();
+          let relay_host_str = match relay_url.port() {
+            Some(port) => format!("{}:{}", relay_url.host_str().unwrap(), port),
+            None => relay_url.host_str().unwrap().to_string(),
+          };
+          let relay_path_str = relay_url.path();
+          let base = format!("{}://{}{}", relay_scheme, relay_host_str, relay_path_str);
 
-        let target_url = Url::parse(target_url_str)?;
-        let target_host_str = match target_url.port() {
-          Some(port) => format!("{}:{}", target_url.host_str().unwrap(), port),
-          None => target_url.host_str().unwrap().to_string(),
-        };
-        let mut qs = HashMap::new();
-        qs.insert("targethost", target_host_str);
-        qs.insert("targetpath", target_url.path().to_string());
+          let target_url = Url::parse(target_url_str)?;
+          let target_host_str = match target_url.port() {
+            Some(port) => format!("{}:{}", target_url.host_str().unwrap(), port),
+            None => target_url.host_str().unwrap().to_string(),
+          };
+          let mut qs = HashMap::new();
+          qs.insert("targethost", target_host_str);
+          qs.insert("targetpath", target_url.path().to_string());
 
-        // TODO: is it okay to remove percent encoding here? it maybe violation of some standard...
-        // but in the draft RFC, "/" is not encoded to "%2F".
-        // https://datatracker.ietf.org/doc/html/draft-pauly-dprive-oblivious-doh-06
-        let combined = decode(Url::parse_with_params(&base, qs)?.as_str())
-          .map_err(|e| anyhow!(e))?
-          .to_string();
+          // TODO: is it okay to remove percent encoding here? it maybe violation of some standard...
+          // but in the draft RFC, "/" is not encoded to "%2F".
+          // https://datatracker.ietf.org/doc/html/draft-pauly-dprive-oblivious-doh-06
+          let combined = decode(Url::parse_with_params(&base, qs)?.as_str())
+            .map_err(|e| anyhow!(e))?
+            .to_string();
+          combined_vect.push(combined)
+        }
 
-        (DoHType::Oblivious, combined)
+        (DoHType::Oblivious, combined_vect)
       }
-      None => (DoHType::Standard, target_url_str.to_owned()),
+      None => (DoHType::Standard, vec![target_url_str.to_owned()]),
     };
-    info!("Target (O)DoH URL: {:?}", nexthop_url);
+    info!("Target (O)DoH URLs: {:#?}", nexthop_urls);
 
     // build client
     let mut headers = header::HeaderMap::new();
@@ -112,9 +116,16 @@ impl DoHClient {
     }
 
     // When ODoH, nexthop target is the relay specified.
-    let client = HttpClient::new(&globals, Some(&nexthop_url), Some(&headers))
-      .await?
-      .client;
+    // For each relay in Vec<String>, clients are configured in order to resolve
+    // the relay url by the bootstrap DNS outside this proxy.
+    let polls = nexthop_urls
+      .iter()
+      .map(|nexthop| HttpClient::new(&globals, nexthop, Some(&headers), true))
+      .collect::<Vec<_>>();
+    let clients = future::join_all(polls)
+      .await
+      .into_iter()
+      .collect::<Result<Vec<_>, Error>>()?;
 
     let doh_method = globals.doh_method.clone();
 
@@ -129,11 +140,10 @@ impl DoHClient {
     // TODO: Ping here to check client-server connection
     Ok(DoHClient {
       doh_type,
-      client,
+      clients,
       target_url: target_url_str.to_string(),
       method: doh_method,
       bootstrap_dns: globals.bootstrap_dns,
-      nexthop_url,
       odoh_client_context,
     })
   }
@@ -154,7 +164,7 @@ impl DoHClient {
     let destination = format!("{}://{}{}", scheme, host_str, ODOH_CONFIG_PATH);
     info!("[ODoH] Fetch server public key from {}", destination);
 
-    let simple_client = HttpClient::new(globals, Some(target_url_str), None)
+    let simple_client = HttpClient::new(globals, target_url_str, None, true)
       .await?
       .client;
     let response = simple_client.get(destination).send().await?;
@@ -210,17 +220,18 @@ impl DoHClient {
   }
 
   async fn serve_doh_query(&self, packet_buf: &[u8]) -> Result<Vec<u8>, Error> {
+    assert_eq!(self.clients.len(), 1);
     let response = match self.method {
       DoHMethod::Get => {
         let query_b64u = BASE64URL_NOPAD.encode(packet_buf);
-        let query_url = format!("{}?dns={}", &self.nexthop_url, query_b64u);
+        let query_url = format!("{}?dns={}", &self.target_url, query_b64u);
         debug!("query url: {:?}", query_url);
-        self.client.get(query_url).send().await?
+        self.clients[0].client.get(query_url).send().await?
       }
       DoHMethod::Post => {
-        self
+        self.clients[0]
           .client
-          .post(&self.nexthop_url) // TODO: bootstrap resolver must be used to get resolver_url, maybe hyper is better?
+          .post(&self.target_url) // TODO: bootstrap resolver must be used to get resolver_url, maybe hyper is better?
           .body(packet_buf.to_owned())
           .send()
           .await?
@@ -242,6 +253,8 @@ impl DoHClient {
     globals: &Arc<Globals>,
     globals_cache: &Arc<RwLock<GlobalsCache>>,
   ) -> Result<Vec<u8>, Error> {
+    assert!(globals.odoh_relay_urls.is_some() && !self.clients.is_empty());
+
     let client_ctx = match &self.odoh_client_context {
       Some(client_ctx) => client_ctx,
       None => bail!("[ODoH] ODoH client context is not configured"),
@@ -258,17 +271,26 @@ impl DoHClient {
       "".to_string()
     };
 
+    // nexthop relay randomization
+    let relay_idx = if globals.odoh_relay_randomization {
+      let mut rng = rand::thread_rng();
+      rng.gen::<usize>() % self.clients.len()
+    } else {
+      0
+    };
+    let combined_endpoint = format!("{}{}", &self.clients[relay_idx].endpoint, mid_relay_str);
+
     let response = match self.method {
       DoHMethod::Get => {
         let query_b64u = BASE64URL_NOPAD.encode(&encrypted_query_body);
-        let query_url = format!("{}{}?dns={}", &self.nexthop_url, mid_relay_str, query_b64u);
+        let query_url = format!("{}?dns={}", combined_endpoint, query_b64u);
         debug!("query url: {:?}", query_url);
-        self.client.get(query_url).send().await?
+        self.clients[relay_idx].client.get(query_url).send().await?
       }
       DoHMethod::Post => {
-        self
+        self.clients[relay_idx]
           .client
-          .post(&format!("{}{}", self.nexthop_url, mid_relay_str)) // TODO: bootstrap resolver must be used to get resolver_url, maybe hyper is better?
+          .post(&combined_endpoint) // TODO: bootstrap resolver must be used to get resolver_url, maybe hyper is better?
           .body(encrypted_query_body)
           .send()
           .await?
@@ -305,6 +327,9 @@ impl DoHClient {
     let mut mid_relay_str = "".to_string();
     let max_mid_relays = &globals.max_mid_relays;
     if let Some(mid_relay_urls) = &globals.mid_relay_urls {
+      if mid_relay_urls.is_empty() {
+        return None;
+      }
       let mut copied = mid_relay_urls.clone();
       let mut rng = thread_rng();
       copied.shuffle(&mut rng);

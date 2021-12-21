@@ -34,7 +34,7 @@ pub struct Globals {
 
 #[derive(Debug, Clone)]
 pub struct GlobalsCache {
-  pub doh_clients: Option<Vec<Vec<DoHClient>>>,
+  pub doh_clients: Option<Vec<DoHClient>>,
   pub credential: Option<Credential>,
 }
 
@@ -51,39 +51,41 @@ impl GlobalsCache {
       let doh_target_urls = globals.doh_target_urls.clone();
 
       // doh clients are configured for targets x nexthop relays.
-      // namely, if you have 2 targets and 2 nexthop relays, then 4 clients are configured.
-      // TODO: authentication token is configured once only for single specified token api.
-      // so it must be common to all nexthop nodes (i.e., targets for doh, nexthop relays to (m)odoh).
-      if let Some(relay_urls) = &globals.odoh_relay_urls {
-        // anonymization
-        let polls = doh_target_urls.iter().map(|target| {
-          let polls_inner = relay_urls
-            .iter()
-            .map(|relay| DoHClient::new(target, Some(relay.clone()), globals.clone(), &id_token))
-            .collect::<Vec<_>>();
-          future::join_all(polls_inner)
-        });
-        let inner = polls.map(|p| async {
-          p.await
-            .into_iter()
-            .collect::<Result<Vec<DoHClient>, Error>>()
-        });
-        let doh_clients = future::join_all(inner)
-          .await
-          .into_iter()
-          .collect::<Result<Vec<Vec<DoHClient>>, Error>>()?;
-        self.doh_clients = Some(doh_clients);
-      } else {
-        // non-anonymization
-        let polls = doh_target_urls
-          .iter()
-          .map(|target| DoHClient::new(target, None, globals.clone(), &id_token));
-        let doh_clients = future::join_all(polls)
-          .await
-          .into_iter()
-          .collect::<Result<Vec<DoHClient>, Error>>()?;
-        self.doh_clients = Some(doh_clients.into_iter().map(|x| vec![x]).collect());
-      }
+      // if let Some(relay_urls) = &globals.odoh_relay_urls {
+      //   // anonymization
+      //   let polls = doh_target_urls.iter().map(|target| {
+      //     let polls_inner = relay_urls
+      //       .iter()
+      //       .map(|relay| DoHClient::new(target, Some(relay.clone()), globals.clone(), &id_token))
+      //       .collect::<Vec<_>>();
+      //     future::join_all(polls_inner)
+      //   });
+      //   let inner = polls.map(|p| async {
+      //     p.await
+      //       .into_iter()
+      //       .collect::<Result<Vec<DoHClient>, Error>>()
+      //   });
+      //   let doh_clients = future::join_all(inner)
+      //     .await
+      //     .into_iter()
+      //     .collect::<Result<Vec<Vec<DoHClient>>, Error>>()?;
+      //   self.doh_clients = Some(doh_clients);
+      // } else {
+      // non-anonymization
+      let polls = doh_target_urls.iter().map(|target| {
+        DoHClient::new(
+          target,
+          globals.odoh_relay_urls.clone(),
+          globals.clone(),
+          &id_token,
+        )
+      });
+      let doh_clients = future::join_all(polls)
+        .await
+        .into_iter()
+        .collect::<Result<Vec<DoHClient>, Error>>()?;
+      self.doh_clients = Some(doh_clients);
+      // }
     }
 
     Ok(())
@@ -98,16 +100,8 @@ impl GlobalsCache {
       } else {
         0
       };
-      if let Some(clients_specific_target) = clients.get(target_idx) {
-        let relay_idx = if globals.odoh_relay_randomization && globals.odoh_relay_urls.is_some() {
-          let mut rng = rand::thread_rng();
-          rng.gen::<usize>() % clients_specific_target.len()
-        } else {
-          0
-        };
-        if let Some(clients_specific_relay) = clients_specific_target.get(relay_idx) {
-          return Ok(clients_specific_relay.clone());
-        }
+      if let Some(target) = clients.get(target_idx) {
+        return Ok(target.clone());
       }
     }
     bail!("DoH client is not properly configured");

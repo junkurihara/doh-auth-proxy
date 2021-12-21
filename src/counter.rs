@@ -7,6 +7,14 @@ pub enum CounterType {
   Tcp,
   Udp,
 }
+impl CounterType {
+  fn as_str(&self) -> String {
+    match self {
+      CounterType::Tcp => String::from("UDP"),
+      CounterType::Udp => String::from("TCP"),
+    }
+  }
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct Counter {
@@ -36,7 +44,7 @@ impl Counter {
 
     debug!(
       "{} connection count++: {} (total = {})",
-      Self::get_typename(&ctype),
+      &ctype.as_str(),
       self.get_current(ctype),
       self.get_current_total()
     );
@@ -76,16 +84,9 @@ impl Counter {
 
     debug!(
       "{} connection count--: {} (total = {})",
-      Self::get_typename(&ctype),
+      &ctype.as_str(),
       self.get_current(ctype),
       self.get_current_total()
     );
-  }
-
-  fn get_typename<'a>(ctype: &CounterType) -> &'a str {
-    match ctype {
-      CounterType::Tcp => "TCP",
-      CounterType::Udp => "UDP",
-    }
   }
 }

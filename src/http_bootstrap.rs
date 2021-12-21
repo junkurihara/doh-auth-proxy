@@ -8,37 +8,40 @@ use trust_dns_resolver::config::*;
 use trust_dns_resolver::TokioAsyncResolver;
 use url::Url;
 
+#[derive(Debug, Clone)]
 pub struct HttpClient {
   pub client: reqwest::Client,
+  pub endpoint: String, // domain: target for DoH, nexthop relay for ODoH (path including target, not mid-relays for dynamic randamization)
+  pub resolve_endpoint_by_system: bool,
 }
 
 impl HttpClient {
   pub async fn new(
     globals: &Arc<Globals>,
-    endpoint_bootstrap: Option<&str>,
+    endpoint: &str,
     default_headers: Option<&HeaderMap>,
+    resolve_endpoint_by_system: bool,
   ) -> Result<Self, Error> {
     let mut client = reqwest::Client::builder()
       .user_agent(format!("doh-auth/{}", env!("CARGO_PKG_VERSION")))
       .timeout(globals.timeout_sec)
       .trust_dns(true);
 
-    client = match endpoint_bootstrap {
-      Some(endpoint) => {
-        let (target_host_str, target_addresses) = resolve_by_bootstrap(
-          &globals.bootstrap_dns,
-          endpoint,
-          globals.runtime_handle.clone(),
-        )
-        .await?;
-        let target_addr = target_addresses[0];
-        debug!(
-          "Via bootstrap DNS [{:?}], endpoint {:?} resolved: {:?}",
-          &globals.bootstrap_dns, &endpoint, &target_addr
-        );
-        client.resolve(&target_host_str, target_addr)
-      }
-      None => client,
+    client = if resolve_endpoint_by_system {
+      let (target_host_str, target_addresses) = resolve_by_bootstrap(
+        &globals.bootstrap_dns,
+        endpoint,
+        globals.runtime_handle.clone(),
+      )
+      .await?;
+      let target_addr = target_addresses[0];
+      debug!(
+        "Via bootstrap DNS [{:?}], endpoint {:?} resolved: {:?}",
+        &globals.bootstrap_dns, &endpoint, &target_addr
+      );
+      client.resolve(&target_host_str, target_addr)
+    } else {
+      client
     };
 
     client = match default_headers {
@@ -48,6 +51,8 @@ impl HttpClient {
 
     Ok(HttpClient {
       client: client.build()?,
+      endpoint: endpoint.to_string(),
+      resolve_endpoint_by_system,
     })
   }
 }

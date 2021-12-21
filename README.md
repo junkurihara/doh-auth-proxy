@@ -22,6 +22,8 @@ Now you have a compiled executable binary `doh-auth-proxy` in `./target/debug/` 
 $ ./path/to/doh-auth-proxy --config config.toml
 ```
 
+`config.toml` is configured as follows.
+
 ```:config.toml
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
 bootstrap_dns = "8.8.8.8:53"
@@ -46,6 +48,8 @@ The parameter `bootstrap-dns` is used to resolve the IP address of the host of `
 ```:bash
 $ ./path/to/doh-auth-proxy --config config.toml
 ```
+
+`config.toml` is configured as follows.
 
 ```:config.toml
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
@@ -84,6 +88,8 @@ FLAGS:
 OPTIONS:
     -c, --config <config_file>    Configuration file path like "doh-auth-proxy.toml"
 ```
+
+`config.toml` can be configured as follows.
 
 ```:config.toml
 ##############################################
@@ -220,13 +226,17 @@ To leverage the function, an authentication server issueing Authorization Bearer
 
 - [`rust-token-server`](https://github.com/junkurihara/rust-token-server): An implementation of authentication server issueing `id_token` in the context of OIDC.
 
-## Distribution of queries to multiple target resolvers
+## Distribution of queries to multiple target resolvers and relays
 
 Referring to the recent paper from Princeton University, we added a function to distribute queries among multiple target resolver. This is in order to support "design for choice".
 
 > A. Hounsel, et al., "Designing for Tussle in Encrypted DNS", ACM HotNets'21
 
-Currently if you specify multiple resolvers by repeatedly use `--target_url` option, your query is dispatched towards one of specified resolvers chosen in a random fashion. We plan to kinds of 'round-robin' based distribution and other variants.
+Currently if you specify multiple target resolvers and `target_randomization = true` in `config.toml`, your query is dispatched towards one of targets chosen in a random fashion. Otherwise, the first one is always selected.
+
+From the same perspective of distribution of queries, our implementation enables the **relay randomization** in (Mutualized) Oblivious DNS over HTTPS simultaneously with the target randomization. This can be enabled by `odoh_relay_randomization = true` in `config.toml`.
+
+We plan to implement kinds of 'round-robin' based distribution and other variants.
 
 ## TODO
 
@@ -240,3 +250,4 @@ Currently if you specify multiple resolvers by repeatedly use `--target_url` opt
 - Sophistication of mu-ODNS based on ODoH, such as loop detection
 - Docker container packaged with token server (server-side)
 - Override with command line options over TOML configuration
+- **Domain-based filtering** much like `dnscrypt-proxy` (server-side filtering is alreadly implemented in my fork of `doh-server`)

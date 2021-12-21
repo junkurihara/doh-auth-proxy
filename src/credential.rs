@@ -55,7 +55,7 @@ impl Credential {
   pub async fn login(&mut self, globals: &Arc<Globals>) -> Result<(), Error> {
     // token endpoint is resolved via bootstrap DNS resolver
     let token_endpoint = format!("{}{}", self.token_api, ENDPOINT_LOGIN_PATH);
-    let client = HttpClient::new(globals, Some(&token_endpoint), None)
+    let client = HttpClient::new(globals, &token_endpoint, None, true)
       .await?
       .client;
     // let client = http_client_resolved_by_bootstrap(&token_endpoint, globals, None).await?;
@@ -111,9 +111,11 @@ impl Credential {
   }
 
   pub async fn refresh(&mut self, globals: &Arc<Globals>) -> Result<(), Error> {
-    // refresh endpoint is resolved via configured system DNS resolver
+    // refresh endpoint is NOT resolved via configured system DNS resolver. resolve by proxy itself
     let refresh_endpoint = format!("{}{}", self.token_api, ENDPOINT_REFRESH_PATH);
-    let client = HttpClient::new(globals, None, None).await?.client;
+    let client = HttpClient::new(globals, &refresh_endpoint, None, false)
+      .await?
+      .client;
 
     let refresh_token = if let Some(r) = &self.refresh_token {
       r
@@ -166,7 +168,7 @@ impl Credential {
     meta: TokenMetadata,
   ) -> Result<(), Error> {
     let jwks_endpoint = format!("{}{}", self.token_api, ENDPOINT_JWKS_PATH);
-    let client = HttpClient::new(globals, Some(&jwks_endpoint), None)
+    let client = HttpClient::new(globals, &jwks_endpoint, None, true)
       .await?
       .client;
     let jwks_response = client.get(&jwks_endpoint).send().await?;

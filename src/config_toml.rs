@@ -16,15 +16,15 @@ pub struct ConfigToml {
 
 #[derive(Deserialize, Debug)]
 pub struct Anonymization {
-  pub odoh_relay_urls: Vec<String>,
+  pub odoh_relay_urls: Option<Vec<String>>,
   pub odoh_relay_randomization: Option<bool>,
   pub mid_relay_urls: Option<Vec<String>>,
   pub max_mid_relays: Option<usize>,
 }
 #[derive(Deserialize, Debug)]
 pub struct Authentication {
-  pub token_api: String,
-  pub credential_file: String,
+  pub token_api: Option<String>,
+  pub credential_file: Option<String>,
 }
 
 impl ConfigToml {
