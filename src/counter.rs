@@ -10,8 +10,8 @@ pub enum CounterType {
 impl CounterType {
   fn as_str(&self) -> String {
     match self {
-      CounterType::Tcp => String::from("UDP"),
-      CounterType::Udp => String::from("TCP"),
+      CounterType::Tcp => String::from("TCP"),
+      CounterType::Udp => String::from("UDP"),
     }
   }
 }
