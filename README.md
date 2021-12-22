@@ -20,11 +20,15 @@ Now you have a compiled executable binary `doh-auth-proxy` in `./target/debug/` 
 
 ### Connecting to Google public DoH server
 
-```:bash
+Start `doh-auth-proxy` as
+
+```:shell
 $ ./path/to/doh-auth-proxy --config config.toml
+2021-12-22T10:46:17Z [INFO] Start DoH w/ Auth Proxy
+...
 ```
 
-`config.toml` is configured as follows.
+where we assume that `config.toml` is configured as follows.
 
 ```:config.toml
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
@@ -47,11 +51,15 @@ The parameter `bootstrap-dns` is used to resolve the IP address of the host of `
 
 ### Connecting to Cloudflare ODoH server via `surfdomeinen.nl` ODoH relay
 
+Start `doh-auth-proxy` as
+
 ```:bash
 $ ./path/to/doh-auth-proxy --config config.toml
+2021-12-22T10:46:17Z [INFO] Start DoH w/ Auth Proxy
+...
 ```
 
-`config.toml` is configured as follows.
+where we assume that `config.toml` is configured as follows.
 
 ```:config.toml
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
@@ -76,6 +84,20 @@ github.com.             11      IN      A       140.82.121.4
 ```
 
 where this takes more round-trip time than the above ordinary DoH example due to the intermediate relay (especially when it is far from your location).
+
+## Mutualized Oblivious DNS (&mu;ODNS) based on ODoH (&mu;ODoH)
+
+`doh-auth-proxy` extends the ODoH protocol to the multiple-relay-based anonymization protocol, where its concept is called *Mutualized Oblivious DNS* (&mu;ODNS). We call by *&mu;ODoH* the ODoH-based &mu;ODNS.
+
+To leverage the protocol, you need to run or find relay servers running &mu;ODoH. The experimental implementation of the &mu;ODoH relay server is
+
+- [`doh-server` (`multiple_relay` branch)](https://github.com/junkurihara/doh-server/tree/jwt-auth)
+
+that is a fork of [`DNSCrypt/doh-server`](https://github.com/DNSCrypt/doh-server) enabling the ODoH relay function and Mutualized ODoH function. Note that the target resolver in &mu;ODoH is exactly same as that in the standard ODoH, and hence you can specify existing ODoH targets, e.g., Cloudflare's one `https://odoh.cloudflare-dns.com/dns-query`.
+
+**When you run your relay servers, please make sure their security settings and fully understand the risk.** Everything must be done at your own risk.
+
+See also the DNSCrypt-based &mu;ODNS as well, by referring to [our website](https://dns.secarchlab.net/).
 
 ## All options in a configuration file
 
