@@ -1,6 +1,8 @@
 # doh-auth-proxy
 
-Local proxy for DoH, Oblivious DoH and Mutualized ODoH supporting authenticated connection, written in Rust.
+Local proxy for DoH, Oblivious DoH and ODoH-based Mutualized Oblivious DNS (ODoH-based &mu;ODNS; &mu;ODoH) supporting authenticated connection, written in Rust.
+
+> **NOTE: For &mu;ODNS, please see also [https://dns.secarchlab.net/](https://dns.secarchlab.net) and other repositories listed there.**
 
 ## Build
 

@@ -115,8 +115,9 @@ pub async fn parse_opts(
 
   let matches = options.get_matches();
 
-  /////////////////////////////
-  // format with initial value
+  ///////////////////////////////
+  // format with initial value //
+  ///////////////////////////////
   let mut globals_local = Globals {
     listen_addresses: LISTEN_ADDRESSES
       .to_vec()

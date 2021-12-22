@@ -49,29 +49,6 @@ impl GlobalsCache {
     };
     {
       let doh_target_urls = globals.doh_target_urls.clone();
-
-      // doh clients are configured for targets x nexthop relays.
-      // if let Some(relay_urls) = &globals.odoh_relay_urls {
-      //   // anonymization
-      //   let polls = doh_target_urls.iter().map(|target| {
-      //     let polls_inner = relay_urls
-      //       .iter()
-      //       .map(|relay| DoHClient::new(target, Some(relay.clone()), globals.clone(), &id_token))
-      //       .collect::<Vec<_>>();
-      //     future::join_all(polls_inner)
-      //   });
-      //   let inner = polls.map(|p| async {
-      //     p.await
-      //       .into_iter()
-      //       .collect::<Result<Vec<DoHClient>, Error>>()
-      //   });
-      //   let doh_clients = future::join_all(inner)
-      //     .await
-      //     .into_iter()
-      //     .collect::<Result<Vec<Vec<DoHClient>>, Error>>()?;
-      //   self.doh_clients = Some(doh_clients);
-      // } else {
-      // non-anonymization
       let polls = doh_target_urls.iter().map(|target| {
         DoHClient::new(
           target,
@@ -85,7 +62,6 @@ impl GlobalsCache {
         .into_iter()
         .collect::<Result<Vec<DoHClient>, Error>>()?;
       self.doh_clients = Some(doh_clients);
-      // }
     }
 
     Ok(())
