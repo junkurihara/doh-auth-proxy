@@ -8,10 +8,10 @@ Local proxy for DoH, Oblivious DoH and ODoH-based Mutualized Oblivious DNS (ODoH
 
 ```shell
 # debug mode
-$ cargo build
+% cargo build
 
 # release mode
-$ cargo build --release
+% cargo build --release
 ```
 
 Now you have a compiled executable binary `doh-auth-proxy` in `./target/debug/` or `./target/release/`.
@@ -23,9 +23,7 @@ Now you have a compiled executable binary `doh-auth-proxy` in `./target/debug/` 
 Start `doh-auth-proxy` as
 
 ```shell
-$ ./path/to/doh-auth-proxy --config config.toml
-2021-12-22T10:46:17Z [INFO] Start DoH w/ Auth Proxy
-...
+% ./path/to/doh-auth-proxy --config config.toml
 ```
 
 where we assume that `config.toml` is configured as follows.
@@ -54,9 +52,7 @@ The parameter `bootstrap-dns` is used to resolve the IP address of the host of `
 Start `doh-auth-proxy` as
 
 ```shell
-$ ./path/to/doh-auth-proxy --config config.toml
-2021-12-22T10:46:17Z [INFO] Start DoH w/ Auth Proxy
-...
+% ./path/to/doh-auth-proxy --config config.toml
 ```
 
 where we assume that `config.toml` is configured as follows.
@@ -234,8 +230,8 @@ ODOH_RELAY_RANDOMIZATION=true
 
 and execute `docker-compose` as
 
-```:bash
-$ docker-compose up -d
+```shell
+% docker-compose up -d
 ```
 
 which listens at the port `50553` as default and outputs a log file to `./log` directory. You should configure params in `docker-compose.yml` as you like in addition to `.env`.
@@ -245,7 +241,6 @@ which listens at the port `50553` as default and outputs a log file to `./log` d
 This proxy provides **authenticated connection** to a DoH target resolver (in DoH) or to an ODoH relay (in ODoH).
 This function allows the nexthop node (DoH target/ODoH relay) to be private to users, and avoids unauthorized access.
 **This additional function is introduced in order to prevent attacks against external servers through our relays.**
-
 
 To leverage the function, an authentication server issueing Authorization Bearer tokens and an authentication-enabled DoH target/ODoH relay, given in the following.
 
@@ -270,8 +265,8 @@ We plan to implement kinds of 'round-robin' based distribution and other variant
 - Better handling DNS query/response
   - Cache of DNS response messages
   - EDNS0 padding options
-    https://datatracker.ietf.org/doc/html/rfc7830
-    https://datatracker.ietf.org/doc/html/rfc8467
+    <https://datatracker.ietf.org/doc/html/rfc7830>
+    <https://datatracker.ietf.org/doc/html/rfc8467>
 - Ping to the target DNS resolver when DoH client instance is created and refreshed.
 - `crates.io`
 - Sophistication of mu-ODNS based on ODoH, such as loop detection
