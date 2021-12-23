@@ -6,7 +6,7 @@ Local proxy for DoH, Oblivious DoH and ODoH-based Mutualized Oblivious DNS (ODoH
 
 ## Build
 
-```:bash
+```shell
 # debug mode
 $ cargo build
 
@@ -22,7 +22,7 @@ Now you have a compiled executable binary `doh-auth-proxy` in `./target/debug/` 
 
 Start `doh-auth-proxy` as
 
-```:shell
+```shell
 $ ./path/to/doh-auth-proxy --config config.toml
 2021-12-22T10:46:17Z [INFO] Start DoH w/ Auth Proxy
 ...
@@ -30,7 +30,7 @@ $ ./path/to/doh-auth-proxy --config config.toml
 
 where we assume that `config.toml` is configured as follows.
 
-```:config.toml
+```toml:config.toml
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
 bootstrap_dns = "8.8.8.8:53"
 
@@ -39,7 +39,7 @@ target_urls = ["https://dns.google/dns-query"]
 
 Now you can query through `127.0.0.1:50053` as
 
-```:bash
+```shell
 % dig github.com @localhost -p 50053
 ~~~~~~~
 ;; ANSWER SECTION:
@@ -53,7 +53,7 @@ The parameter `bootstrap-dns` is used to resolve the IP address of the host of `
 
 Start `doh-auth-proxy` as
 
-```:bash
+```shell
 $ ./path/to/doh-auth-proxy --config config.toml
 2021-12-22T10:46:17Z [INFO] Start DoH w/ Auth Proxy
 ...
@@ -61,7 +61,7 @@ $ ./path/to/doh-auth-proxy --config config.toml
 
 where we assume that `config.toml` is configured as follows.
 
-```:config.toml
+```toml:config.toml
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
 bootstrap_dns = "8.8.8.8:53"
 
@@ -75,7 +75,7 @@ This example issues ODoH encrypted queries by an URL `https://odoh1.surfdomeinen
 
 Now you can query through `127.0.0.1:50053` as
 
-```:bash
+```shell
 % dig github.com @localhost -p 50053
 ~~~~~~~
 ;; ANSWER SECTION:
@@ -101,7 +101,7 @@ See also the DNSCrypt-based &mu;ODNS as well, by referring to [our website](http
 
 ## All options in a configuration file
 
-```:bash
+```shell
 USAGE:
     doh-auth-proxy --config <config_file>
 
@@ -115,7 +115,7 @@ OPTIONS:
 
 `config.toml` can be configured as follows.
 
-```:config.toml
+```toml:config.toml
 ##############################################
 #                                            #
 #        doh-auth-proxy configuration        #
