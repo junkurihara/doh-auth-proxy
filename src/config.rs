@@ -105,9 +105,9 @@ pub async fn parse_opts(
     //     .help("Maximum number of intermediate relays between nexthop and target"),
     // )
     .arg(
-      Arg::with_name("config_file")
+      Arg::new("config_file")
         .long("config")
-        .short("c")
+        .short('c')
         .required(true)
         .takes_value(true)
         .help("Configuration file path like \"doh-auth-proxy.toml\""),
