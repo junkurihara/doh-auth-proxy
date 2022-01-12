@@ -242,7 +242,7 @@ This proxy provides **authenticated connection** to a DoH target resolver (in Do
 This function allows the nexthop node (DoH target/ODoH relay) to be private to users, and avoids unauthorized access.
 **This additional function is introduced in order to prevent attacks against external servers through our relays.**
 
-To leverage the function, an authentication server issueing Authorization Bearer tokens and an authentication-enabled DoH target/ODoH relay, given in the following.
+To leverage the function, an authentication server issuing Authorization Bearer tokens and an authentication-enabled DoH target/ODoH relay, given in the following.
 
 - [`doh-server` (`multiple_relay` branch)](https://github.com/junkurihara/doh-server/tree/jwt-auth): A fork of [`DNSCrypt/doh-server`](https://github.com/DNSCrypt/doh-server) enabling the ODoH relay function, Mutualized ODoH function, and authenticated connection with Authorization Bearer token.
 
