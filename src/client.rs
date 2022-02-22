@@ -52,7 +52,7 @@ impl DoHClient {
     relay_urls_str: Option<Vec<String>>,
     globals: Arc<Globals>,
     auth_token: &Option<String>,
-  ) -> Result<Self, Error> {
+  ) -> Result<Self> {
     let (doh_type, nexthop_urls) = match &relay_urls_str {
       Some(vect_u) => {
         let mut combined_vect: Vec<String> = Vec::new();
@@ -123,7 +123,7 @@ impl DoHClient {
     let clients = future::join_all(polls)
       .await
       .into_iter()
-      .collect::<Result<Vec<_>, Error>>()?;
+      .collect::<Result<Vec<_>>>()?;
 
     let doh_method = globals.doh_method.clone();
 
@@ -148,7 +148,7 @@ impl DoHClient {
   async fn fetch_odoh_config_from_well_known(
     target_url_str: &str,
     globals: &Arc<Globals>,
-  ) -> Result<ODoHClientContext, Error> {
+  ) -> Result<ODoHClientContext> {
     // TODO: Add auth token when fetching config?
     // fetch public key from odoh target (/.well-known)
     let url = Url::parse(target_url_str)?;
@@ -178,7 +178,7 @@ impl DoHClient {
     packet_buf: &[u8],
     globals: &Arc<Globals>,
     globals_cache: &Arc<RwLock<GlobalsCache>>,
-  ) -> Result<Vec<u8>, Error> {
+  ) -> Result<Vec<u8>> {
     // Check if the given packet buffer is consistent as a DNS query
     match dns_message::is_query(packet_buf) {
       Ok(_) => {
@@ -216,7 +216,7 @@ impl DoHClient {
     }
   }
 
-  async fn serve_doh_query(&self, packet_buf: &[u8]) -> Result<Vec<u8>, Error> {
+  async fn serve_doh_query(&self, packet_buf: &[u8]) -> Result<Vec<u8>> {
     assert_eq!(self.clients.len(), 1);
     let response = match self.method {
       DoHMethod::Get => {
@@ -249,7 +249,7 @@ impl DoHClient {
     packet_buf: &[u8],
     globals: &Arc<Globals>,
     globals_cache: &Arc<RwLock<GlobalsCache>>,
-  ) -> Result<Vec<u8>, Error> {
+  ) -> Result<Vec<u8>> {
     assert!(globals.odoh_relay_urls.is_some() && !self.clients.is_empty());
 
     let client_ctx = match &self.odoh_client_context {

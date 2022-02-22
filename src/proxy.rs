@@ -25,7 +25,7 @@ impl Proxy {
   }
 
   // TODO: Should login to relay when odoh
-  async fn authenticate(&self) -> Result<(), Error> {
+  async fn authenticate(&self) -> Result<()> {
     // Read credential first
     let mut credential = match self.get_credential_clone().await {
       None => {
@@ -43,7 +43,7 @@ impl Proxy {
     Ok(())
   }
 
-  async fn update_client(&self) -> Result<(), Error> {
+  async fn update_client(&self) -> Result<()> {
     let mut globals_cache = self.globals_cache.write().await;
     globals_cache.update_doh_client(&self.globals).await?;
     drop(globals_cache);
@@ -51,7 +51,7 @@ impl Proxy {
   }
 
   // TODO: update id_token for odoh_relay when odoh
-  async fn update_id_token(&self) -> Result<(), Error> {
+  async fn update_id_token(&self) -> Result<()> {
     // println!("before {:#?}", self.get_credential_clone().await.unwrap());
     let mut globals_cache = self.globals_cache.write().await;
     globals_cache.update_credential(&self.globals).await?;
@@ -162,7 +162,7 @@ impl Proxy {
     }
   }
 
-  pub async fn entrypoint(self) -> Result<(), Error> {
+  pub async fn entrypoint(self) -> Result<()> {
     // 1. prepare authorization
     {
       // TODO: 一番初めにログインさせるのが本当にいいのかは疑問。token持つだけの方がいい？

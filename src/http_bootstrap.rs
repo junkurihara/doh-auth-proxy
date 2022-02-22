@@ -21,7 +21,7 @@ impl HttpClient {
     endpoint: &str,
     default_headers: Option<&HeaderMap>,
     resolve_endpoint_by_system: bool,
-  ) -> Result<Self, Error> {
+  ) -> Result<Self> {
     let mut client = reqwest::Client::builder()
       .user_agent(format!("doh-auth/{}", env!("CARGO_PKG_VERSION")))
       .timeout(globals.timeout_sec)
@@ -61,7 +61,7 @@ pub async fn resolve_by_bootstrap(
   bootstrap_dns: &SocketAddr,
   target_url: &str,
   runtime_handle: tokio::runtime::Handle,
-) -> Result<(String, Vec<SocketAddr>), Error> {
+) -> Result<(String, Vec<SocketAddr>)> {
   let name_servers =
     NameServerConfigGroup::from_ips_clear(&[bootstrap_dns.ip()], bootstrap_dns.port(), true);
   let resolver_config = ResolverConfig::from_parts(None, vec![], name_servers);

@@ -15,7 +15,7 @@ pub struct TCPServer {
 }
 
 impl TCPServer {
-  async fn serve_query(self, mut stream: TcpStream, src_addr: SocketAddr) -> Result<(), Error> {
+  async fn serve_query(self, mut stream: TcpStream, src_addr: SocketAddr) -> Result<()> {
     debug!("handle query from {:?}", src_addr);
     let globals_cache = self.globals_cache.read().await;
     let doh_client = globals_cache.get_random_client(&self.globals)?;
@@ -64,7 +64,7 @@ impl TCPServer {
     Ok(())
   }
 
-  pub async fn start(self, listen_address: SocketAddr) -> Result<(), Error> {
+  pub async fn start(self, listen_address: SocketAddr) -> Result<()> {
     let tcp_listener = TcpListener::bind(&listen_address).await?;
     info!("Listening on TCP: {:?}", tcp_listener.local_addr()?);
 

@@ -21,7 +21,7 @@ impl UDPServer {
     packet_buf: Vec<u8>,
     src_addr: std::net::SocketAddr,
     res_sender: mpsc::Sender<(Vec<u8>, std::net::SocketAddr)>,
-  ) -> Result<(), Error> {
+  ) -> Result<()> {
     let self_clone = self.clone();
     let globals_cache = self_clone.globals_cache.read().await;
     let doh_client = globals_cache.get_random_client(&self.globals)?;
@@ -85,7 +85,7 @@ impl UDPServer {
     }
   }
 
-  pub async fn start(self, listen_address: SocketAddr) -> Result<(), Error> {
+  pub async fn start(self, listen_address: SocketAddr) -> Result<()> {
     // setup a channel for sending out responses
     let (channel_sender, channel_receiver) =
       mpsc::channel::<(Vec<u8>, SocketAddr)>(self.globals.udp_channel_capacity);

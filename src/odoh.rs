@@ -14,7 +14,7 @@ pub struct ODoHClientContext {
 }
 
 impl ODoHClientContext {
-  pub fn new(configs_vec: &[u8]) -> Result<Self, Error> {
+  pub fn new(configs_vec: &[u8]) -> Result<Self> {
     let odoh_configs: ObliviousDoHConfigs = parse(&mut (<&[u8]>::clone(&configs_vec)))?;
     info!("[ODoH] ODoH configs fetched");
     let client_config = match odoh_configs.into_iter().next() {
@@ -31,7 +31,7 @@ impl ODoHClientContext {
   pub fn encrypt_query(
     &self,
     plaintext_query: &[u8],
-  ) -> Result<(ObliviousDoHMessagePlaintext, Bytes, OdohSecret), Error> {
+  ) -> Result<(ObliviousDoHMessagePlaintext, Bytes, OdohSecret)> {
     debug!("[ODoH] Encrypt query");
     let mut rng = StdRng::from_entropy();
 
@@ -53,7 +53,7 @@ impl ODoHClientContext {
     plaintext_query: &ObliviousDoHMessagePlaintext,
     encrypted_response: &Bytes,
     client_secret: OdohSecret,
-  ) -> Result<Bytes, Error> {
+  ) -> Result<Bytes> {
     debug!("[ODoH] Decrypt query");
     let response_enc: ObliviousDoHMessage = parse(&mut (encrypted_response.clone()))?;
     let response_dec = odoh_rs::decrypt_response(plaintext_query, &response_enc, client_secret)?;

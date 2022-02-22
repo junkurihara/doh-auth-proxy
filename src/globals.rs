@@ -42,7 +42,7 @@ impl GlobalsCache {
   // This updates doh_client in globals_cache in order to
   // - re-fetch the resolver address by the bootstrap DNS (Do53)
   // - re-fetch the ODoH configs when ODoH
-  pub async fn update_doh_client(&mut self, globals: &Arc<Globals>) -> Result<(), Error> {
+  pub async fn update_doh_client(&mut self, globals: &Arc<Globals>) -> Result<()> {
     let id_token = match &self.credential {
       Some(c) => c.id_token(),
       None => None,
@@ -60,14 +60,14 @@ impl GlobalsCache {
       let doh_clients = future::join_all(polls)
         .await
         .into_iter()
-        .collect::<Result<Vec<DoHClient>, Error>>()?;
+        .collect::<Result<Vec<DoHClient>>>()?;
       self.doh_clients = Some(doh_clients);
     }
 
     Ok(())
   }
 
-  pub fn get_random_client(&self, globals: &Arc<Globals>) -> Result<DoHClient, Error> {
+  pub fn get_random_client(&self, globals: &Arc<Globals>) -> Result<DoHClient> {
     if let Some(clients) = &self.doh_clients {
       let num_targets = clients.len();
       let target_idx = if globals.target_randomization {
@@ -84,7 +84,7 @@ impl GlobalsCache {
   }
 
   // This refreshes id_token for doh_target when doh, or for odoh_relay when odoh.
-  pub async fn update_credential(&mut self, globals: &Arc<Globals>) -> Result<(), Error> {
+  pub async fn update_credential(&mut self, globals: &Arc<Globals>) -> Result<()> {
     let mut credential = match self.credential.clone() {
       None => {
         // This function is called only when authorized

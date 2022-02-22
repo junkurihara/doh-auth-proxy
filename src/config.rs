@@ -12,9 +12,7 @@ use std::time::Duration;
 use tokio::runtime::Handle;
 use tokio::sync::RwLock;
 
-pub fn parse_opts(
-  runtime_handle: &Handle,
-) -> Result<(Arc<Globals>, Arc<RwLock<GlobalsCache>>), Error> {
+pub fn parse_opts(runtime_handle: &Handle) -> Result<(Arc<Globals>, Arc<RwLock<GlobalsCache>>)> {
   use crate::utils::{verify_sock_addr, verify_target_url};
 
   let _ = include_str!("../Cargo.toml");

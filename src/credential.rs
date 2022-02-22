@@ -52,7 +52,7 @@ impl Credential {
     self.id_token.clone()
   }
 
-  pub async fn login(&mut self, globals: &Arc<Globals>) -> Result<(), Error> {
+  pub async fn login(&mut self, globals: &Arc<Globals>) -> Result<()> {
     // token endpoint is resolved via bootstrap DNS resolver
     let token_endpoint = format!("{}{}", self.token_api, ENDPOINT_LOGIN_PATH);
     let client = HttpClient::new(globals, &token_endpoint, None, true)
@@ -110,7 +110,7 @@ impl Credential {
     Ok(())
   }
 
-  pub async fn refresh(&mut self, globals: &Arc<Globals>) -> Result<(), Error> {
+  pub async fn refresh(&mut self, globals: &Arc<Globals>) -> Result<()> {
     // refresh endpoint is NOT resolved via configured system DNS resolver. resolve by proxy itself
     let refresh_endpoint = format!("{}{}", self.token_api, ENDPOINT_REFRESH_PATH);
     let client = HttpClient::new(globals, &refresh_endpoint, None, false)
@@ -166,7 +166,7 @@ impl Credential {
     &mut self,
     globals: &Arc<Globals>,
     meta: TokenMetadata,
-  ) -> Result<(), Error> {
+  ) -> Result<()> {
     let jwks_endpoint = format!("{}{}", self.token_api, ENDPOINT_JWKS_PATH);
     let client = HttpClient::new(globals, &jwks_endpoint, None, true)
       .await?
@@ -230,7 +230,7 @@ impl Credential {
     Ok(())
   }
 
-  pub async fn id_token_expires_in_secs(&self) -> Result<i64, Error> {
+  pub async fn id_token_expires_in_secs(&self) -> Result<i64> {
     // This returns unix time in secs
     let clm = self.verify_id_token().await?;
     let expires_at: i64 = clm.expires_at.unwrap().as_secs() as i64;
@@ -245,7 +245,7 @@ impl Credential {
     Ok(expires_in_secs)
   }
 
-  pub fn get_meta_from_id_token(&self) -> Result<TokenMetadata, Error> {
+  pub fn get_meta_from_id_token(&self) -> Result<TokenMetadata> {
     // parse jwt
     if let Some(id_token) = &self.id_token {
       let meta = Token::decode_metadata(id_token)?;
@@ -255,7 +255,7 @@ impl Credential {
     }
   }
 
-  async fn verify_id_token(&self) -> Result<JWTClaims<NoCustomClaims>, Error> {
+  async fn verify_id_token(&self) -> Result<JWTClaims<NoCustomClaims>> {
     let meta = self.get_meta_from_id_token()?;
     let id_token = if let Some(id_token) = &self.id_token {
       id_token
@@ -292,7 +292,7 @@ enum Algorithm {
 }
 impl FromStr for Algorithm {
   type Err = Error;
-  fn from_str(s: &str) -> Result<Self, Error> {
+  fn from_str(s: &str) -> Result<Self> {
     match s {
       "ES256" => Ok(Algorithm::ES256),
       _ => Err(anyhow!("Invalid Algorithm Name")),

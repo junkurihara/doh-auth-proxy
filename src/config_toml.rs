@@ -28,13 +28,13 @@ pub struct Authentication {
 }
 
 impl ConfigToml {
-  pub fn new(config_file: &str) -> Result<Self, Error> {
+  pub fn new(config_file: &str) -> Result<Self> {
     let config_str = if let Ok(s) = fs::read_to_string(config_file) {
       s
     } else {
       bail!("Failed to read config file");
     };
-    let parsed: Result<ConfigToml, Error> = toml::from_str(&config_str)
+    let parsed: Result<ConfigToml> = toml::from_str(&config_str)
       .map_err(|e: toml::de::Error| anyhow!("Failed to parse toml config: {:?}", e));
     parsed
   }
