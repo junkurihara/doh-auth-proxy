@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate clap;
-
 mod client;
 mod config;
 mod config_toml;
