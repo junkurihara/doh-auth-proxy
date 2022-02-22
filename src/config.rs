@@ -12,13 +12,13 @@ use std::time::Duration;
 use tokio::runtime::Handle;
 use tokio::sync::RwLock;
 
-pub async fn parse_opts(
-  runtime_handle: Handle,
+pub fn parse_opts(
+  runtime_handle: &Handle,
 ) -> Result<(Arc<Globals>, Arc<RwLock<GlobalsCache>>), Error> {
   use crate::utils::{verify_sock_addr, verify_target_url};
 
   let _ = include_str!("../Cargo.toml");
-  let options = app_from_crate!().arg(
+  let options = clap::command!().arg(
     Arg::new("config_file")
       .long("config")
       .short('c')
@@ -55,7 +55,7 @@ pub async fn parse_opts(
 
     max_connections: MAX_CONNECTIONS,
     counter: Default::default(),
-    runtime_handle,
+    runtime_handle: runtime_handle.clone(),
   };
   /////////////////////////////
   //   reading toml file     //
