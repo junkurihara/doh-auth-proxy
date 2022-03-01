@@ -15,9 +15,7 @@ mod proxy;
 mod tcpserver;
 mod udpserver;
 mod utils;
-use crate::log::*;
-use config::parse_opts;
-use proxy::Proxy;
+use crate::{config::parse_opts, log::*, proxy::Proxy};
 // use std::env;
 use std::io::Write;
 

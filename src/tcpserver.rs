@@ -1,12 +1,15 @@
-use crate::counter::CounterType;
-use crate::error::*;
-use crate::globals::{Globals, GlobalsCache};
-use crate::log::*;
-use std::net::SocketAddr;
-use std::sync::Arc;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::RwLock;
+use crate::{
+  counter::CounterType,
+  error::*,
+  globals::{Globals, GlobalsCache},
+  log::*,
+};
+use std::{net::SocketAddr, sync::Arc};
+use tokio::{
+  io::{AsyncReadExt, AsyncWriteExt},
+  net::{TcpListener, TcpStream},
+  sync::RwLock,
+};
 
 #[derive(Clone)]
 pub struct TCPServer {

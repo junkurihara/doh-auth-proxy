@@ -1,17 +1,20 @@
-use crate::constants::*;
-use crate::dns_message;
-use crate::error::*;
-use crate::globals::{Globals, GlobalsCache};
-use crate::http_bootstrap::HttpClient;
-use crate::log::*;
-use crate::odoh::ODoHClientContext;
+use crate::{
+  constants::*,
+  dns_message,
+  error::*,
+  globals::{Globals, GlobalsCache},
+  http_bootstrap::HttpClient,
+  log::*,
+  odoh::ODoHClientContext,
+};
 use data_encoding::BASE64URL_NOPAD;
 use futures::future;
-use rand::seq::SliceRandom;
-use rand::{thread_rng, Rng};
+use rand::{
+  seq::SliceRandom,
+  {thread_rng, Rng},
+};
 use reqwest::header;
-use std::collections::HashMap;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
 use url::Url;
 use urlencoding::decode;

@@ -1,11 +1,7 @@
-use crate::error::*;
-use crate::globals::Globals;
-use crate::log::*;
+use crate::{error::*, globals::Globals, log::*};
 use reqwest::header::HeaderMap;
-use std::net::SocketAddr;
-use std::sync::Arc;
-use trust_dns_resolver::config::*;
-use trust_dns_resolver::TokioAsyncResolver;
+use std::{net::SocketAddr, sync::Arc};
+use trust_dns_resolver::{config::*, TokioAsyncResolver};
 use url::Url;
 
 #[derive(Debug, Clone)]

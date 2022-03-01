@@ -1,16 +1,19 @@
-use crate::constants::*;
-use crate::credential::Credential;
-use crate::error::*;
-use crate::exitcodes::*;
-use crate::globals::{Globals, GlobalsCache};
-use crate::tcpserver::TCPServer;
-use crate::udpserver::UDPServer;
+use crate::{
+  constants::*,
+  credential::Credential,
+  error::*,
+  exitcodes::*,
+  globals::{Globals, GlobalsCache},
+  tcpserver::TCPServer,
+  udpserver::UDPServer,
+};
 use futures::future::select_all;
-use log::{debug, error, info, warn};
+use log::*;
 use std::sync::Arc;
-use std::time::Duration;
-use tokio::sync::RwLock;
-use tokio::time::sleep;
+use tokio::{
+  sync::RwLock,
+  time::{sleep, Duration},
+};
 
 #[derive(Debug, Clone)]
 pub struct Proxy {

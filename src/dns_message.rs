@@ -1,8 +1,10 @@
 // Handle packet buffer of DNS message (encode/decode)
 use crate::error::*;
 use crate::log::*;
-use trust_dns_proto::op::Message;
-use trust_dns_proto::serialize::binary::{BinDecodable, BinDecoder};
+use trust_dns_proto::{
+  op::Message,
+  serialize::binary::{BinDecodable, BinDecoder},
+};
 
 pub fn is_query(packet_buf: &[u8]) -> Result<Message> {
   is(packet_buf, trust_dns_proto::op::MessageType::Query)

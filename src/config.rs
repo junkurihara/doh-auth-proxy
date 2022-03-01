@@ -1,16 +1,15 @@
-use crate::client::DoHMethod;
-use crate::config_toml::ConfigToml;
-use crate::constants::*;
-use crate::credential::Credential;
-use crate::error::*;
-use crate::globals::{Globals, GlobalsCache};
-use crate::log::*;
+use crate::{
+  client::DoHMethod,
+  config_toml::ConfigToml,
+  constants::*,
+  credential::Credential,
+  error::*,
+  globals::{Globals, GlobalsCache},
+  log::*,
+};
 use clap::Arg;
-use std::env;
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::runtime::Handle;
-use tokio::sync::RwLock;
+use std::{env, sync::Arc};
+use tokio::{runtime::Handle, sync::RwLock, time::Duration};
 
 pub fn parse_opts(runtime_handle: &Handle) -> Result<(Arc<Globals>, Arc<RwLock<GlobalsCache>>)> {
   use crate::utils::{verify_sock_addr, verify_target_url};

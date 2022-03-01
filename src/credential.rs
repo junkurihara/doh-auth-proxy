@@ -8,16 +8,11 @@
   by defining struct.
 */
 
-use crate::constants::*;
-use crate::error::*;
-use crate::globals::Globals;
-use crate::http_bootstrap::HttpClient;
-use crate::log::*;
+use crate::{constants::*, error::*, globals::Globals, http_bootstrap::HttpClient, log::*};
 use chrono::{DateTime, Local};
 use jwt_simple::prelude::*;
 use p256::elliptic_curve::sec1::ToEncodedPoint;
-use std::str::FromStr;
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 
 #[derive(Debug, Clone)]
 pub struct Credential {

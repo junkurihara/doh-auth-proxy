@@ -1,13 +1,15 @@
-use crate::counter::CounterType;
-use crate::error::*;
-use crate::globals::{Globals, GlobalsCache};
-use crate::log::*;
-use std::net::SocketAddr;
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::net::UdpSocket;
-use tokio::sync::mpsc;
-use tokio::sync::RwLock;
+use crate::{
+  counter::CounterType,
+  error::*,
+  globals::{Globals, GlobalsCache},
+  log::*,
+};
+use std::{net::SocketAddr, sync::Arc};
+use tokio::{
+  net::UdpSocket,
+  sync::{mpsc, RwLock},
+  time::Duration,
+};
 
 #[derive(Clone)]
 pub struct UDPServer {
@@ -63,7 +65,7 @@ impl UDPServer {
 
   async fn respond_to_src(
     self,
-    socket_sender: Arc<tokio::net::UdpSocket>,
+    socket_sender: Arc<UdpSocket>,
     mut channel_receiver: mpsc::Receiver<(Vec<u8>, std::net::SocketAddr)>,
   ) {
     loop {

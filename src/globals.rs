@@ -1,12 +1,13 @@
-use crate::client::{DoHClient, DoHMethod};
-use crate::counter::Counter;
-use crate::credential::Credential;
-use crate::error::*;
+use crate::{
+  client::{DoHClient, DoHMethod},
+  counter::Counter,
+  credential::Credential,
+  error::*,
+};
 use futures::future;
 use rand::Rng;
-use std::net::SocketAddr;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{net::SocketAddr, sync::Arc};
+use tokio::time::Duration;
 
 #[derive(Debug, Clone)]
 pub struct Globals {
