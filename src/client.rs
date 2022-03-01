@@ -194,10 +194,10 @@ impl DoHClient {
     }
 
     let response_result = match self.doh_type {
-      DoHType::Standard => self.serve_doh_query(&packet_buf.to_owned()).await,
+      DoHType::Standard => self.serve_doh_query(packet_buf).await,
       DoHType::Oblivious => {
         self
-          .serve_oblivious_doh_query(&packet_buf.to_owned(), globals, globals_cache)
+          .serve_oblivious_doh_query(packet_buf, globals, globals_cache)
           .await
       }
     };
