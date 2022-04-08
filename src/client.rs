@@ -187,16 +187,23 @@ impl DoHClient {
       .await?;
     ensure!(
       dns_message::is_response(&res).is_ok(),
-      "Not a response in healthcheck"
+      "Not a response in healthcheck for {}",
+      self.target_url
     );
     let r_msg = dns_message::decode(&res).unwrap();
     ensure!(
       r_msg.header().response_code() == trust_dns_proto::op::response_code::ResponseCode::NoError,
-      "Response is not OK: {:?}",
-      r_msg.header().response_code()
+      "Response is not OK: {:?} for {:?}",
+      r_msg.header().response_code(),
+      self.target_url
     );
     let answers = r_msg.answers().to_vec();
-    ensure!(!answers.is_empty(), "Response has no answer: {:?}", answers);
+    ensure!(
+      !answers.is_empty(),
+      "Response has no answer: {:?} for {}",
+      answers,
+      self.target_url
+    );
     let rdata: Vec<Option<&trust_dns_proto::rr::RData>> =
       answers.iter().map(|a| a.data()).collect();
     ensure!(
@@ -206,8 +213,9 @@ impl DoHClient {
           _ => false,
         }
       }),
-      "Response has no rdata: {:?}",
-      rdata
+      "Response has no or wrong rdata, maybe suspicious and polluted target: {:?} for {}",
+      rdata,
+      self.target_url
     );
 
     Ok(())

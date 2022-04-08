@@ -61,11 +61,16 @@ impl Proxy {
   async fn clients_health_check(&self) -> bool {
     match &self.globals_cache.read().await.doh_clients {
       Some(doh_clients) => {
-        println!("okl");
         let polls = doh_clients
           .iter()
           .map(|client| client.health_check(&self.globals, &self.globals_cache));
-        join_all(polls).await.iter().all(|r| r.is_ok())
+        join_all(polls).await.iter().all(|r| match r {
+          Ok(()) => true,
+          Err(e) => {
+            error!("{:?}", e);
+            false
+          }
+        })
       }
       None => false,
     }
