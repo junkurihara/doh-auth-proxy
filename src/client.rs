@@ -175,7 +175,7 @@ impl DoHClient {
     ODoHClientContext::new(&body)
   }
 
-  pub async fn healthcheck(
+  pub async fn health_check(
     &self,
     globals: &Arc<Globals>,
     globals_cache: &Arc<RwLock<GlobalsCache>>,

@@ -50,7 +50,7 @@ impl Proxy {
     let mut globals_cache = self.globals_cache.write().await;
     globals_cache.update_doh_client(&self.globals).await?;
     drop(globals_cache);
-    if self.clients_healthcheck().await {
+    if self.clients_health_check().await {
       info!("All clients are healthy");
     } else {
       error!("Some clients are unhealthy. Recommend to restart proxy");
@@ -58,13 +58,13 @@ impl Proxy {
     Ok(())
   }
 
-  async fn clients_healthcheck(&self) -> bool {
+  async fn clients_health_check(&self) -> bool {
     match &self.globals_cache.read().await.doh_clients {
       Some(doh_clients) => {
         println!("okl");
         let polls = doh_clients
           .iter()
-          .map(|client| client.healthcheck(&self.globals, &self.globals_cache));
+          .map(|client| client.health_check(&self.globals, &self.globals_cache));
         join_all(polls).await.iter().all(|r| r.is_ok())
       }
       None => false,
