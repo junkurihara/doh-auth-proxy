@@ -25,3 +25,6 @@ pub const CREDENTIAL_CHECK_PERIOD_SECS: u64 = 60;
 // this is to rapidly recover from the hibernation of PC on which this is working. (at most 60 secs is needed for recovery)
 pub const ENDPOINT_RELOGIN_WAITING_SEC: u64 = 10;
 pub const MAX_LOGIN_ATTEMPTS: usize = 5;
+
+pub const HEALTHCHECK_TARGET_FQDN: &str = "one.one.one.one.";
+pub const HEALTHCHECK_TARGET_ADDR: &str = "1.1.1.1";

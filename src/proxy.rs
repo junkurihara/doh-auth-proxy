@@ -7,7 +7,7 @@ use crate::{
   tcpserver::TCPServer,
   udpserver::UDPServer,
 };
-use futures::future::select_all;
+use futures::future::{join_all, select_all};
 use log::*;
 use std::sync::Arc;
 use tokio::{
@@ -50,7 +50,25 @@ impl Proxy {
     let mut globals_cache = self.globals_cache.write().await;
     globals_cache.update_doh_client(&self.globals).await?;
     drop(globals_cache);
+    if self.clients_healthcheck().await {
+      info!("All clients are healthy");
+    } else {
+      error!("Some clients are unhealthy. Recommend to restart proxy");
+    }
     Ok(())
+  }
+
+  async fn clients_healthcheck(&self) -> bool {
+    match &self.globals_cache.read().await.doh_clients {
+      Some(doh_clients) => {
+        println!("okl");
+        let polls = doh_clients
+          .iter()
+          .map(|client| client.healthcheck(&self.globals, &self.globals_cache));
+        join_all(polls).await.iter().all(|r| r.is_ok())
+      }
+      None => false,
+    }
   }
 
   // TODO: update id_token for odoh_relay when odoh

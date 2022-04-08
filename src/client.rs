@@ -138,7 +138,6 @@ impl DoHClient {
       DoHType::Standard => None,
     };
 
-    // TODO: Ping here to check client-server connection
     Ok(DoHClient {
       doh_type,
       clients,
@@ -174,6 +173,44 @@ impl DoHClient {
     }
     let body = response.bytes().await?.to_vec();
     ODoHClientContext::new(&body)
+  }
+
+  pub async fn healthcheck(
+    &self,
+    globals: &Arc<Globals>,
+    globals_cache: &Arc<RwLock<GlobalsCache>>,
+  ) -> Result<()> {
+    let q_msg = dns_message::build_query_message_a(HEALTHCHECK_TARGET_FQDN).unwrap();
+    let packet_buf = dns_message::encode(&q_msg).unwrap();
+    let res = self
+      .make_doh_query(&packet_buf, globals, globals_cache)
+      .await?;
+    ensure!(
+      dns_message::is_response(&res).is_ok(),
+      "Not a response in healthcheck"
+    );
+    let r_msg = dns_message::decode(&res).unwrap();
+    ensure!(
+      r_msg.header().response_code() == trust_dns_proto::op::response_code::ResponseCode::NoError,
+      "Response is not OK: {:?}",
+      r_msg.header().response_code()
+    );
+    let answers = r_msg.answers().to_vec();
+    ensure!(!answers.is_empty(), "Response has no answer: {:?}", answers);
+    let rdata: Vec<Option<&trust_dns_proto::rr::RData>> =
+      answers.iter().map(|a| a.data()).collect();
+    ensure!(
+      rdata.iter().any(|r| r.is_some() && {
+        match r.unwrap() {
+          trust_dns_proto::rr::RData::A(a) => a.to_string() == *HEALTHCHECK_TARGET_ADDR,
+          _ => false,
+        }
+      }),
+      "Response has no rdata: {:?}",
+      rdata
+    );
+
+    Ok(())
   }
 
   pub async fn make_doh_query(
