@@ -34,13 +34,12 @@ impl ODoHClientContext {
     debug!("[ODoH] Encrypt query");
     let mut rng = StdRng::from_entropy();
 
+    // TODO: Padding bytes should be add? Padding be handled by a client issuing plaintext queries.
     // add a random padding for testing purpose
-    let padding_len = rng.gen_range(0..10);
-    let query = ObliviousDoHMessagePlaintext::new(&plaintext_query, padding_len);
-    debug!(
-      "[ODoH] Encrypting DNS message with {} bytes of padding",
-      padding_len
-    );
+    // let padding_len = rng.gen_range(0..10);
+    // let query = ObliviousDoHMessagePlaintext::new(&plaintext_query, padding_len);
+    // debug!("[ODoH] Encrypting DNS message with {} bytes of padding", padding_len);
+    let query = ObliviousDoHMessagePlaintext::new(&plaintext_query, 0);
     let (query_enc, cli_secret) =
       odoh_rs::encrypt_query(&query, &self.odoh_config_contents, &mut rng)?;
     let query_body = odoh_rs::compose(&query_enc)?.freeze();
