@@ -267,7 +267,6 @@ We plan to implement kinds of 'round-robin' based distribution and other variant
   - EDNS0 padding options
     <https://datatracker.ietf.org/doc/html/rfc7830>
     <https://datatracker.ietf.org/doc/html/rfc8467>
-- Ping to the target DNS resolver when DoH client instance is created and refreshed.
 - `crates.io`
 - Sophistication of mu-ODNS based on ODoH, such as loop detection
 - Docker container packaged with token server (server-side)
