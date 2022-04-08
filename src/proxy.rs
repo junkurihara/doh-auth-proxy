@@ -51,7 +51,7 @@ impl Proxy {
     globals_cache.update_doh_client(&self.globals).await?;
     drop(globals_cache);
     if self.clients_health_check().await {
-      info!("All clients are healthy");
+      info!("All pairs of client - destination are healthy");
     } else {
       error!("Some clients are unhealthy. Recommend to restart proxy");
     }
