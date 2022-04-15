@@ -4,14 +4,14 @@ use crate::{
   constants::*,
   credential::Credential,
   error::*,
-  globals::{Globals, GlobalsCache},
+  globals::{Globals, GlobalsRW},
   log::*,
 };
 use clap::Arg;
 use std::{env, sync::Arc};
 use tokio::{runtime::Handle, sync::RwLock, time::Duration};
 
-pub fn parse_opts(runtime_handle: &Handle) -> Result<(Arc<Globals>, Arc<RwLock<GlobalsCache>>)> {
+pub fn parse_opts(runtime_handle: &Handle) -> Result<(Arc<Globals>, Arc<RwLock<GlobalsRW>>)> {
   use crate::utils::{verify_sock_addr, verify_target_url};
 
   let _ = include_str!("../Cargo.toml");
@@ -231,10 +231,10 @@ pub fn parse_opts(runtime_handle: &Handle) -> Result<(Arc<Globals>, Arc<RwLock<G
 
   let globals = Arc::new(globals_local);
 
-  let globals_cache = Arc::new(RwLock::new(GlobalsCache {
+  let globals_rw = Arc::new(RwLock::new(GlobalsRW {
     doh_clients: None,
     credential,
   }));
 
-  Ok((globals, globals_cache))
+  Ok((globals, globals_rw))
 }

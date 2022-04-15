@@ -43,7 +43,7 @@ fn main() {
   runtime_builder.thread_name("doh-auth-proxy");
   let runtime = runtime_builder.build().unwrap();
 
-  let (globals, globals_cache) = match parse_opts(runtime.handle()) {
+  let (globals, globals_rw) = match parse_opts(runtime.handle()) {
     Ok(g) => g,
     Err(e) => {
       error!("{}", e);
@@ -53,7 +53,7 @@ fn main() {
 
   let proxy = Proxy {
     globals,
-    globals_cache,
+    globals_rw,
   };
   runtime.block_on(async { proxy.entrypoint().await.unwrap() });
 }

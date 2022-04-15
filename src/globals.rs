@@ -34,13 +34,13 @@ pub struct Globals {
 }
 
 #[derive(Debug, Clone)]
-pub struct GlobalsCache {
+pub struct GlobalsRW {
   pub doh_clients: Option<Vec<DoHClient>>,
   pub credential: Option<Credential>,
 }
 
-impl GlobalsCache {
-  // This updates doh_client in globals_cache in order to
+impl GlobalsRW {
+  // This updates doh_client in globals_rw in order to
   // - re-fetch the resolver address by the bootstrap DNS (Do53)
   // - re-fetch the ODoH configs when ODoH
   pub async fn update_doh_client(&mut self, globals: &Arc<Globals>) -> Result<()> {

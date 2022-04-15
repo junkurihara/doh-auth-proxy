@@ -1,7 +1,7 @@
 use crate::{
   counter::CounterType,
   error::*,
-  globals::{Globals, GlobalsCache},
+  globals::{Globals, GlobalsRW},
   log::*,
 };
 use std::{net::SocketAddr, sync::Arc};
@@ -14,7 +14,7 @@ use tokio::{
 #[derive(Clone)]
 pub struct UDPServer {
   pub globals: Arc<Globals>,
-  pub globals_cache: Arc<RwLock<GlobalsCache>>,
+  pub globals_rw: Arc<RwLock<GlobalsRW>>,
 }
 
 impl UDPServer {
@@ -25,8 +25,8 @@ impl UDPServer {
     res_sender: mpsc::Sender<(Vec<u8>, std::net::SocketAddr)>,
   ) -> Result<()> {
     let self_clone = self.clone();
-    let globals_cache = self_clone.globals_cache.read().await;
-    let doh_client = globals_cache.get_random_client(&self.globals)?;
+    let globals_rw = self_clone.globals_rw.read().await;
+    let doh_client = globals_rw.get_random_client(&self.globals)?;
     let counter = self.globals.counter.clone();
 
     if counter.increment(CounterType::Udp) >= self.globals.max_connections {
@@ -43,7 +43,7 @@ impl UDPServer {
       let res = tokio::time::timeout(
         self.globals.timeout_sec + Duration::from_secs(1),
         // serve udp dns message here
-        doh_client.make_doh_query(&packet_buf, &self.globals, &self.globals_cache),
+        doh_client.make_doh_query(&packet_buf, &self.globals, &self.globals_rw),
       )
       .await
       .ok();

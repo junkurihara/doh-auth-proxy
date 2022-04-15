@@ -5,7 +5,7 @@ use odoh_rs::{
   parse, ObliviousDoHConfigContents, ObliviousDoHConfigs, ObliviousDoHMessage,
   ObliviousDoHMessagePlaintext, OdohSecret,
 };
-use rand::{rngs::StdRng, Rng, SeedableRng};
+use rand::{rngs::StdRng, SeedableRng};
 
 #[derive(Debug, Clone)]
 pub struct ODoHClientContext {

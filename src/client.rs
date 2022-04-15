@@ -2,7 +2,7 @@ use crate::{
   constants::*,
   dns_message,
   error::*,
-  globals::{Globals, GlobalsCache},
+  globals::{Globals, GlobalsRW},
   http_bootstrap::HttpClient,
   log::*,
   odoh::ODoHClientContext,
@@ -178,12 +178,12 @@ impl DoHClient {
   pub async fn health_check(
     &self,
     globals: &Arc<Globals>,
-    globals_cache: &Arc<RwLock<GlobalsCache>>,
+    globals_rw: &Arc<RwLock<GlobalsRW>>,
   ) -> Result<()> {
     let q_msg = dns_message::build_query_message_a(HEALTHCHECK_TARGET_FQDN).unwrap();
     let packet_buf = dns_message::encode(&q_msg).unwrap();
     let res = self
-      .make_doh_query(&packet_buf, globals, globals_cache)
+      .make_doh_query(&packet_buf, globals, globals_rw)
       .await?;
     ensure!(
       dns_message::is_response(&res).is_ok(),
@@ -225,7 +225,7 @@ impl DoHClient {
     &self,
     packet_buf: &[u8],
     globals: &Arc<Globals>,
-    globals_cache: &Arc<RwLock<GlobalsCache>>,
+    globals_rw: &Arc<RwLock<GlobalsRW>>,
   ) -> Result<Vec<u8>> {
     // Check if the given packet buffer is consistent as a DNS query
     match dns_message::is_query(packet_buf) {
@@ -242,7 +242,7 @@ impl DoHClient {
       DoHType::Standard => self.serve_doh_query(packet_buf).await,
       DoHType::Oblivious => {
         self
-          .serve_oblivious_doh_query(packet_buf, globals, globals_cache)
+          .serve_oblivious_doh_query(packet_buf, globals, globals_rw)
           .await
       }
     };
@@ -296,7 +296,7 @@ impl DoHClient {
     &self,
     packet_buf: &[u8],
     globals: &Arc<Globals>,
-    globals_cache: &Arc<RwLock<GlobalsCache>>,
+    globals_rw: &Arc<RwLock<GlobalsRW>>,
   ) -> Result<Vec<u8>> {
     assert!(globals.odoh_relay_urls.is_some() && !self.clients.is_empty());
 
@@ -352,7 +352,7 @@ impl DoHClient {
       || (response.status() == reqwest::StatusCode::OK && clength == 0)
     {
       warn!("ODoH public key is expired. Refetch.");
-      let mut gc = globals_cache.write().await;
+      let mut gc = globals_rw.write().await;
       gc.update_doh_client(globals).await?;
       drop(gc);
     }
