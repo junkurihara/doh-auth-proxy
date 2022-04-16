@@ -1,26 +1,19 @@
-use crate::{
-  counter::CounterType,
-  error::*,
-  globals::{Globals, GlobalsRW},
-  log::*,
-};
+use crate::{counter::CounterType, error::*, globals::Globals, log::*};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{
   io::{AsyncReadExt, AsyncWriteExt},
   net::{TcpListener, TcpStream},
-  sync::RwLock,
 };
 
 #[derive(Clone)]
 pub struct TCPServer {
   pub globals: Arc<Globals>,
-  pub globals_rw: Arc<RwLock<GlobalsRW>>,
 }
 
 impl TCPServer {
   async fn serve_query(self, mut stream: TcpStream, src_addr: SocketAddr) -> Result<()> {
     debug!("handle query from {:?}", src_addr);
-    let globals_rw = self.globals_rw.read().await;
+    let globals_rw = self.globals.rw.read().await;
     let doh_client = globals_rw.get_random_client(&self.globals)?;
     let counter = self.globals.counter.clone();
 
@@ -47,7 +40,7 @@ impl TCPServer {
     let res = tokio::time::timeout(
       self.globals.timeout_sec + std::time::Duration::from_secs(1),
       // serve udp dns message here
-      doh_client.make_doh_query(&packet_buf, &self.globals, &self.globals_rw),
+      doh_client.make_doh_query(&packet_buf, &self.globals),
     )
     .await
     .ok();

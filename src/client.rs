@@ -1,8 +1,9 @@
 use crate::{
+  cache::CacheObject,
   constants::*,
-  dns_message,
+  dns_message::{self, Request},
   error::*,
-  globals::{Globals, GlobalsRW},
+  globals::Globals,
   http_bootstrap::HttpClient,
   log::*,
   odoh::ODoHClientContext,
@@ -15,7 +16,6 @@ use rand::{
 };
 use reqwest::header;
 use std::{collections::HashMap, sync::Arc};
-use tokio::sync::RwLock;
 use url::Url;
 use urlencoding::decode;
 
@@ -175,16 +175,10 @@ impl DoHClient {
     ODoHClientContext::new(&body)
   }
 
-  pub async fn health_check(
-    &self,
-    globals: &Arc<Globals>,
-    globals_rw: &Arc<RwLock<GlobalsRW>>,
-  ) -> Result<()> {
+  pub async fn health_check(&self, globals: &Arc<Globals>) -> Result<()> {
     let q_msg = dns_message::build_query_message_a(HEALTHCHECK_TARGET_FQDN).unwrap();
     let packet_buf = dns_message::encode(&q_msg).unwrap();
-    let res = self
-      .make_doh_query(&packet_buf, globals, globals_rw)
-      .await?;
+    let res = self.make_doh_query(&packet_buf, globals).await?;
     ensure!(
       dns_message::is_response(&res).is_ok(),
       "Not a response in healthcheck for {}",
@@ -221,38 +215,72 @@ impl DoHClient {
     Ok(())
   }
 
-  pub async fn make_doh_query(
-    &self,
-    packet_buf: &[u8],
-    globals: &Arc<Globals>,
-    globals_rw: &Arc<RwLock<GlobalsRW>>,
-  ) -> Result<Vec<u8>> {
+  async fn build_response_from_cache(&self, res: CacheObject, query_id: u16) -> Result<Vec<u8>> {
+    let mut cached_msg = res.message().to_owned();
+    let remained_ttl = res.remained_ttl().as_secs() as u32;
+    //TODO: more efficient way to update ttl
+    for record in cached_msg.take_answers() {
+      let mut record = record;
+      record.set_ttl(remained_ttl);
+      cached_msg.add_answer(record);
+    }
+    for record in cached_msg.take_additionals() {
+      let mut record = record;
+      record.set_ttl(remained_ttl);
+      cached_msg.add_additional(record);
+    }
+    for record in cached_msg.take_name_servers() {
+      let mut record = record;
+      record.set_ttl(remained_ttl);
+      cached_msg.add_name_server(record);
+    }
+    cached_msg.set_id(query_id);
+
+    dns_message::encode(&cached_msg)
+  }
+
+  pub async fn make_doh_query(&self, packet_buf: &[u8], globals: &Arc<Globals>) -> Result<Vec<u8>> {
     // Check if the given packet buffer is consistent as a DNS query
-    match dns_message::is_query(packet_buf) {
-      Ok(_) => {
+    let (req, query_id) = match dns_message::is_query(packet_buf) {
+      Ok(query_message) => {
         debug!("Ok as a DNS query");
-        // debug!("TODO: check cache here {:?}", msg.queries());
+        let query_id = query_message.id();
+        if let Ok(req) = Request::try_from(&query_message) {
+          (req, query_id)
+        } else {
+          bail!("Not a valid DNS query");
+        }
       }
       Err(_) => {
         bail!("Invalid or not a DNS query") // Should build and return a synthetic reject response message?
+      }
+    };
+
+    // Check cache
+    if let Some(res) = globals.cache.get(&req).await {
+      debug!("Cache hit!: {:?}", res.message().queries());
+      if let Ok(response_buf) = self.build_response_from_cache(res, query_id).await {
+        return Ok(response_buf);
+      } else {
+        error!("Cached object is somewhat invalid");
       }
     }
 
     let response_result = match self.doh_type {
       DoHType::Standard => self.serve_doh_query(packet_buf).await,
-      DoHType::Oblivious => {
-        self
-          .serve_oblivious_doh_query(packet_buf, globals, globals_rw)
-          .await
-      }
+      DoHType::Oblivious => self.serve_oblivious_doh_query(packet_buf, globals).await,
     };
 
     match response_result {
       Ok(response_buf) => {
         // Check if the returned packet buffer is consistent as a DNS response
         match dns_message::is_response(&response_buf) {
-          Ok(_msg) => {
-            debug!("Ok as a DNS response"); // TODO: should rebuild buffer from decoded dns response _msg?
+          Ok(response_message) => {
+            debug!("Ok as a DNS response");
+            if (globals.cache.put(req, &response_message).await).is_err() {
+              error!("Failed to cache response");
+            };
+            // TODO: should rebuild buffer from decoded dns response _msg?
             Ok(response_buf)
           }
           Err(_) => {
@@ -296,7 +324,6 @@ impl DoHClient {
     &self,
     packet_buf: &[u8],
     globals: &Arc<Globals>,
-    globals_rw: &Arc<RwLock<GlobalsRW>>,
   ) -> Result<Vec<u8>> {
     assert!(globals.odoh_relay_urls.is_some() && !self.clients.is_empty());
 
@@ -352,7 +379,7 @@ impl DoHClient {
       || (response.status() == reqwest::StatusCode::OK && clength == 0)
     {
       warn!("ODoH public key is expired. Refetch.");
-      let mut gc = globals_rw.write().await;
+      let mut gc = globals.rw.write().await;
       gc.update_doh_client(globals).await?;
       drop(gc);
     }

@@ -44,17 +44,16 @@ fn main() {
   runtime_builder.thread_name("doh-auth-proxy");
   let runtime = runtime_builder.build().unwrap();
 
-  let (globals, globals_rw) = match parse_opts(runtime.handle()) {
-    Ok(g) => g,
-    Err(e) => {
-      error!("{}", e);
-      std::process::exit(exitcodes::EXIT_ON_OPTION_FAILURE);
-    }
-  };
+  runtime.block_on(async {
+    let globals = match parse_opts(runtime.handle()).await {
+      Ok(g) => g,
+      Err(e) => {
+        error!("{}", e);
+        std::process::exit(exitcodes::EXIT_ON_OPTION_FAILURE);
+      }
+    };
 
-  let proxy = Proxy {
-    globals,
-    globals_rw,
-  };
-  runtime.block_on(async { proxy.entrypoint().await.unwrap() });
+    let proxy = Proxy { globals };
+    proxy.entrypoint().await.unwrap()
+  });
 }

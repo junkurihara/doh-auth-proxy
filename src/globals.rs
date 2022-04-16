@@ -1,4 +1,5 @@
 use crate::{
+  cache::Cache,
   client::{DoHClient, DoHMethod},
   counter::Counter,
   credential::Credential,
@@ -7,7 +8,7 @@ use crate::{
 use futures::future;
 use rand::Rng;
 use std::{net::SocketAddr, sync::Arc};
-use tokio::time::Duration;
+use tokio::{sync::RwLock, time::Duration};
 
 #[derive(Debug, Clone)]
 pub struct Globals {
@@ -31,6 +32,10 @@ pub struct Globals {
   pub max_connections: usize,
   pub counter: Counter,
   pub runtime_handle: tokio::runtime::Handle,
+
+  pub rw: Arc<RwLock<GlobalsRW>>,
+
+  pub cache: Arc<Cache>,
 }
 
 #[derive(Debug, Clone)]
@@ -40,7 +45,7 @@ pub struct GlobalsRW {
 }
 
 impl GlobalsRW {
-  // This updates doh_client in globals_rw in order to
+  // This updates doh_client in globals.rw in order to
   // - re-fetch the resolver address by the bootstrap DNS (Do53)
   // - re-fetch the ODoH configs when ODoH
   pub async fn update_doh_client(&mut self, globals: &Arc<Globals>) -> Result<()> {

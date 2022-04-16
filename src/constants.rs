@@ -28,3 +28,5 @@ pub const MAX_LOGIN_ATTEMPTS: usize = 5;
 
 pub const HEALTHCHECK_TARGET_FQDN: &str = "dns.google.";
 pub const HEALTHCHECK_TARGET_ADDR: &str = "8.8.8.8";
+
+pub const DEFAULT_DNS_CACHE_SIZE: usize = 16384;

@@ -17,6 +17,9 @@ bootstrap_dns = "8.8.8.8:53"
 ## Minutes to re-fetch the IP addr of the target url host via the bootstrap DNS
 reboot_period = 3
 
+## Cache entry size
+max_cache_size = 16384
+
 ## URL of (O)DoH target server like "https://dns.google/dns-query".
 ## You can specify multiple servers by repeatedly set this option, then one of given
 ## servers is randomly chosen every time.

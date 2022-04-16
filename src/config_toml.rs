@@ -7,6 +7,7 @@ pub struct ConfigToml {
   pub listen_addresses: Option<Vec<String>>,
   pub bootstrap_dns: Option<String>,
   pub reboot_period: Option<usize>,
+  pub max_cache_size: Option<usize>,
   pub target_urls: Option<Vec<String>>,
   pub target_randomization: Option<bool>,
   pub use_get_method: Option<bool>,

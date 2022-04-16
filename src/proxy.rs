@@ -1,30 +1,21 @@
 use crate::{
-  constants::*,
-  credential::Credential,
-  error::*,
-  exitcodes::*,
-  globals::{Globals, GlobalsRW},
-  tcpserver::TCPServer,
-  udpserver::UDPServer,
+  constants::*, credential::Credential, error::*, exitcodes::*, globals::Globals,
+  tcpserver::TCPServer, udpserver::UDPServer,
 };
 use futures::future::{join_all, select_all};
 use log::*;
 use std::sync::Arc;
-use tokio::{
-  sync::RwLock,
-  time::{sleep, Duration},
-};
+use tokio::time::{sleep, Duration};
 
 #[derive(Debug, Clone)]
 pub struct Proxy {
   pub globals: Arc<Globals>,
-  pub globals_rw: Arc<RwLock<GlobalsRW>>,
 }
 
 impl Proxy {
   async fn get_credential_clone(&self) -> Option<Credential> {
-    let cache = self.globals_rw.read().await;
-    cache.credential.clone()
+    let globals_rw = self.globals.rw.read().await;
+    globals_rw.credential.clone()
   }
 
   // TODO: Should login to relay when odoh
@@ -39,15 +30,15 @@ impl Proxy {
     };
     credential.login(&self.globals).await?;
     {
-      let mut cache = self.globals_rw.write().await;
-      cache.credential = Some(credential);
-      drop(cache);
+      let mut globals_rw = self.globals.rw.write().await;
+      globals_rw.credential = Some(credential);
+      drop(globals_rw);
     }
     Ok(())
   }
 
   async fn update_client(&self) -> Result<()> {
-    let mut globals_rw = self.globals_rw.write().await;
+    let mut globals_rw = self.globals.rw.write().await;
     globals_rw.update_doh_client(&self.globals).await?;
     drop(globals_rw);
     if self.clients_health_check().await {
@@ -59,11 +50,11 @@ impl Proxy {
   }
 
   async fn clients_health_check(&self) -> bool {
-    match &self.globals_rw.read().await.doh_clients {
+    match &self.globals.rw.read().await.doh_clients {
       Some(doh_clients) => {
         let polls = doh_clients
           .iter()
-          .map(|client| client.health_check(&self.globals, &self.globals_rw));
+          .map(|client| client.health_check(&self.globals));
         join_all(polls).await.iter().all(|r| match r {
           Ok(()) => true,
           Err(e) => {
@@ -79,10 +70,10 @@ impl Proxy {
   // TODO: update id_token for odoh_relay when odoh
   async fn update_id_token(&self) -> Result<()> {
     // println!("before {:#?}", self.get_credential_clone().await.unwrap());
-    let mut globals_rw = self.globals_rw.write().await;
+    let mut globals_rw = self.globals.rw.write().await;
     globals_rw.update_credential(&self.globals).await?;
     drop(globals_rw);
-    // println!("after {:#?}", self.globals_rw.read().await.credential);
+    // println!("after {:#?}", self.globals.rw.read().await.credential);
     Ok(())
   }
 
@@ -100,12 +91,14 @@ impl Proxy {
         ), // TODO: should exit?
       };
 
-      // TODO: cache handling here to remove expired entries
+      // cache handling here to remove expired entries
+      let purged = self.globals.cache.purge_expired_entries().await;
+      debug!("Purged expired cached content: {} entries", purged);
     }
   }
 
   async fn run_periodic_token_refresh(self) {
-    // read current token in globals_rw, check its expiration, and set period
+    // read current token in globals.rw, check its expiration, and set period
     debug!("Start periodic expiration-check and refresh process of Id token");
     let mut retry_login = 0;
     loop {
@@ -229,13 +222,11 @@ impl Proxy {
       // TCP server here
       let tcp_server = TCPServer {
         globals: self.globals.clone(),
-        globals_rw: self.globals_rw.clone(),
       };
 
       // UDP server here
       let udp_server = UDPServer {
         globals: self.globals.clone(),
-        globals_rw: self.globals_rw.clone(),
       };
 
       // spawn as a tuple of (udp, tcp) for each socket address

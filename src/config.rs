@@ -1,4 +1,5 @@
 use crate::{
+  cache::Cache,
   client::DoHMethod,
   config_toml::ConfigToml,
   constants::*,
@@ -11,7 +12,7 @@ use clap::Arg;
 use std::{env, sync::Arc};
 use tokio::{runtime::Handle, sync::RwLock, time::Duration};
 
-pub fn parse_opts(runtime_handle: &Handle) -> Result<(Arc<Globals>, Arc<RwLock<GlobalsRW>>)> {
+pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
   use crate::utils::{verify_sock_addr, verify_target_url};
 
   let _ = include_str!("../Cargo.toml");
@@ -53,6 +54,13 @@ pub fn parse_opts(runtime_handle: &Handle) -> Result<(Arc<Globals>, Arc<RwLock<G
     max_connections: MAX_CONNECTIONS,
     counter: Default::default(),
     runtime_handle: runtime_handle.clone(),
+
+    rw: Arc::new(RwLock::new(GlobalsRW {
+      doh_clients: None,
+      credential: None,
+    })),
+
+    cache: Arc::new(Cache::new(DEFAULT_DNS_CACHE_SIZE)),
   };
   /////////////////////////////
   //   reading toml file     //
@@ -90,6 +98,13 @@ pub fn parse_opts(runtime_handle: &Handle) -> Result<(Arc<Globals>, Arc<RwLock<G
     "Target DoH Address is re-fetched every {:?} min",
     globals_local.rebootstrap_period_sec.as_secs() / 60
   );
+
+  /////////////////////////////
+  // cache size
+  if let Some(val) = config.max_cache_size {
+    globals_local.cache = Arc::new(Cache::new(val));
+  }
+  info!("Max cache size: {} (entries)", globals_local.cache.max_size);
 
   /////////////////////////////
   // DoH target and method
@@ -229,12 +244,9 @@ pub fn parse_opts(runtime_handle: &Handle) -> Result<(Arc<Globals>, Arc<RwLock<G
   }
   ////////////////////////
 
+  globals_local.rw.write().await.credential = credential.clone();
+
   let globals = Arc::new(globals_local);
 
-  let globals_rw = Arc::new(RwLock::new(GlobalsRW {
-    doh_clients: None,
-    credential,
-  }));
-
-  Ok((globals, globals_rw))
+  Ok(globals)
 }

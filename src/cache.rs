@@ -9,6 +9,7 @@ use trust_dns_proto::op::Message;
 #[derive(Debug, Clone)]
 pub struct CacheObject {
   message: Message,
+  #[allow(dead_code)]
   create_at: Instant,
   expire_at: Instant,
 }
@@ -16,6 +17,19 @@ pub struct CacheObject {
 impl CacheObject {
   pub fn expired(&self) -> bool {
     self.expire_at < Instant::now()
+  }
+  pub fn message(&self) -> &Message {
+    &self.message
+  }
+  pub fn expire_at(&self) -> Instant {
+    self.expire_at
+  }
+  #[allow(dead_code)]
+  pub fn create_at(&self) -> Instant {
+    self.create_at
+  }
+  pub fn remained_ttl(&self) -> Duration {
+    self.expire_at().saturating_duration_since(Instant::now())
   }
 }
 
@@ -41,6 +55,7 @@ impl Cache {
       return Ok(());
     }
 
+    // TODO: Override if configured
     let min_ttl = response_message
       .answers()
       .iter()
@@ -82,10 +97,10 @@ impl Cache {
         found.to_back();
         let entry = found.get();
         if !entry.expired() {
-          debug!("Cache hit");
+          debug!("Found non-expired cached content",);
           Some(entry.to_owned())
         } else {
-          debug!("Cache hit but expired");
+          debug!("Found cached content but expired");
           found.remove_entry();
           None
         }
@@ -115,7 +130,7 @@ impl Cache {
 
       count += 1;
     }
-    debug!("Purged {} expired entries", count);
+    // debug!("Purged {} expired entries", count);
 
     count
   }
@@ -171,7 +186,7 @@ mod tests {
     assert!(cache.get(&rkey2).await.is_some());
     assert!(cache.get(&rkey1).await.is_none());
     let mut v2 = cache.get(&rkey2).await.unwrap();
-    v2.expire_at = v2.create_at;
+    v2.expire_at = v2.create_at();
 
     assert!(cache.get(&rkey2).await.is_some());
     let mut lru_cache = cache.cache.lock().await;
