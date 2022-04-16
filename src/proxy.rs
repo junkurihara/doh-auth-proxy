@@ -100,7 +100,7 @@ impl Proxy {
         ), // TODO: should exit?
       };
 
-      // TODO: cache handling here?
+      // TODO: cache handling here to remove expired entries
     }
   }
 
