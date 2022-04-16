@@ -23,12 +23,16 @@ You should also include the user name that made the change.
 
 -
 
+## 0.1.3 (Apr. 16, 2022)
+
+### Improvements
+
+- Add on-memory DNS cache to make query-response faster.
+- Refactor to merge some global variables in `Arc`s into `Arc<Globals>`.
+- Update deps
+
 ## 0.1.2 (Apr. 8, 2022)
 
 ### Improvements
 
 - Feature: add health check sending a ping to each (O)DoH target when (re)bootstrap of client instances
-
-### Bugfixes
-
--

@@ -1,7 +1,7 @@
 [package]
 name = "doh-auth-proxy"
 description = "DNS Proxy for DoH, ODoH and Mutualized ODoH with Authorization"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Jun Kurihara"]
 homepage = "https://github.com/junkurihara/doh-auth-proxy"
 repository = "https://github.com/junkurihara/doh-auth-proxy"
@@ -46,26 +46,26 @@ tokio = { version = "1.17.0", features = [
   "macros",
 ] }
 futures = "0.3.21"
-reqwest = { version = "0.11.9", features = ["default", "trust-dns", "json"] }
+reqwest = { version = "0.11.10", features = ["default", "trust-dns", "json"] }
 url = "2.2.2"
-trust-dns-proto = "0.21.1"
-trust-dns-resolver = "0.21.1"
-anyhow = "1.0.55"
+trust-dns-proto = "0.21.2"
+trust-dns-resolver = "0.21.2"
+anyhow = "1.0.56"
 dotenv = "0.15.0"
 serde_json = "1.0.79"
-jwt-simple = "0.10.8"
+jwt-simple = "0.10.9"
 p256 = { version = "0.10.1", features = ["jwk", "pem"] }
 chrono = "0.4.19"
 odoh-rs = "1.0.0-alpha.1"
 rand = "0.8.5"
 bytes = "1.1.0"
 urlencoding = "2.1.0"
-toml = "0.5.8"
+toml = "0.5.9"
 serde = "1.0.136"
 hashlink = "0.8.0"
 
 [dev-dependencies]
-trust-dns-client = "0.21.1"
+trust-dns-client = "0.21.2"
 
 [profile.release]
 codegen-units = 1
