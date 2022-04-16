@@ -3,9 +3,43 @@ use crate::error::*;
 use crate::log::*;
 use trust_dns_proto::{
   op::{Message, MessageType},
-  rr::domain::Name,
+  rr::{domain::Name, DNSClass, RecordType},
   serialize::binary::{BinDecodable, BinDecoder, BinEncodable, BinEncoder},
 };
+
+// https://github.com/aaronriekenberg/rust-doh-proxy/blob/master/src/doh/request_key.rs
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct QueryKey {
+  pub query_name: String,
+  pub query_type: RecordType,
+  pub query_class: DNSClass,
+}
+#[derive(Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
+pub struct Request(pub Vec<QueryKey>);
+impl TryFrom<&Message> for Request {
+  type Error = &'static str;
+
+  fn try_from(message: &Message) -> Result<Self, Self::Error> {
+    let q_num = message.queries().len();
+    if q_num == 0 {
+      return Err("No query in message");
+    }
+
+    let mut query_keys = Vec::with_capacity(q_num);
+    for query in message.queries() {
+      let mut name_string = query.name().to_string();
+      name_string.make_ascii_lowercase();
+
+      query_keys.push(QueryKey {
+        query_name: name_string,
+        query_type: query.query_type(),
+        query_class: query.query_class(),
+      });
+    }
+    query_keys.sort();
+    Ok(Request(query_keys))
+  }
+}
 
 pub fn is_query(packet_buf: &[u8]) -> Result<Message> {
   is(packet_buf, MessageType::Query)

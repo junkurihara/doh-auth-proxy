@@ -43,6 +43,7 @@ tokio = { version = "1.17.0", features = [
   "parking_lot",
   "time",
   "sync",
+  "macros",
 ] }
 futures = "0.3.21"
 reqwest = { version = "0.11.9", features = ["default", "trust-dns", "json"] }
@@ -61,6 +62,10 @@ bytes = "1.1.0"
 urlencoding = "2.1.0"
 toml = "0.5.8"
 serde = "1.0.136"
+hashlink = "0.8.0"
+
+[dev-dependencies]
+trust-dns-client = "0.21.1"
 
 [profile.release]
 codegen-units = 1
