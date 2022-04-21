@@ -17,7 +17,7 @@ You should also include the user name that made the change.
 
 ### Improvements
 
--
+- Used a forked version of Cloudflare's `odoh-rs` library for frequently maintenance by @junkurihara: [https://github.com/junkurihara/odoh-rs.git](https://github.com/junkurihara/odoh-rs.git)
 
 ### Bugfixes
 
