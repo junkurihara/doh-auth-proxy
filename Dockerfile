@@ -6,7 +6,7 @@ ENV SERIAL 2
 
 ENV CFLAGS=-Ofast
 ENV BUILD_DEPS   curl make build-essential libevent-dev libexpat1-dev autoconf file libssl-dev byacc pkg-config
-ENV RUNTIME_DEPS bash util-linux coreutils findutils grep libssl1.1 ldnsutils libevent-2.1 expat ca-certificates jed logrotate
+ENV RUNTIME_DEPS bash util-linux coreutils findutils grep libssl3 ldnsutils libevent-2.1 expat ca-certificates jed logrotate
 
 RUN apt-get update; apt-get -qy dist-upgrade; apt-get -qy clean && \
     apt-get install -qy --no-install-recommends $RUNTIME_DEPS && \
