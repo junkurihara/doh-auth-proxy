@@ -49,18 +49,18 @@ impl Globals {
   // This updates doh_client in globals.rw in order to
   // - re-fetch the resolver address by the bootstrap DNS (Do53)
   // - re-fetch the ODoH configs when ODoH
-  pub async fn update_doh_client(&self, globals: &Arc<Globals>) -> Result<()> {
+  pub async fn update_doh_client(&self) -> Result<()> {
     let id_token = match self.credential.read().await.as_ref() {
       Some(c) => c.id_token(),
       None => None,
     };
     {
-      let doh_target_urls = globals.doh_target_urls.clone();
+      let doh_target_urls = self.doh_target_urls.clone();
       let polls = doh_target_urls.iter().map(|target| {
         DoHClient::new(
           target,
-          globals.odoh_relay_urls.clone(),
-          globals.clone(),
+          self.odoh_relay_urls.clone(),
+          Arc::new(self.clone()),
           &id_token,
         )
       });
@@ -74,11 +74,11 @@ impl Globals {
     Ok(())
   }
 
-  pub async fn get_random_client(&self, globals: &Arc<Globals>) -> Result<DoHClient> {
+  pub async fn get_random_client(&self) -> Result<DoHClient> {
     let doh_clients = self.doh_clients.read().await.clone();
     if let Some(clients) = &doh_clients {
       let num_targets = clients.len();
-      let target_idx = if globals.target_randomization {
+      let target_idx = if self.target_randomization {
         let mut rng = rand::thread_rng();
         rng.gen::<usize>() % num_targets
       } else {
@@ -92,7 +92,7 @@ impl Globals {
   }
 
   // This refreshes id_token for doh_target when doh, or for odoh_relay when odoh.
-  pub async fn update_credential(&self, globals: &Arc<Globals>) -> Result<()> {
+  pub async fn update_credential(&self) -> Result<()> {
     let mut credential = match self.credential.read().await.clone() {
       None => {
         // This function is called only when authorized
@@ -102,7 +102,7 @@ impl Globals {
     };
 
     {
-      credential.refresh(globals).await?;
+      credential.refresh(&Arc::new(self.clone())).await?;
       *self.credential.write().await = Some(credential);
     }
     Ok(())

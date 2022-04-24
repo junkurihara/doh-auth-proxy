@@ -14,7 +14,7 @@ impl UDPServer {
     src_addr: std::net::SocketAddr,
     res_sender: mpsc::Sender<(Vec<u8>, std::net::SocketAddr)>,
   ) -> Result<()> {
-    let doh_client = self.globals.get_random_client(&self.globals).await?;
+    let doh_client = self.globals.get_random_client().await?;
     let counter = self.globals.counter.clone();
 
     if counter.increment(CounterType::Udp) >= self.globals.max_connections {

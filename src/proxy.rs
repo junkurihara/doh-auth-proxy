@@ -35,7 +35,7 @@ impl Proxy {
   }
 
   async fn update_client(&self) -> Result<()> {
-    self.globals.update_doh_client(&self.globals).await?;
+    self.globals.update_doh_client().await?;
     if self.clients_health_check().await {
       info!("All pairs of client - destination are healthy");
     } else {
@@ -64,7 +64,7 @@ impl Proxy {
 
   // TODO: update id_token for odoh_relay when odoh
   async fn update_id_token(&self) -> Result<()> {
-    self.globals.update_credential(&self.globals).await?;
+    self.globals.update_credential().await?;
     Ok(())
   }
 
