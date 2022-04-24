@@ -13,8 +13,7 @@ pub struct TCPServer {
 impl TCPServer {
   async fn serve_query(self, mut stream: TcpStream, src_addr: SocketAddr) -> Result<()> {
     debug!("handle query from {:?}", src_addr);
-    let globals_rw = self.globals.rw.read().await;
-    let doh_client = globals_rw.get_random_client(&self.globals)?;
+    let doh_client = self.globals.get_random_client(&self.globals).await?;
     let counter = self.globals.counter.clone();
 
     if counter.increment(CounterType::Tcp) >= self.globals.max_connections {

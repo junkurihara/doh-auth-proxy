@@ -1,12 +1,6 @@
 use crate::{
-  cache::Cache,
-  client::DoHMethod,
-  config_toml::ConfigToml,
-  constants::*,
-  credential::Credential,
-  error::*,
-  globals::{Globals, GlobalsRW},
-  log::*,
+  cache::Cache, client::DoHMethod, config_toml::ConfigToml, constants::*, credential::Credential,
+  error::*, globals::Globals, log::*,
 };
 use clap::Arg;
 use std::{env, sync::Arc};
@@ -55,11 +49,8 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
     counter: Default::default(),
     runtime_handle: runtime_handle.clone(),
 
-    rw: Arc::new(RwLock::new(GlobalsRW {
-      doh_clients: None,
-      credential: None,
-    })),
-
+    doh_clients: Arc::new(RwLock::new(None)),
+    credential: Arc::new(RwLock::new(None)),
     cache: Arc::new(Cache::new(DEFAULT_DNS_CACHE_SIZE)),
   };
   /////////////////////////////
@@ -244,7 +235,7 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
   }
   ////////////////////////
 
-  globals_local.rw.write().await.credential = credential.clone();
+  *globals_local.credential.write().await = credential.clone();
 
   let globals = Arc::new(globals_local);
 

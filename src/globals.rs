@@ -33,23 +33,24 @@ pub struct Globals {
   pub counter: Counter,
   pub runtime_handle: tokio::runtime::Handle,
 
-  pub rw: Arc<RwLock<GlobalsRW>>,
-
+  // pub rw: Arc<RwLock<GlobalsRW>>,
+  pub doh_clients: Arc<RwLock<Option<Vec<DoHClient>>>>,
+  pub credential: Arc<RwLock<Option<Credential>>>,
   pub cache: Arc<Cache>,
 }
 
-#[derive(Debug, Clone)]
-pub struct GlobalsRW {
-  pub doh_clients: Option<Vec<DoHClient>>,
-  pub credential: Option<Credential>,
-}
+// #[derive(Debug, Clone)]
+// pub struct GlobalsRW {
+//   pub doh_clients: Option<Vec<DoHClient>>,
+//   pub credential: Option<Credential>,
+// }
 
-impl GlobalsRW {
+impl Globals {
   // This updates doh_client in globals.rw in order to
   // - re-fetch the resolver address by the bootstrap DNS (Do53)
   // - re-fetch the ODoH configs when ODoH
-  pub async fn update_doh_client(&mut self, globals: &Arc<Globals>) -> Result<()> {
-    let id_token = match &self.credential {
+  pub async fn update_doh_client(&self, globals: &Arc<Globals>) -> Result<()> {
+    let id_token = match self.credential.read().await.as_ref() {
       Some(c) => c.id_token(),
       None => None,
     };
@@ -67,14 +68,15 @@ impl GlobalsRW {
         .await
         .into_iter()
         .collect::<Result<Vec<DoHClient>>>()?;
-      self.doh_clients = Some(doh_clients);
+      *self.doh_clients.write().await = Some(doh_clients);
     }
 
     Ok(())
   }
 
-  pub fn get_random_client(&self, globals: &Arc<Globals>) -> Result<DoHClient> {
-    if let Some(clients) = &self.doh_clients {
+  pub async fn get_random_client(&self, globals: &Arc<Globals>) -> Result<DoHClient> {
+    let doh_clients = self.doh_clients.read().await.clone();
+    if let Some(clients) = &doh_clients {
       let num_targets = clients.len();
       let target_idx = if globals.target_randomization {
         let mut rng = rand::thread_rng();
@@ -90,8 +92,8 @@ impl GlobalsRW {
   }
 
   // This refreshes id_token for doh_target when doh, or for odoh_relay when odoh.
-  pub async fn update_credential(&mut self, globals: &Arc<Globals>) -> Result<()> {
-    let mut credential = match self.credential.clone() {
+  pub async fn update_credential(&self, globals: &Arc<Globals>) -> Result<()> {
+    let mut credential = match self.credential.read().await.clone() {
       None => {
         // This function is called only when authorized
         bail!("No credential is configured");
@@ -101,7 +103,7 @@ impl GlobalsRW {
 
     {
       credential.refresh(globals).await?;
-      self.credential = Some(credential);
+      *self.credential.write().await = Some(credential);
     }
     Ok(())
   }

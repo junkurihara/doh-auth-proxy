@@ -14,8 +14,7 @@ pub struct Proxy {
 
 impl Proxy {
   async fn get_credential_clone(&self) -> Option<Credential> {
-    let globals_rw = self.globals.rw.read().await;
-    globals_rw.credential.clone()
+    self.globals.credential.read().await.clone()
   }
 
   // TODO: Should login to relay when odoh
@@ -30,17 +29,13 @@ impl Proxy {
     };
     credential.login(&self.globals).await?;
     {
-      let mut globals_rw = self.globals.rw.write().await;
-      globals_rw.credential = Some(credential);
-      drop(globals_rw);
+      *self.globals.credential.write().await = Some(credential);
     }
     Ok(())
   }
 
   async fn update_client(&self) -> Result<()> {
-    let mut globals_rw = self.globals.rw.write().await;
-    globals_rw.update_doh_client(&self.globals).await?;
-    drop(globals_rw);
+    self.globals.update_doh_client(&self.globals).await?;
     if self.clients_health_check().await {
       info!("All pairs of client - destination are healthy");
     } else {
@@ -50,7 +45,7 @@ impl Proxy {
   }
 
   async fn clients_health_check(&self) -> bool {
-    match &self.globals.rw.read().await.doh_clients {
+    match &self.globals.doh_clients.read().await.as_ref() {
       Some(doh_clients) => {
         let polls = doh_clients
           .iter()
@@ -69,11 +64,7 @@ impl Proxy {
 
   // TODO: update id_token for odoh_relay when odoh
   async fn update_id_token(&self) -> Result<()> {
-    // println!("before {:#?}", self.get_credential_clone().await.unwrap());
-    let mut globals_rw = self.globals.rw.write().await;
-    globals_rw.update_credential(&self.globals).await?;
-    drop(globals_rw);
-    // println!("after {:#?}", self.globals.rw.read().await.credential);
+    self.globals.update_credential(&self.globals).await?;
     Ok(())
   }
 

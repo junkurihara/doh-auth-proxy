@@ -379,9 +379,7 @@ impl DoHClient {
       || (response.status() == reqwest::StatusCode::OK && clength == 0)
     {
       warn!("ODoH public key is expired. Refetch.");
-      let mut gc = globals.rw.write().await;
-      gc.update_doh_client(globals).await?;
-      drop(gc);
+      globals.update_doh_client(globals).await?;
     }
     if response.status() != reqwest::StatusCode::OK {
       error!("DoH query error!: {:?}", response.status());
