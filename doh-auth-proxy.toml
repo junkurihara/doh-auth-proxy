@@ -22,7 +22,7 @@ reboot_period = 3
 
 ## URL of (O)DoH target server like "https://dns.google/dns-query".
 ## You can specify multiple servers by repeatedly set this option, then one of given
-## servers is randomly chosen every time.
+## servers is chosen (if target_randomization = true, randomly every time).
 target_urls = ["https://odoh.cloudflare-dns.com/dns-query"]
 
 ## According to the suggestion in "Designing for Tussle in Encrypted DNS" (HotNets'21),
