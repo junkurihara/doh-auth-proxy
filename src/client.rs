@@ -80,9 +80,7 @@ impl DoHClient {
           qs.insert("targethost", target_host_str);
           qs.insert("targetpath", target_url.path().to_string());
 
-          // TODO: is it okay to remove percent encoding here? it maybe violation of some standard...
-          // but in the draft RFC, "/" is not encoded to "%2F".
-          // https://datatracker.ietf.org/doc/html/draft-pauly-dprive-oblivious-doh-06
+          // Remove percent encoding here for ease of use. Percent encoding will be applied again in HTTP client by reqwest.
           let combined = decode(Url::parse_with_params(&base, qs)?.as_str())
             .map_err(|e| anyhow!(e))?
             .to_string();

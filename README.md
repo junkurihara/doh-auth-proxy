@@ -262,3 +262,7 @@ Currently if you specify multiple target resolvers and `target_randomization = t
 From the same perspective of distribution of queries, our implementation enables the **relay randomization** in (Mutualized) Oblivious DNS over HTTPS simultaneously with the target randomization. This can be enabled by `odoh_relay_randomization = true` in `config.toml`.
 
 We plan to implement kinds of 'round-robin' based distribution and other variants.
+
+## Notes
+
+ODoH implementation follows the current standardization proposal (Draft 11: [https://datatracker.ietf.org/doc/html/draft-pauly-dprive-oblivious-doh-11](https://datatracker.ietf.org/doc/html/draft-pauly-dprive-oblivious-doh-11))
