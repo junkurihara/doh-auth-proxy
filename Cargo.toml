@@ -54,7 +54,7 @@ anyhow = "1.0.57"
 dotenv = "0.15.0"
 serde_json = "1.0.79"
 jwt-simple = "0.11.0"
-p256 = { version = "0.10.1", features = ["jwk", "pem"] }
+p256 = { version = "0.11.0", features = ["jwk", "pem"] }
 chrono = "0.4.19"
 odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git" }
 rand = "0.8.5"
