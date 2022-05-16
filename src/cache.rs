@@ -97,10 +97,10 @@ impl Cache {
         found.to_back();
         let entry = found.get();
         if !entry.expired() {
-          debug!("Found non-expired cached content: TTL = {:?} (secs)", entry.remained_ttl().as_secs());
+          debug!("Found non-expired cached content for {:?} TTL = {:?} (secs)", key.0[0].query_name, entry.remained_ttl().as_secs());
           Some(entry.to_owned())
         } else {
-          debug!("Found cached content but expired");
+          debug!("Found cached content but expired for {:?} TTL = {:?} (secs)", key.0[0].query_name, entry.remained_ttl().as_secs());
           found.remove_entry();
           None
         }

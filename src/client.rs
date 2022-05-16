@@ -216,7 +216,7 @@ impl DoHClient {
   async fn build_response_from_cache(&self, res: CacheObject, query_id: u16) -> Result<Vec<u8>> {
     let mut cached_msg = res.message().to_owned();
     let remained_ttl = res.remained_ttl().as_secs() as u32;
-    //TODO: more efficient way to update ttl
+    // TODO: more efficient way to update ttl
     for record in cached_msg.take_answers() {
       let mut record = record;
       record.set_ttl(remained_ttl);
@@ -246,13 +246,16 @@ impl DoHClient {
         if let Ok(req) = Request::try_from(&query_message) {
           (req, query_id)
         } else {
-          bail!("Not a valid DNS query");
+          error!("Failed to parse DNS query");
+          bail!("Failed to parse DNS query, maybe invalid DNS query");
         }
       }
       Err(_) => {
         bail!("Invalid or not a DNS query") // Should build and return a synthetic reject response message?
       }
     };
+
+    // TODO: process query plugins, e.g., domain filtering, cloaking, etc.
 
     // Check cache
     if let Some(res) = globals.cache.get(&req).await {
