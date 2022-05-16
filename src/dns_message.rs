@@ -103,3 +103,11 @@ pub fn build_query_message_a(fqdn: &str) -> Result<Message> {
   msg.add_query(query);
   Ok(msg)
 }
+
+pub fn build_response_message_nx(msg: &Message) -> Message {
+  let mut res = msg.clone();
+  res.set_message_type(trust_dns_proto::op::MessageType::Response);
+  // res.set_response_code(trust_dns_proto::op::ResponseCode::ServFail);
+  res.set_response_code(trust_dns_proto::op::ResponseCode::NXDomain);
+  res
+}

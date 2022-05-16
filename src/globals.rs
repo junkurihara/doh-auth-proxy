@@ -4,6 +4,7 @@ use crate::{
   counter::Counter,
   credential::Credential,
   error::*,
+  plugins::QueryPluginsApplied,
 };
 use futures::future;
 use rand::Rng;
@@ -32,6 +33,8 @@ pub struct Globals {
   pub max_connections: usize,
   pub counter: Counter,
   pub runtime_handle: tokio::runtime::Handle,
+
+  pub query_plugins: Option<QueryPluginsApplied>,
 
   // pub rw: Arc<RwLock<GlobalsRW>>,
   pub doh_clients: Arc<RwLock<Option<Vec<DoHClient>>>>,

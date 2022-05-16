@@ -1,9 +1,16 @@
 use crate::{
-  cache::Cache, client::DoHMethod, config_toml::ConfigToml, constants::*, credential::Credential,
-  error::*, globals::Globals, log::*,
+  cache::Cache,
+  client::DoHMethod,
+  config_toml::ConfigToml,
+  constants::*,
+  credential::Credential,
+  error::*,
+  globals::Globals,
+  log::*,
+  plugins::{DomainBlockRule, QueryPlugin, QueryPluginsApplied},
 };
 use clap::Arg;
-use std::{env, sync::Arc};
+use std::{env, fs, sync::Arc};
 use tokio::{runtime::Handle, sync::RwLock, time::Duration};
 
 pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
@@ -48,6 +55,8 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
     max_connections: MAX_CONNECTIONS,
     counter: Default::default(),
     runtime_handle: runtime_handle.clone(),
+
+    query_plugins: None,
 
     doh_clients: Arc::new(RwLock::new(None)),
     credential: Arc::new(RwLock::new(None)),
@@ -123,6 +132,25 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
       info!("Use GET method for query");
     }
   }
+
+  /////////////////////////////
+  // Query plugins
+  let mut plugins_applied = QueryPluginsApplied::new();
+  if let Some(plugins) = config.plugins {
+    if let Some(blocked_names_file) = plugins.domain_blocklist_file {
+      let blocklist_path = env::current_dir()?.join(blocked_names_file);
+      if let Ok(content) = fs::read_to_string(blocklist_path) {
+        let truncate_vec: Vec<&str> = content.split('\n').filter(|c| !c.is_empty()).collect();
+        plugins_applied.add(QueryPlugin::PluginDomainBlock(DomainBlockRule::new(
+          truncate_vec,
+        )));
+        info!("[Query plugin] Domain blocking is enabled");
+      }
+    }
+  };
+  // TODO: Overridden list
+
+  globals_local.query_plugins = Some(plugins_applied);
 
   /////////////////////////////
   // Anonymization

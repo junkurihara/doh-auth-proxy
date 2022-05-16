@@ -7,6 +7,7 @@ use crate::{
   http_bootstrap::HttpClient,
   log::*,
   odoh::ODoHClientContext,
+  plugins,
 };
 use data_encoding::BASE64URL_NOPAD;
 use futures::future;
@@ -239,23 +240,28 @@ impl DoHClient {
 
   pub async fn make_doh_query(&self, packet_buf: &[u8], globals: &Arc<Globals>) -> Result<Vec<u8>> {
     // Check if the given packet buffer is consistent as a DNS query
-    let (req, query_id) = match dns_message::is_query(packet_buf) {
-      Ok(query_message) => {
-        debug!("Ok as a DNS query");
-        let query_id = query_message.id();
-        if let Ok(req) = Request::try_from(&query_message) {
-          (req, query_id)
-        } else {
-          error!("Failed to parse DNS query");
-          bail!("Failed to parse DNS query, maybe invalid DNS query");
-        }
-      }
-      Err(_) => {
-        bail!("Invalid or not a DNS query") // Should build and return a synthetic reject response message?
-      }
-    };
+    let query_msg = dns_message::is_query(packet_buf).map_err(|_| anyhow!("Invalid DNS query"))?;
+    // If error, should we build and return a synthetic reject response message?
+    let query_id = query_msg.id();
+    let req = Request::try_from(&query_msg)
+      .map_err(|_| anyhow!("Failed to parse DNS query, maybe invalid DNS query"))?;
 
-    // TODO: process query plugins, e.g., domain filtering, cloaking, etc.
+    // Process query plugins, e.g., domain filtering, cloaking, etc.
+    if let Some(query_plugins) = globals.query_plugins.clone() {
+      let execution_result = query_plugins.execute(&query_msg, &req.0[0])?;
+      match execution_result.action {
+        plugins::QueryPluginAction::Blocked => {
+          if let Some(r_msg) = execution_result.response_msg {
+            let res = dns_message::encode(&r_msg)?;
+            return Ok(res);
+          } else {
+            bail!("Invalid block response message")
+          }
+        }
+        plugins::QueryPluginAction::Overridden => (), // TODO: implement
+        _ => (),
+      }
+    }
 
     // Check cache
     if let Some(res) = globals.cache.get(&req).await {

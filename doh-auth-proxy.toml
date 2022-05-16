@@ -73,3 +73,12 @@ odoh_relay_randomization = true
 ## (optional)
 ## Maximum number of intermediate relays between nexthop and target.
 # max_mid_relays = 2
+
+##################################
+#       Plugin settings          #
+##################################
+# [plugins]
+
+# domain_blocklist_file = "./blocklist.txt"
+
+# domain_override_file = "./overridelist.txt"

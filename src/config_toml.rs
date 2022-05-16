@@ -13,6 +13,13 @@ pub struct ConfigToml {
   pub use_get_method: Option<bool>,
   pub authentication: Option<Authentication>,
   pub anonymization: Option<Anonymization>,
+  pub plugins: Option<Plugins>,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Plugins {
+  pub domain_blocklist_file: Option<String>,
+  pub domain_override_file: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]

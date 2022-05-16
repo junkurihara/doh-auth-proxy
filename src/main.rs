@@ -12,6 +12,7 @@ mod globals;
 mod http_bootstrap;
 mod log;
 mod odoh;
+mod plugins;
 mod proxy;
 mod tcpserver;
 mod udpserver;
