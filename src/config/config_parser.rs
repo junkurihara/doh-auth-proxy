@@ -1,6 +1,6 @@
+use super::{config_toml::ConfigToml, utils::*};
 use crate::{
   client::{Cache, Credential, DoHMethod},
-  config_toml::ConfigToml,
   constants::*,
   error::*,
   globals::Globals,
@@ -12,9 +12,7 @@ use std::{env, fs, sync::Arc};
 use tokio::{runtime::Handle, sync::RwLock, time::Duration};
 
 pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
-  use crate::utils::{verify_sock_addr, verify_target_url};
-
-  let _ = include_str!("../Cargo.toml");
+  let _ = include_str!("../../Cargo.toml");
   let options = clap::command!().arg(
     Arg::new("config_file")
       .long("config")

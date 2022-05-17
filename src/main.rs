@@ -1,6 +1,5 @@
 mod client;
 mod config;
-mod config_toml;
 mod constants;
 mod dns_message;
 mod error;
@@ -10,7 +9,6 @@ mod log;
 mod plugins;
 mod proxy;
 mod servers;
-mod utils;
 use crate::{config::parse_opts, log::*, proxy::Proxy};
 // use std::env;
 use std::io::Write;
