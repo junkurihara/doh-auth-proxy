@@ -1,12 +1,10 @@
 // Handle packet buffer of DNS message (encode/decode)
 use crate::error::*;
-use crate::log::*;
-use std::net::IpAddr;
-use std::str::FromStr;
+use std::{net::IpAddr, str::FromStr};
 use trust_dns_proto::{
   op::{Message, MessageType},
   rr::{domain::Name, DNSClass, RData, Record, RecordType},
-  serialize::binary::{BinDecodable, BinDecoder, BinEncodable, BinEncoder},
+  serialize::binary::{BinDecodable, BinEncodable},
 };
 
 // https://github.com/aaronriekenberg/rust-doh-proxy/blob/master/src/doh/request_key.rs
@@ -72,26 +70,14 @@ fn is(packet_buf: &[u8], mtype: MessageType) -> Result<Message> {
 }
 
 pub fn decode(packet_buf: &[u8]) -> Result<Message> {
-  let mut dec = BinDecoder::new(packet_buf);
-  match Message::read(&mut dec) {
-    Ok(res) => Ok(res),
-    Err(e) => {
-      warn!("Undecodable packet buffer as DNS message: {}", e);
-      bail!("Undecodable packet buffer as DNS message");
-    }
-  }
+  Message::from_bytes(packet_buf)
+    .map_err(|e| anyhow!("Undecodable packet buffer as DNS message: {}", e))
 }
 
 pub fn encode(msg: &Message) -> Result<Vec<u8>> {
-  let mut packet_buf: Vec<u8> = Vec::new();
-  let mut enc = BinEncoder::new(&mut packet_buf);
-  match msg.emit(&mut enc) {
-    Ok(_) => Ok(packet_buf),
-    Err(e) => {
-      warn!("error encoding message request buffer {}", e);
-      bail!("error encoding message request buffer");
-    }
-  }
+  msg
+    .to_bytes()
+    .map_err(|e| anyhow!("Failed to encode DNS message: {}", e))
 }
 
 pub fn build_query_a(fqdn: &str) -> Result<Message> {

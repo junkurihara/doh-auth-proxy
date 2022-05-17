@@ -2,7 +2,6 @@ use crate::{
   client::Credential,
   constants::*,
   error::*,
-  exitcodes::*,
   globals::Globals,
   servers::{TCPServer, UDPServer},
 };
@@ -100,7 +99,7 @@ impl Proxy {
       {
         if retry_login >= MAX_LOGIN_ATTEMPTS {
           error!("Done too many login attempts.");
-          std::process::exit(EXIT_ON_TOO_MANY_RETRY);
+          std::process::exit(1);
         }
         if retry_login > 0 {
           warn!("Retry login after {} secs", ENDPOINT_RELOGIN_WAITING_SEC);
@@ -182,14 +181,14 @@ impl Proxy {
       // TODO: 一番初めにログインさせるのが本当にいいのかは疑問。token持つだけの方がいい？
       if let Err(e) = self.authenticate().await {
         error!("Failed to login to token endpoint {:?}", e);
-        std::process::exit(EXIT_ON_LOGIN_FAILURE);
+        std::process::exit(1);
       }
     }
     // 2. prepare client
     {
       if let Err(e) = self.update_client().await {
         error!("Failed to update (O)DoH client (with new Id token) {:?}", e);
-        std::process::exit(EXIT_ON_CLIENT_FAILURE);
+        std::process::exit(1);
       }
     }
 

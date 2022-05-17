@@ -13,5 +13,3 @@
 - Tweaks for anonymization
   - Override user-agent for DoH/ODoH/MODoH by specifying one in `config.toml`
 - Refactor
-  - modularize src dir
-  - reconsider exit codes

@@ -1,8 +1,0 @@
-pub const EXIT_ON_CLIENT_FAILURE: i32 = 21;
-pub const EXIT_ON_LOGIN_FAILURE: i32 = 11;
-
-// pub const EXIT_ON_REFRESH_FAILURE: i32 = 12;
-
-pub const EXIT_ON_TOO_MANY_RETRY: i32 = 31;
-
-pub const EXIT_ON_OPTION_FAILURE: i32 = 5;

@@ -3,7 +3,6 @@ mod config;
 mod constants;
 mod dns_message;
 mod error;
-mod exitcodes;
 mod globals;
 mod log;
 mod plugins;
@@ -41,8 +40,8 @@ fn main() {
     let globals = match parse_opts(runtime.handle()).await {
       Ok(g) => g,
       Err(e) => {
-        error!("{}", e);
-        std::process::exit(exitcodes::EXIT_ON_OPTION_FAILURE);
+        error!("Failed to parse config TOML: {}", e);
+        std::process::exit(1);
       }
     };
 

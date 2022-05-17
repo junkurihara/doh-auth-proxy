@@ -173,15 +173,15 @@ impl DoHClient {
   }
 
   pub async fn health_check(&self, globals: &Arc<Globals>) -> Result<()> {
-    let q_msg = dns_message::build_query_a(HEALTHCHECK_TARGET_FQDN).unwrap();
-    let packet_buf = dns_message::encode(&q_msg).unwrap();
+    let q_msg = dns_message::build_query_a(HEALTHCHECK_TARGET_FQDN)?;
+    let packet_buf = dns_message::encode(&q_msg)?;
     let res = self.make_doh_query(&packet_buf, globals).await?;
     ensure!(
       dns_message::is_response(&res).is_ok(),
       "Not a response in healthcheck for {}",
       self.target_url
     );
-    let r_msg = dns_message::decode(&res).unwrap();
+    let r_msg = dns_message::decode(&res)?;
     ensure!(
       r_msg.header().response_code() == trust_dns_proto::op::response_code::ResponseCode::NoError,
       "Response is not OK: {:?} for {:?}",

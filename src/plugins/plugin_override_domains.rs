@@ -35,8 +35,8 @@ impl MapsTo {
 #[derive(Debug, Clone)]
 pub struct DomainOverrideRule(HashMap<String, Vec<MapsTo>>);
 
-impl DomainOverrideRule {
-  pub fn new(vec_domain_map_str: Vec<&str>) -> DomainOverrideRule {
+impl From<Vec<&str>> for DomainOverrideRule {
+  fn from(vec_domain_map_str: Vec<&str>) -> Self {
     let redomain_split_space =
       Regex::new(&format!("{}{}{}", r"^", REGEXP_DOMAIN, r"\s+\S+$")).unwrap();
     let hm: HashMap<String, Vec<MapsTo>> = vec_domain_map_str
@@ -63,7 +63,9 @@ impl DomainOverrideRule {
       .collect();
     DomainOverrideRule(hm)
   }
+}
 
+impl DomainOverrideRule {
   pub fn find_mapping(&self, q_key: &QueryKey) -> Option<&MapsTo> {
     let q_type = q_key.query_type;
     // remove final dot
@@ -97,7 +99,7 @@ mod tests {
   #[test]
   fn override_works() {
     let domain_override_rule =
-      DomainOverrideRule::new(vec!["www.google.com   1.2.3.4", "www.github.com   4.3.2.1"]);
+      DomainOverrideRule::from(vec!["www.google.com   1.2.3.4", "www.github.com   4.3.2.1"]);
 
     let mut q_key = QueryKey {
       query_name: "www.google.com.".to_string(),

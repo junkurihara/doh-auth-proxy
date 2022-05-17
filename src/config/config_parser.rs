@@ -140,7 +140,7 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
       if let Ok(content) = fs::read_to_string(blocklist_path) {
         let truncate_vec: Vec<&str> = content.split('\n').filter(|c| !c.is_empty()).collect();
         plugins_applied.add(QueryPlugin::PluginDomainBlock(Box::new(
-          DomainBlockRule::new(truncate_vec),
+          DomainBlockRule::from(truncate_vec),
         )));
         info!("[Query plugin] Domain blocking is enabled");
       }
@@ -151,7 +151,7 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
       if let Ok(content) = fs::read_to_string(overridden_path) {
         let truncate_vec: Vec<&str> = content.split('\n').filter(|c| !c.is_empty()).collect();
         plugins_applied.add(QueryPlugin::PluginDomainOverride(Box::new(
-          DomainOverrideRule::new(truncate_vec),
+          DomainOverrideRule::from(truncate_vec),
         )));
         info!("[Query plugin] Domain overriding is enabled");
       }

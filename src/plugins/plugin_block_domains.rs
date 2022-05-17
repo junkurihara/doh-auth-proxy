@@ -13,8 +13,8 @@ pub struct DomainBlockRule {
   suffix_dict: Vec<String>,
 }
 
-impl DomainBlockRule {
-  pub fn new(vec_domain_str: Vec<&str>) -> DomainBlockRule {
+impl From<Vec<&str>> for DomainBlockRule {
+  fn from(vec_domain_str: Vec<&str>) -> Self {
     let start_with_star = Regex::new(r"^\*\..+").unwrap();
     let end_with_star = Regex::new(r".+\.\*$").unwrap();
     // TODO: currently either one of prefix or suffix match with '*' is supported
@@ -67,7 +67,9 @@ impl DomainBlockRule {
       suffix_dict,
     }
   }
+}
 
+impl DomainBlockRule {
   fn find_suffix_match(&self, query_domain: &str) -> bool {
     let rev_nn = reverse_string(query_domain);
     let matched_items = self
@@ -142,7 +144,7 @@ mod tests {
   use super::*;
   #[test]
   fn block_works() {
-    let domain_block_rule = DomainBlockRule::new(vec!["www.google.com", "*.google.com"]);
+    let domain_block_rule = DomainBlockRule::from(vec!["www.google.com", "*.google.com"]);
 
     let mut q_key = QueryKey {
       query_name: "invalid.as.fqdn.com".to_string(),
