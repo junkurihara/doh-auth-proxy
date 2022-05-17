@@ -50,22 +50,18 @@ pub fn is_response(packet_buf: &[u8]) -> Result<Message> {
 }
 
 fn is(packet_buf: &[u8], mtype: MessageType) -> Result<Message> {
-  match decode(packet_buf) {
-    Ok(msg) => {
-      if msg.message_type() == mtype {
-        Ok(msg)
-      } else {
-        match mtype {
-          MessageType::Query => {
-            bail!("Not a DNS query, {:?}", msg);
-          }
-          MessageType::Response => {
-            bail!("Not a DNS response, {:?}", msg);
-          }
-        }
+  let msg = decode(packet_buf)?;
+  if msg.message_type() == mtype {
+    Ok(msg)
+  } else {
+    match mtype {
+      MessageType::Query => {
+        bail!("Not a DNS query, {:?}", msg);
+      }
+      MessageType::Response => {
+        bail!("Not a DNS response, {:?}", msg);
       }
     }
-    Err(e) => Err(e),
   }
 }
 

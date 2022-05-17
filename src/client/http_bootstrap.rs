@@ -7,7 +7,7 @@ use url::Url;
 #[derive(Debug, Clone)]
 pub struct HttpClient {
   pub client: reqwest::Client,
-  pub endpoint: String, // domain: target for DoH, nexthop relay for ODoH (path including target, not mid-relays for dynamic randamization)
+  pub endpoint: String, // domain: target for DoH, nexthop relay for ODoH (path including target, not mid-relays for dynamic randomization)
   pub resolve_endpoint_by_system: bool,
 }
 
