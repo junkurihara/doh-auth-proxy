@@ -1,4 +1,4 @@
-use super::{config_toml::ConfigToml, utils::*};
+use super::{config_toml::ConfigToml, utils_verifier::*};
 use crate::{
   client::{Cache, Credential, DoHMethod},
   constants::*,

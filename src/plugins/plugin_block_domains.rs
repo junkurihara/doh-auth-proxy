@@ -1,4 +1,4 @@
-use super::constants::*;
+use super::regexp_vals::*;
 use crate::dns_message::QueryKey;
 use crate::error::*;
 use crate::log::*;

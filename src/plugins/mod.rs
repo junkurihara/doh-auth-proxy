@@ -1,6 +1,6 @@
-mod constants;
 mod plugin_block_domains;
 mod plugin_override_domains;
+mod regexp_vals;
 
 use crate::dns_message::{build_response_given_ipaddr, build_response_nx, QueryKey};
 use crate::error::*;
