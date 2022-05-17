@@ -175,7 +175,7 @@ impl DoHClient {
   }
 
   pub async fn health_check(&self, globals: &Arc<Globals>) -> Result<()> {
-    let q_msg = dns_message::build_query_message_a(HEALTHCHECK_TARGET_FQDN).unwrap();
+    let q_msg = dns_message::build_query_a(HEALTHCHECK_TARGET_FQDN).unwrap();
     let packet_buf = dns_message::encode(&q_msg).unwrap();
     let res = self.make_doh_query(&packet_buf, globals).await?;
     ensure!(
@@ -248,18 +248,18 @@ impl DoHClient {
 
     // Process query plugins, e.g., domain filtering, cloaking, etc.
     if let Some(query_plugins) = globals.query_plugins.clone() {
-      let execution_result = query_plugins.execute(&query_msg, &req.0[0])?;
+      let execution_result = query_plugins.execute(&query_msg, &req.0[0], globals.min_ttl)?;
       match execution_result.action {
-        plugins::QueryPluginAction::Blocked => {
+        plugins::QueryPluginAction::Pass => (),
+        _ => {
+          // plugins::QueryPluginsAction::Blocked or Overridden
           if let Some(r_msg) = execution_result.response_msg {
             let res = dns_message::encode(&r_msg)?;
             return Ok(res);
           } else {
-            bail!("Invalid block response message")
+            bail!("Invalid response message by query plugins");
           }
         }
-        plugins::QueryPluginAction::Overridden => (), // TODO: implement
-        _ => (),
       }
     }
 
@@ -281,19 +281,15 @@ impl DoHClient {
     match response_result {
       Ok(response_buf) => {
         // Check if the returned packet buffer is consistent as a DNS response
-        match dns_message::is_response(&response_buf) {
-          Ok(response_message) => {
-            debug!("Ok as a DNS response");
-            if (globals.cache.put(req, &response_message).await).is_err() {
-              error!("Failed to cache response");
-            };
-            // TODO: should rebuild buffer from decoded dns response _msg?
-            Ok(response_buf)
-          }
-          Err(_) => {
-            bail!("Invalid or not a DNS response") // Should build and return a synthetic reject response message?
-          }
-        }
+        // If error, should we build and return a synthetic reject response message?
+        let response_message = dns_message::is_response(&response_buf)
+          .map_err(|_| anyhow!("Invalid or not a DNS response"))?;
+
+        if (globals.cache.put(req, &response_message).await).is_err() {
+          error!("Failed to cache response");
+        };
+        // TODO: should rebuild buffer from decoded dns response_msg?
+        Ok(response_buf)
       }
       Err(e) => Err(e),
     }

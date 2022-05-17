@@ -7,7 +7,7 @@ use crate::{
   error::*,
   globals::Globals,
   log::*,
-  plugins::{DomainBlockRule, QueryPlugin, QueryPluginsApplied},
+  plugins::{DomainBlockRule, DomainOverrideRule, QueryPlugin, QueryPluginsApplied},
 };
 use clap::Arg;
 use std::{env, fs, sync::Arc};
@@ -57,6 +57,7 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
     runtime_handle: runtime_handle.clone(),
 
     query_plugins: None,
+    min_ttl: MIN_TTL,
 
     doh_clients: Arc::new(RwLock::new(None)),
     credential: Arc::new(RwLock::new(None)),
@@ -137,18 +138,29 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
   // Query plugins
   let mut plugins_applied = QueryPluginsApplied::new();
   if let Some(plugins) = config.plugins {
-    if let Some(blocked_names_file) = plugins.domain_blocklist_file {
+    // domains blocked
+    if let Some(blocked_names_file) = plugins.domains_blocked_file {
       let blocklist_path = env::current_dir()?.join(blocked_names_file);
       if let Ok(content) = fs::read_to_string(blocklist_path) {
         let truncate_vec: Vec<&str> = content.split('\n').filter(|c| !c.is_empty()).collect();
-        plugins_applied.add(QueryPlugin::PluginDomainBlock(DomainBlockRule::new(
-          truncate_vec,
+        plugins_applied.add(QueryPlugin::PluginDomainBlock(Box::new(
+          DomainBlockRule::new(truncate_vec),
         )));
         info!("[Query plugin] Domain blocking is enabled");
       }
     }
+    // domains overridden
+    if let Some(overridden_names_file) = plugins.domains_overridden_file {
+      let overridden_path = env::current_dir()?.join(overridden_names_file);
+      if let Ok(content) = fs::read_to_string(overridden_path) {
+        let truncate_vec: Vec<&str> = content.split('\n').filter(|c| !c.is_empty()).collect();
+        plugins_applied.add(QueryPlugin::PluginDomainOverride(Box::new(
+          DomainOverrideRule::new(truncate_vec),
+        )));
+        info!("[Query plugin] Domain overriding is enabled");
+      }
+    }
   };
-  // TODO: Overridden list
 
   globals_local.query_plugins = Some(plugins_applied);
 

@@ -1,10 +1,12 @@
+mod constants;
 mod plugin_block_domains;
+mod plugin_override_domains;
 
-use crate::dns_message::{build_response_message_nx, QueryKey};
+use crate::dns_message::{build_response_given_ipaddr, build_response_nx, QueryKey};
 use crate::error::*;
 use crate::log::*;
 pub use plugin_block_domains::DomainBlockRule;
-//use plugin_override_domains::DomainOverrideRule;
+pub use plugin_override_domains::DomainOverrideRule;
 use trust_dns_proto::op::Message;
 
 #[derive(Debug, Clone)]
@@ -32,7 +34,12 @@ impl QueryPluginsApplied {
     self.0.push(plugin);
   }
 
-  pub fn execute(self, dns_msg: &Message, q_key: &QueryKey) -> Result<QueryPluginExecutionResult> {
+  pub fn execute(
+    self,
+    dns_msg: &Message,
+    q_key: &QueryKey,
+    min_ttl: u32,
+  ) -> Result<QueryPluginExecutionResult> {
     let mut response = QueryPluginExecutionResult {
       action: QueryPluginAction::Pass,
       response_msg: None,
@@ -40,17 +47,19 @@ impl QueryPluginsApplied {
 
     for plugin in self.0 {
       match plugin {
-        // QueryPlugin::PluginDomainOverride(override_rule) => {
-        //   if let Some(mapsto) = override_rule.find_and_override(q_key) {
-        //     debug!("Query {} maps to {:?}", q_key.name, mapsto);
-        //     response.action = QueryPluginAction::Overridden;
-        //     response.response_msg = Some(
-        //       utils::generate_override_message(&dns_msg, q_key, mapsto, min_ttl)
-        //         .map_err(|_| DoHError::InvalidData)?,
-        //     );
-        //     break;
-        //   }
-        // }
+        QueryPlugin::PluginDomainOverride(override_rule) => {
+          if let Some(mapsto) = override_rule.find_mapping(q_key) {
+            debug!(
+              "[Overridden] {} {:?} {:?} maps to {:?}",
+              q_key.query_name, q_key.query_type, q_key.query_class, mapsto.0
+            );
+            response.action = QueryPluginAction::Overridden;
+            response.response_msg = Some(build_response_given_ipaddr(
+              dns_msg, q_key, &mapsto.0, min_ttl,
+            )?);
+            break;
+          }
+        }
         QueryPlugin::PluginDomainBlock(block_rule) => match block_rule.in_blocklist(q_key) {
           Ok(v) => {
             if v {
@@ -59,7 +68,7 @@ impl QueryPluginsApplied {
                 q_key.query_name, q_key.query_type, q_key.query_class
               );
               response.action = QueryPluginAction::Blocked;
-              response.response_msg = Some(build_response_message_nx(dns_msg));
+              response.response_msg = Some(build_response_nx(dns_msg));
             }
           }
           Err(e) => {
@@ -74,6 +83,6 @@ impl QueryPluginsApplied {
 
 #[derive(Debug, Clone)]
 pub enum QueryPlugin {
-  PluginDomainBlock(DomainBlockRule),
-  // PluginDomainOverride(DomainOverrideRule),
+  PluginDomainBlock(Box<DomainBlockRule>),
+  PluginDomainOverride(Box<DomainOverrideRule>),
 }

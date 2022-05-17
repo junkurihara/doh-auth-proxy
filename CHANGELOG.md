@@ -14,14 +14,19 @@ You should also include the user name that made the change.
 -->
 
 ## 0.1.x (unreleased)
-
 ### Improvements
 
-- Used a forked version of Cloudflare's `odoh-rs` library for frequently maintenance by @junkurihara: [https://github.com/junkurihara/odoh-rs.git](https://github.com/junkurihara/odoh-rs.git)
-
+-
 ### Bugfixes
 
 -
+
+## 0.1.4 (May 17, 2022)
+### Improvements
+
+- Used a forked version of Cloudflare's `odoh-rs` library for frequently maintenance by @junkurihara: [https://github.com/junkurihara/odoh-rs.git](https://github.com/junkurihara/odoh-rs.git)
+- Domain-based filtering and domain-override
+
 
 ## 0.1.3 (Apr. 16, 2022)
 

@@ -30,3 +30,5 @@ pub const HEALTHCHECK_TARGET_FQDN: &str = "dns.google.";
 pub const HEALTHCHECK_TARGET_ADDR: &str = "8.8.8.8";
 
 pub const DEFAULT_DNS_CACHE_SIZE: usize = 16384;
+
+pub const MIN_TTL: u32 = 10; // TTL for overridden records

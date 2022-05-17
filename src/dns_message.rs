@@ -1,9 +1,11 @@
 // Handle packet buffer of DNS message (encode/decode)
 use crate::error::*;
 use crate::log::*;
+use std::net::IpAddr;
+use std::str::FromStr;
 use trust_dns_proto::{
   op::{Message, MessageType},
-  rr::{domain::Name, DNSClass, RecordType},
+  rr::{domain::Name, DNSClass, RData, Record, RecordType},
   serialize::binary::{BinDecodable, BinDecoder, BinEncodable, BinEncoder},
 };
 
@@ -92,7 +94,7 @@ pub fn encode(msg: &Message) -> Result<Vec<u8>> {
   }
 }
 
-pub fn build_query_message_a(fqdn: &str) -> Result<Message> {
+pub fn build_query_a(fqdn: &str) -> Result<Message> {
   let qname: Name = Name::from_ascii(fqdn).unwrap();
   let mut query = trust_dns_proto::op::Query::new();
   query.set_name(qname);
@@ -104,10 +106,31 @@ pub fn build_query_message_a(fqdn: &str) -> Result<Message> {
   Ok(msg)
 }
 
-pub fn build_response_message_nx(msg: &Message) -> Message {
+pub fn build_response_nx(msg: &Message) -> Message {
   let mut res = msg.clone();
   res.set_message_type(trust_dns_proto::op::MessageType::Response);
   // res.set_response_code(trust_dns_proto::op::ResponseCode::ServFail);
   res.set_response_code(trust_dns_proto::op::ResponseCode::NXDomain);
   res
+}
+
+pub fn build_response_given_ipaddr(
+  msg: &Message,
+  q_key: &QueryKey,
+  ipaddr: &IpAddr,
+  min_ttl: u32,
+) -> Result<Message> {
+  let mut res = msg.clone();
+  res.set_message_type(trust_dns_proto::op::MessageType::Response);
+  res.set_response_code(trust_dns_proto::op::ResponseCode::NoError);
+  let name = Name::from_str(&q_key.query_name)?;
+  match ipaddr {
+    IpAddr::V4(ipv4) => {
+      res.insert_answers(vec![Record::from_rdata(name, min_ttl, RData::A(*ipv4))]);
+    }
+    IpAddr::V6(ipv6) => {
+      res.insert_answers(vec![Record::from_rdata(name, min_ttl, RData::AAAA(*ipv6))]);
+    }
+  }
+  Ok(res)
 }

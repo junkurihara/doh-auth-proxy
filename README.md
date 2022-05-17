@@ -1,6 +1,6 @@
 # doh-auth-proxy
 
-Local proxy for DoH, Oblivious DoH and ODoH-based Mutualized Oblivious DNS (ODoH-based &mu;ODNS; &mu;ODoH) supporting authenticated connection, written in Rust.
+Local proxy for DoH, Oblivious DoH and ODoH-based Mutualized Oblivious DNS (ODoH-based &mu;ODNS; &mu;ODoH) supporting super-fast domain-based blocking and authenticated connection, written in Rust.
 
 > **NOTE: For &mu;ODNS, please see also [https://dns.secarchlab.net/](https://dns.secarchlab.net) and other repositories listed there.**
 
@@ -80,6 +80,21 @@ github.com.             11      IN      A       140.82.121.4
 ```
 
 where this takes more round-trip time than the above ordinary DoH example due to the intermediate relay (especially when it is far from your location).
+
+## Query Plugins for Name-based Blocking and Overriding IP Addresses
+
+Optionally, `doh-auth-proxy` has functions of domain-based blocking and overriding (cloaking) IP Addresses. Former means that queries for domain names of specific patterns would be blocked and reject messages would be obtained. This can be done **super-fast** by enabling a trie-based data structure thanks to `Cedarwood` crate. Latter means that IP addresses you specified are always obtained for specific domain names.
+
+To enable these functions, specify files defining blocking/overriding rules in `config.toml` as
+
+```toml:config.toml
+[plugins]
+
+domains_blocked_file = "./blocklist.txt"
+domains_overridden_file = "./overridelist.txt"
+```
+
+Refer to their example files for detailed format.
 
 ## Mutualized Oblivious DNS (&mu;ODNS) based on ODoH (&mu;ODoH)
 
@@ -188,6 +203,19 @@ odoh_relay_randomization = true
 ## Maximum number of intermediate relays between nexthop and target.
 # max_mid_relays = 2
 
+##################################
+#       Plugin settings          #
+##################################
+# [plugins]
+
+## (optional)
+## List of domain names to be blocked.
+# domains_blocked_file = "./blocklist.txt"
+
+## (optional)
+## List of pairs of a domain name and an IPv4/v6 address, which will be overridden by specified address.
+# domains_overridden_file = "./overridelist.txt"
+
 ```
 
 ## Docker container
@@ -229,6 +257,10 @@ ODOH_RELAY_RANDOMIZATION=true
 # USERNAME=user
 # PASSWORD=password
 # CLIENT_ID=xxxxxxx # i.e., app_id
+
+## Plugins
+# DOMAINS_BLOCKED_FILE="./blocklist.txt"
+# DOMAINS_OVERRIDDEN_FILE="./override.txt"
 ```
 
 and execute `docker-compose` as

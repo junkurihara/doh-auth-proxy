@@ -1,11 +1,9 @@
+use super::constants::*;
 use crate::dns_message::QueryKey;
 use crate::error::*;
 use crate::log::*;
 use cedarwood::Cedar;
 use regex::Regex;
-
-const REGEXP_DOMAIN_OR_PREFIX: &str =
-  r"^([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+([a-zA-Z]{2,}|\*)";
 
 #[derive(Debug, Clone)]
 pub struct DomainBlockRule {

@@ -35,6 +35,7 @@ pub struct Globals {
   pub runtime_handle: tokio::runtime::Handle,
 
   pub query_plugins: Option<QueryPluginsApplied>,
+  pub min_ttl: u32,
 
   // pub rw: Arc<RwLock<GlobalsRW>>,
   pub doh_clients: Arc<RwLock<Option<Vec<DoHClient>>>>,

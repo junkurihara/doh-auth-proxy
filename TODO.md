@@ -10,4 +10,3 @@
 - Sophistication of mu-ODNS based on ODoH, such as loop detection
 - Docker container packaged with token server (server-side)
 - Override with command line options over TOML configuration
-- **Domain-based filtering** much like `dnscrypt-proxy` (server-side filtering is alreadly implemented in my fork of `doh-server`)

@@ -77,8 +77,12 @@ odoh_relay_randomization = true
 ##################################
 #       Plugin settings          #
 ##################################
-# [plugins]
+[plugins]
 
-# domain_blocklist_file = "./blocklist.txt"
+## (optional)
+## List of domain names to be blocked.
+# domains_blocked_file = "./blocklist.txt"
 
-# domain_override_file = "./overridelist.txt"
+## (optional)
+## List of pairs of a domain name and an IPv4/v6 address, which will be overridden by specified address.
+# domains_overridden_file = "./overridelist.txt"

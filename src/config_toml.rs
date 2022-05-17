@@ -18,8 +18,8 @@ pub struct ConfigToml {
 
 #[derive(Deserialize, Debug)]
 pub struct Plugins {
-  pub domain_blocklist_file: Option<String>,
-  pub domain_override_file: Option<String>,
+  pub domains_blocked_file: Option<String>,
+  pub domains_overridden_file: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]

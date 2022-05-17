@@ -16,6 +16,7 @@ services:
         max-size: "10m"
         max-file: "3"
     volumes:
+      - ${PLUGINS_DIR}:/opt/doh-auth-proxy/etc/plugins
       - ./.env:/opt/doh-auth-proxy/etc/.env
       - ${LOG_DIR}:/var/log/doh-auth-proxy
 

@@ -146,7 +146,7 @@ impl Cache {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::dns_message::{build_query_message_a, Request};
+  use crate::dns_message::{build_query_a, Request};
   use std::str::FromStr;
   use tokio::net::TcpStream as TokioTcpStream;
   use trust_dns_client::client::{AsyncClient, ClientHandle};
@@ -181,8 +181,8 @@ mod tests {
     let msg1 = Message::from(response1);
     let msg2 = Message::from(response2);
 
-    let query_msg1 = build_query_message_a(fqdn1).unwrap();
-    let query_msg2 = build_query_message_a(fqdn2).unwrap();
+    let query_msg1 = build_query_a(fqdn1).unwrap();
+    let query_msg2 = build_query_a(fqdn2).unwrap();
     let rkey1 = Request::try_from(&query_msg1).unwrap();
     let rkey2 = Request::try_from(&query_msg2).unwrap();
 

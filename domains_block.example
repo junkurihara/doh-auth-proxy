@@ -1,0 +1,5 @@
+# suffix match does not support '*', e.g., '*.example.com'.
+# if you specify 'example.com', 'any.example.com' is also blocked.
+alfalfalfa.com
+doubleclick.net
+ads.*
