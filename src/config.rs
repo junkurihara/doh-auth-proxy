@@ -1,9 +1,7 @@
 use crate::{
-  cache::Cache,
-  client::DoHMethod,
+  client::{Cache, Credential, DoHMethod},
   config_toml::ConfigToml,
   constants::*,
-  credential::Credential,
   error::*,
   globals::Globals,
   log::*,

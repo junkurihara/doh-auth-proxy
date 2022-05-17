@@ -9,7 +9,6 @@ use trust_dns_proto::op::Message;
 #[derive(Debug, Clone)]
 pub struct CacheObject {
   message: Message,
-  #[allow(dead_code)]
   create_at: Instant,
   expire_at: Instant,
 }

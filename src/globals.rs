@@ -1,7 +1,6 @@
 use crate::{
-  cache::Cache,
-  client::{DoHClient, DoHMethod},
-  credential::Credential,
+  client::Cache,
+  client::{Credential, DoHClient, DoHMethod},
   error::*,
   plugins::QueryPluginsApplied,
   servers::ConnCounter,

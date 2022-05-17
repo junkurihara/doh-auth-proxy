@@ -1,12 +1,10 @@
+use super::{cache::CacheObject, http_bootstrap::HttpClient, odoh::ODoHClientContext};
 use crate::{
-  cache::CacheObject,
   constants::*,
   dns_message::{self, Request},
   error::*,
   globals::Globals,
-  http_bootstrap::HttpClient,
   log::*,
-  odoh::ODoHClientContext,
   plugins,
 };
 use data_encoding::BASE64URL_NOPAD;

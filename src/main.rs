@@ -1,16 +1,12 @@
-mod cache;
 mod client;
 mod config;
 mod config_toml;
 mod constants;
-mod credential;
 mod dns_message;
 mod error;
 mod exitcodes;
 mod globals;
-mod http_bootstrap;
 mod log;
-mod odoh;
 mod plugins;
 mod proxy;
 mod servers;

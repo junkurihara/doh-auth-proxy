@@ -8,7 +8,8 @@
   by defining struct.
 */
 
-use crate::{constants::*, error::*, globals::Globals, http_bootstrap::HttpClient, log::*};
+use super::http_bootstrap::HttpClient;
+use crate::{constants::*, error::*, globals::Globals, log::*};
 use chrono::{DateTime, Local};
 use jwt_simple::prelude::*;
 use p256::elliptic_curve::sec1::ToEncodedPoint;

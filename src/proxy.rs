@@ -1,6 +1,6 @@
 use crate::{
+  client::Credential,
   constants::*,
-  credential::Credential,
   error::*,
   exitcodes::*,
   globals::Globals,
