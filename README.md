@@ -259,8 +259,10 @@ ODOH_RELAY_RANDOMIZATION=true
 # CLIENT_ID=xxxxxxx # i.e., app_id
 
 ## Plugins
-# DOMAINS_BLOCKED_FILE="./blocklist.txt"
-# DOMAINS_OVERRIDDEN_FILE="./override.txt"
+# PLUGINS_DIR="./plugins"
+## Place below files in ${PLUGINS_DIR} directory
+# DOMAINS_BLOCKED_FILE="blocklist.txt"
+# DOMAINS_OVERRIDDEN_FILE="override.txt"
 ```
 
 and execute `docker-compose` as
