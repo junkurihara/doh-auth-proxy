@@ -10,3 +10,8 @@
 - Sophistication of mu-ODNS based on ODoH, such as loop detection
 - Docker container packaged with token server (server-side)
 - Override with command line options over TOML configuration
+- Tweaks for anonymization
+  - Override user-agent for DoH/ODoH/MODoH by specifying one in `config.toml`
+- Refactor
+  - modularize src dir
+  - reconsider exit codes

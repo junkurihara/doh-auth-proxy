@@ -19,7 +19,11 @@ impl HttpClient {
     resolve_endpoint_by_system: bool,
   ) -> Result<Self> {
     let mut client = reqwest::Client::builder()
-      .user_agent(format!("doh-auth/{}", env!("CARGO_PKG_VERSION")))
+      .user_agent(format!(
+        "{}/{}",
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION")
+      ))
       .timeout(globals.timeout_sec)
       .trust_dns(true);
 
