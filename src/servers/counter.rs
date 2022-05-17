@@ -17,13 +17,13 @@ impl CounterType {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct Counter {
+pub struct ConnCounter {
   pub cnt_total: Arc<AtomicUsize>,
   pub cnt_udp: Arc<AtomicUsize>,
   pub cnt_tcp: Arc<AtomicUsize>,
 }
 
-impl Counter {
+impl ConnCounter {
   pub fn get_current_total(&self) -> usize {
     self.cnt_total.load(Ordering::Relaxed)
   }

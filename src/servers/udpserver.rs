@@ -1,4 +1,5 @@
-use crate::{counter::CounterType, error::*, globals::Globals, log::*};
+use super::counter::CounterType;
+use crate::{error::*, globals::Globals, log::*};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{net::UdpSocket, sync::mpsc, time::Duration};
 

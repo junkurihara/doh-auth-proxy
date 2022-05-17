@@ -1,10 +1,10 @@
 use crate::{
   cache::Cache,
   client::{DoHClient, DoHMethod},
-  counter::Counter,
   credential::Credential,
   error::*,
   plugins::QueryPluginsApplied,
+  servers::ConnCounter,
 };
 use futures::future;
 use rand::Rng;
@@ -31,23 +31,16 @@ pub struct Globals {
   pub rebootstrap_period_sec: Duration,
 
   pub max_connections: usize,
-  pub counter: Counter,
+  pub counter: ConnCounter,
   pub runtime_handle: tokio::runtime::Handle,
 
   pub query_plugins: Option<QueryPluginsApplied>,
   pub min_ttl: u32,
 
-  // pub rw: Arc<RwLock<GlobalsRW>>,
   pub doh_clients: Arc<RwLock<Option<Vec<DoHClient>>>>,
   pub credential: Arc<RwLock<Option<Credential>>>,
   pub cache: Arc<Cache>,
 }
-
-// #[derive(Debug, Clone)]
-// pub struct GlobalsRW {
-//   pub doh_clients: Option<Vec<DoHClient>>,
-//   pub credential: Option<Credential>,
-// }
 
 impl Globals {
   // This updates doh_client in globals.rw in order to
