@@ -81,7 +81,7 @@ github.com.             11      IN      A       140.82.121.4
 
 where this takes more round-trip time than the above ordinary DoH example due to the intermediate relay (especially when it is far from your location).
 
-## Query Plugins for Name-based Blocking and Overriding IP Addresses
+## Query plugins for name-based/domain-based blocking and overriding IP addresses
 
 Optionally, `doh-auth-proxy` has functions of domain-based blocking and overriding (cloaking) IP Addresses. Former means that queries for domain names of specific patterns would be blocked and reject messages would be obtained. This can be done **super-fast** by enabling a trie-based data structure thanks to `Cedarwood` crate. Latter means that IP addresses you specified are always obtained for specific domain names.
 
