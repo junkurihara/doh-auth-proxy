@@ -39,28 +39,21 @@ impl From<Vec<&str>> for DomainOverrideRule {
   fn from(vec_domain_map_str: Vec<&str>) -> Self {
     let redomain_split_space =
       Regex::new(&format!("{}{}{}", r"^", REGEXP_DOMAIN, r"\s+\S+$")).unwrap();
-    let hm: HashMap<String, Vec<MapsTo>> = vec_domain_map_str
+    let mut hm: HashMap<String, Vec<MapsTo>> = HashMap::new();
+    for domain_target in vec_domain_map_str
       .iter()
-      .filter(|x| redomain_split_space.is_match(x)) // filter by primary key (domain)
-      .filter_map(|x| {
-        let split: Vec<&str> = x.split_whitespace().collect();
-        if split.len() != 2 {
-          warn!("Invalid override rule: {}", split[0]);
-          None
-        } else {
-          let targets: Vec<MapsTo> = split[1].split(',').filter_map(MapsTo::new).collect();
-          let original_len = split[1].split(',').count();
-          let res = match original_len == targets.len() {
-            true => Some((split[0].to_string(), targets)),
-            false => {
-              warn!("Invalid override rule: {}", split[0]);
-              None
-            }
-          };
-          res
-        }
-      })
-      .collect();
+      .filter(|x| redomain_split_space.is_match(x))
+      .map(|x| x.split_whitespace())
+    {
+      let split: Vec<&str> = domain_target.collect();
+      if split.len() != 2 {
+        warn!("Invalid override rule: {}", split[0]);
+      } else if let Some(maps_to) = MapsTo::new(split[1]) {
+        hm.entry(split[0].to_ascii_lowercase())
+          .or_insert(Vec::new())
+          .push(maps_to);
+      }
+    }
     DomainOverrideRule(hm)
   }
 }
@@ -69,7 +62,7 @@ impl DomainOverrideRule {
   pub fn find_mapping(&self, q_key: &QueryKey) -> Option<&MapsTo> {
     let q_type = q_key.query_type;
     // remove final dot
-    let mut nn = q_key.clone().query_name;
+    let mut nn = q_key.clone().query_name.to_ascii_lowercase();
     match nn.pop() {
       Some(dot) => {
         if dot != '.' {
@@ -97,7 +90,7 @@ impl DomainOverrideRule {
 mod tests {
   use super::*;
   #[test]
-  fn override_works() {
+  fn override_works_only_v4() {
     let domain_override_rule =
       DomainOverrideRule::from(vec!["www.google.com   1.2.3.4", "www.github.com   4.3.2.1"]);
 
@@ -117,5 +110,43 @@ mod tests {
 
     q_key.query_name = "www.yahoo.com.".to_string();
     assert!(domain_override_rule.find_mapping(&q_key).is_none());
+  }
+
+  #[test]
+  fn override_works_v4_v6() {
+    let domain_override_rule =
+      DomainOverrideRule::from(vec!["www.google.com   1.2.3.4", "www.google.com   ::1"]);
+
+    let mut q_key = QueryKey {
+      query_name: "www.google.com.".to_string(),
+      query_type: trust_dns_proto::rr::RecordType::A,
+      query_class: trust_dns_proto::rr::DNSClass::IN,
+    };
+    let res = domain_override_rule.find_mapping(&q_key);
+    assert!(res.is_some());
+    assert_eq!(res.unwrap().0, IpAddr::V4(Ipv4Addr::new(1, 2, 3, 4)));
+
+    q_key.query_type = trust_dns_proto::rr::RecordType::AAAA;
+    let res = domain_override_rule.find_mapping(&q_key);
+    assert!(res.is_some());
+    assert_eq!(
+      res.unwrap().0,
+      IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1))
+    );
+    println!("{:?}", domain_override_rule);
+  }
+
+  #[test]
+  fn override_works_regardless_of_dns0x20() {
+    let domain_override_rule = DomainOverrideRule::from(vec!["www.gOOGle.com   1.2.3.4"]);
+
+    let q_key = QueryKey {
+      query_name: "Www.GOOGLE.coM.".to_string(),
+      query_type: trust_dns_proto::rr::RecordType::A,
+      query_class: trust_dns_proto::rr::DNSClass::IN,
+    };
+    let res = domain_override_rule.find_mapping(&q_key);
+    assert!(res.is_some());
+    assert_eq!(res.unwrap().0, IpAddr::V4(Ipv4Addr::new(1, 2, 3, 4)));
   }
 }
