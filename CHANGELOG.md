@@ -16,10 +16,11 @@ You should also include the user name that made the change.
 ## 0.1.x (unreleased)
 ### Improvements
 
--
+- Update override-list format to use individual lines for representing multiple matching for a name, i.e., (name, IPv4) and (name, IPv6).
+
 ### Bugfixes
 
--
+- Fix matching rule for blocklist and override-list
 
 ## 0.1.4 (May 17, 2022)
 ### Improvements
