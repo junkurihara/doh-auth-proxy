@@ -64,7 +64,7 @@ toml = "0.5.9"
 serde = "1.0.137"
 hashlink = "0.8.0"
 cedarwood = "0.4.5"
-regex = "1.5.5"
+regex = "1.5.6"
 
 [dev-dependencies]
 trust-dns-client = "0.21.2"
