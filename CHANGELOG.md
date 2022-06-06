@@ -14,9 +14,14 @@ You should also include the user name that made the change.
 -->
 
 ## 0.1.x (unreleased)
+
+
+## 0.1.5 (Jun. 6, 2022)
 ### Improvements
 
 - Update override-list format to use individual lines for representing multiple matching for a name, i.e., (name, IPv4) and (name, IPv6).
+- Updates required args to run. Now it works without args.
+- Published on `crates.io`
 
 ### Bugfixes
 

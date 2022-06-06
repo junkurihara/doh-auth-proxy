@@ -2,7 +2,7 @@ use crate::error::*;
 use serde::Deserialize;
 use std::fs;
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 pub struct ConfigToml {
   pub listen_addresses: Option<Vec<String>>,
   pub bootstrap_dns: Option<String>,

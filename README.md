@@ -16,6 +16,12 @@ Local proxy for DoH, Oblivious DoH and ODoH-based Mutualized Oblivious DNS (ODoH
 
 Now you have a compiled executable binary `doh-auth-proxy` in `./target/debug/` or `./target/release/`.
 
+Alternatively, you can install via [crates.io](https://crates.io/) as
+
+```shell
+% cargo install doh-auth-proxy
+```
+
 ## Basic example
 
 ### Connecting to Google public DoH server
@@ -26,11 +32,11 @@ Start `doh-auth-proxy` as
 % ./path/to/doh-auth-proxy --config config.toml
 ```
 
-where we assume that `config.toml` is configured as follows.
+where we assume that `config.toml` is configured like follows.
 
 ```toml:config.toml
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
-bootstrap_dns = "8.8.8.8:53"
+bootstrap_dns = "1.1.1.1:53"
 
 target_urls = ["https://dns.google/dns-query"]
 ```
@@ -46,6 +52,18 @@ github.com.             60      IN      A       52.69.186.44
 ```
 
 The parameter `bootstrap-dns` is used to resolve the IP address of the host of `target-url` (i.e., target DoH server).
+
+If you run without `--config` option, i.e., simply hit `$ ./doh-auth-proxy`, the followings are applied as default parameters:
+
+```:toml:config.toml
+listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
+bootstrap_dns = "1.1.1.1:53"
+reboot_period = 3 # mins
+max_cache_size = 16384
+target_urls = ["https://dns.google/dns-query"]
+```
+
+All the options are referred to below. Using your specific config file is recommended for better setting in your environment.
 
 ### Connecting to Cloudflare ODoH server via `surfdomeinen.nl` ODoH relay
 

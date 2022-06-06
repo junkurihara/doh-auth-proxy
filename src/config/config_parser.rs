@@ -17,7 +17,6 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
     Arg::new("config_file")
       .long("config")
       .short('c')
-      .required(true)
       .takes_value(true)
       .help("Configuration file path like \"doh-auth-proxy.toml\""),
   );
@@ -62,8 +61,12 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
   /////////////////////////////
   //   reading toml file     //
   /////////////////////////////
-  let config_file_path = matches.value_of("config_file").unwrap();
-  let config = ConfigToml::new(config_file_path)?;
+  let config = if let Some(config_file_path) = matches.value_of("config_file") {
+    ConfigToml::new(config_file_path)?
+  } else {
+    // Default config Toml
+    ConfigToml::default()
+  };
 
   /////////////////////////////
   // listen addresses
