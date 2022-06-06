@@ -29,7 +29,7 @@ impl From<Vec<&str>> for DomainBlockRule {
         }
       })
       .filter(|x| re.is_match(x) || (x.split('.').count() == 1))
-      .map(|y| y.to_string())
+      .map(|y| y.to_ascii_lowercase())
       .collect();
     let prefix_dict: Vec<String> = dict
       .iter()
@@ -107,7 +107,7 @@ impl DomainBlockRule {
 
   pub fn in_blocklist(&self, q_key: &QueryKey) -> Result<bool> {
     // remove final dot
-    let mut nn = q_key.clone().query_name;
+    let mut nn = q_key.clone().query_name.to_ascii_lowercase();
     match nn.pop() {
       Some(dot) => {
         if dot != '.' {
@@ -158,5 +158,21 @@ mod tests {
 
     q_key.query_name = "www.yahoo.com.".to_string();
     assert!(!domain_block_rule.in_blocklist(&q_key).unwrap());
+  }
+
+  #[test]
+  fn block_works_regardless_of_dns0x20() {
+    let domain_block_rule = DomainBlockRule::from(vec!["GOOGLE.com"]);
+
+    let mut q_key = QueryKey {
+      query_name: "www.google.com.".to_string(),
+      query_type: trust_dns_proto::rr::RecordType::A,
+      query_class: trust_dns_proto::rr::DNSClass::IN,
+    };
+    assert!(domain_block_rule.in_blocklist(&q_key).unwrap());
+
+    q_key.query_name = "WWW.gOoGlE.COM.".to_string();
+    assert!(domain_block_rule.in_blocklist(&q_key).unwrap());
+
   }
 }
