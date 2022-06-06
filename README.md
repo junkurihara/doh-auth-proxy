@@ -16,12 +16,6 @@ Local proxy for DoH, Oblivious DoH and ODoH-based Mutualized Oblivious DNS (ODoH
 
 Now you have a compiled executable binary `doh-auth-proxy` in `./target/debug/` or `./target/release/`.
 
-Alternatively, you can install via [crates.io](https://crates.io/) as
-
-```shell
-% cargo install doh-auth-proxy
-```
-
 ## Basic example
 
 ### Connecting to Google public DoH server

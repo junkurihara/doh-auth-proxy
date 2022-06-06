@@ -21,7 +21,6 @@ You should also include the user name that made the change.
 
 - Update override-list format to use individual lines for representing multiple matching for a name, i.e., (name, IPv4) and (name, IPv6).
 - Updates required args to run. Now it works without args.
-- Published on `crates.io`
 
 ### Bugfixes
 
