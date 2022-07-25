@@ -55,12 +55,7 @@ impl Cache {
     }
 
     // TODO: Override if configured
-    let min_ttl = response_message
-      .answers()
-      .iter()
-      .map(|rr| rr.ttl())
-      .min()
-      .unwrap_or(0);
+    let min_ttl = response_message.answers().iter().map(|rr| rr.ttl()).min().unwrap_or(0);
     if min_ttl == 0 {
       return Ok(());
     }
@@ -76,10 +71,7 @@ impl Cache {
 
     if self.size().await >= self.max_size {
       let mut lru_cache = self.cache.lock().await;
-      lru_cache
-        .pop_front()
-        .ok_or(())
-        .map_err(|_| anyhow!("Invalid cache"))?;
+      lru_cache.pop_front().ok_or(()).map_err(|_| anyhow!("Invalid cache"))?;
       drop(lru_cache);
     }
     let mut lru_cache = self.cache.lock().await;
@@ -103,10 +95,7 @@ impl Cache {
           );
           Some(entry.to_owned())
         } else {
-          debug!(
-            "Found cached content but expired for {:?}",
-            key.0[0].query_name,
-          );
+          debug!("Found cached content but expired for {:?}", key.0[0].query_name,);
           found.remove_entry();
           None
         }
@@ -155,8 +144,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_cache() {
-    let (stream, sender) =
-      TcpClientStream::<AsyncIoTokioAsStd<TokioTcpStream>>::new(([8, 8, 8, 8], 53).into());
+    let (stream, sender) = TcpClientStream::<AsyncIoTokioAsStd<TokioTcpStream>>::new(([8, 8, 8, 8], 53).into());
     let client = AsyncClient::new(stream, sender, None);
     // await the connection to be established
     let (mut client, bg) = client.await.expect("connection failed");
@@ -168,14 +156,8 @@ mod tests {
     // Specify the name, note the final '.' which specifies it's an FQDN
     let name1 = Name::from_str(fqdn1).unwrap();
     let name2 = Name::from_str(fqdn2).unwrap();
-    let response1 = client
-      .query(name1, DNSClass::IN, RecordType::A)
-      .await
-      .unwrap();
-    let response2 = client
-      .query(name2, DNSClass::IN, RecordType::A)
-      .await
-      .unwrap();
+    let response1 = client.query(name1, DNSClass::IN, RecordType::A).await.unwrap();
+    let response2 = client.query(name2, DNSClass::IN, RecordType::A).await.unwrap();
 
     let msg1 = Message::from(response1);
     let msg2 = Message::from(response2);

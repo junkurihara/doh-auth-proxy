@@ -2,7 +2,7 @@ use super::regexp_vals::*;
 use crate::dns_message::QueryKey;
 use crate::log::*;
 use regex::Regex;
-use std::collections::HashMap;
+use rustc_hash::FxHashMap as HashMap;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use trust_dns_proto::rr::record_type::RecordType;
 
@@ -37,9 +37,8 @@ pub struct DomainOverrideRule(HashMap<String, Vec<MapsTo>>);
 
 impl From<Vec<&str>> for DomainOverrideRule {
   fn from(vec_domain_map_str: Vec<&str>) -> Self {
-    let redomain_split_space =
-      Regex::new(&format!("{}{}{}", r"^", REGEXP_DOMAIN, r"\s+\S+$")).unwrap();
-    let mut hm: HashMap<String, Vec<MapsTo>> = HashMap::new();
+    let redomain_split_space = Regex::new(&format!("{}{}{}", r"^", REGEXP_DOMAIN, r"\s+\S+$")).unwrap();
+    let mut hm: HashMap<String, Vec<MapsTo>> = HashMap::default();
     for domain_target in vec_domain_map_str
       .iter()
       .filter(|x| redomain_split_space.is_match(x))
@@ -91,8 +90,7 @@ mod tests {
   use super::*;
   #[test]
   fn override_works_only_v4() {
-    let domain_override_rule =
-      DomainOverrideRule::from(vec!["www.google.com   1.2.3.4", "www.github.com   4.3.2.1"]);
+    let domain_override_rule = DomainOverrideRule::from(vec!["www.google.com   1.2.3.4", "www.github.com   4.3.2.1"]);
 
     let mut q_key = QueryKey {
       query_name: "www.google.com.".to_string(),
@@ -114,8 +112,7 @@ mod tests {
 
   #[test]
   fn override_works_v4_v6() {
-    let domain_override_rule =
-      DomainOverrideRule::from(vec!["www.google.com   1.2.3.4", "www.google.com   ::1"]);
+    let domain_override_rule = DomainOverrideRule::from(vec!["www.google.com   1.2.3.4", "www.google.com   ::1"]);
 
     let mut q_key = QueryKey {
       query_name: "www.google.com.".to_string(),
@@ -129,10 +126,7 @@ mod tests {
     q_key.query_type = trust_dns_proto::rr::RecordType::AAAA;
     let res = domain_override_rule.find_mapping(&q_key);
     assert!(res.is_some());
-    assert_eq!(
-      res.unwrap().0,
-      IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1))
-    );
+    assert_eq!(res.unwrap().0, IpAddr::V6(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1)));
     println!("{:?}", domain_override_rule);
   }
 

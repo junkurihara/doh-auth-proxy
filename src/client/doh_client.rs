@@ -14,7 +14,8 @@ use rand::{
   {thread_rng, Rng},
 };
 use reqwest::header;
-use std::{collections::HashMap, sync::Arc};
+use rustc_hash::FxHashMap as HashMap;
+use std::sync::Arc;
 use url::Url;
 use urlencoding::decode;
 
@@ -75,7 +76,7 @@ impl DoHClient {
             Some(port) => format!("{}:{}", target_url.host_str().unwrap(), port),
             None => target_url.host_str().unwrap().to_string(),
           };
-          let mut qs = HashMap::new();
+          let mut qs = HashMap::default();
           qs.insert("targethost", target_host_str);
           qs.insert("targetpath", target_url.path().to_string());
 
@@ -120,18 +121,13 @@ impl DoHClient {
       .iter()
       .map(|nexthop| HttpClient::new(&globals, nexthop, Some(&headers), true))
       .collect::<Vec<_>>();
-    let clients = future::join_all(polls)
-      .await
-      .into_iter()
-      .collect::<Result<Vec<_>>>()?;
+    let clients = future::join_all(polls).await.into_iter().collect::<Result<Vec<_>>>()?;
 
     let doh_method = globals.doh_method.clone();
 
     // When ODoH, first fetch configs
     let odoh_client_context = match doh_type {
-      DoHType::Oblivious => {
-        Some(DoHClient::fetch_odoh_config_from_well_known(target_url_str, &globals).await?)
-      }
+      DoHType::Oblivious => Some(DoHClient::fetch_odoh_config_from_well_known(target_url_str, &globals).await?),
       DoHType::Standard => None,
     };
 
@@ -160,9 +156,7 @@ impl DoHClient {
     let destination = format!("{}://{}{}", scheme, host_str, ODOH_CONFIG_PATH);
     info!("[ODoH] Fetch server public key from {}", destination);
 
-    let simple_client = HttpClient::new(globals, target_url_str, None, true)
-      .await?
-      .client;
+    let simple_client = HttpClient::new(globals, target_url_str, None, true).await?.client;
     let response = simple_client.get(destination).send().await?;
     if response.status() != reqwest::StatusCode::OK {
       error!("Failed to fetch ODoH config!: {:?}", response.status());
@@ -195,8 +189,7 @@ impl DoHClient {
       answers,
       self.target_url
     );
-    let rdata: Vec<Option<&trust_dns_proto::rr::RData>> =
-      answers.iter().map(|a| a.data()).collect();
+    let rdata: Vec<Option<&trust_dns_proto::rr::RData>> = answers.iter().map(|a| a.data()).collect();
     ensure!(
       rdata.iter().any(|r| r.is_some() && {
         match r.unwrap() {
@@ -241,8 +234,8 @@ impl DoHClient {
     let query_msg = dns_message::is_query(packet_buf).map_err(|_| anyhow!("Invalid DNS query"))?;
     // If error, should we build and return a synthetic reject response message?
     let query_id = query_msg.id();
-    let req = Request::try_from(&query_msg)
-      .map_err(|_| anyhow!("Failed to parse DNS query, maybe invalid DNS query"))?;
+    let req =
+      Request::try_from(&query_msg).map_err(|_| anyhow!("Failed to parse DNS query, maybe invalid DNS query"))?;
 
     // Process query plugins, e.g., domain filtering, cloaking, etc.
     if let Some(query_plugins) = globals.query_plugins.clone() {
@@ -280,8 +273,8 @@ impl DoHClient {
       Ok(response_buf) => {
         // Check if the returned packet buffer is consistent as a DNS response
         // If error, should we build and return a synthetic reject response message?
-        let response_message = dns_message::is_response(&response_buf)
-          .map_err(|_| anyhow!("Invalid or not a DNS response"))?;
+        let response_message =
+          dns_message::is_response(&response_buf).map_err(|_| anyhow!("Invalid or not a DNS response"))?;
 
         if (globals.cache.put(req, &response_message).await).is_err() {
           error!("Failed to cache response");
@@ -321,11 +314,7 @@ impl DoHClient {
     Ok(body.to_vec())
   }
 
-  async fn serve_oblivious_doh_query(
-    &self,
-    packet_buf: &[u8],
-    globals: &Arc<Globals>,
-  ) -> Result<Vec<u8>> {
+  async fn serve_oblivious_doh_query(&self, packet_buf: &[u8], globals: &Arc<Globals>) -> Result<Vec<u8>> {
     assert!(globals.odoh_relay_urls.is_some() && !self.clients.is_empty());
 
     let client_ctx = match &self.odoh_client_context {
