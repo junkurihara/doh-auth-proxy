@@ -27,11 +27,7 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
   // format with initial value //
   ///////////////////////////////
   let mut globals_local = Globals {
-    listen_addresses: LISTEN_ADDRESSES
-      .to_vec()
-      .iter()
-      .map(|x| x.parse().unwrap())
-      .collect(),
+    listen_addresses: LISTEN_ADDRESSES.to_vec().iter().map(|x| x.parse().unwrap()).collect(),
     udp_buffer_size: UDP_BUFFER_SIZE,
     udp_channel_capacity: UDP_CHANNEL_CAPACITY,
     timeout_sec: Duration::from_secs(TIMEOUT_SEC),
@@ -114,10 +110,7 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
     }
     globals_local.doh_target_urls = val;
   }
-  info!(
-    "Target (O)DoH resolvers: {:?}",
-    globals_local.doh_target_urls
-  );
+  info!("Target (O)DoH resolvers: {:?}", globals_local.doh_target_urls);
   if let Some(val) = config.target_randomization {
     if !val {
       globals_local.target_randomization = false
@@ -142,9 +135,9 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
       let blocklist_path = env::current_dir()?.join(blocked_names_file);
       if let Ok(content) = fs::read_to_string(blocklist_path) {
         let truncate_vec: Vec<&str> = content.split('\n').filter(|c| !c.is_empty()).collect();
-        plugins_applied.add(QueryPlugin::PluginDomainBlock(Box::new(
-          DomainBlockRule::from(truncate_vec),
-        )));
+        plugins_applied.add(QueryPlugin::PluginDomainBlock(Box::new(DomainBlockRule::from(
+          truncate_vec,
+        ))));
         info!("[Query plugin] Domain blocking is enabled");
       }
     }
@@ -153,9 +146,9 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
       let overridden_path = env::current_dir()?.join(overridden_names_file);
       if let Ok(content) = fs::read_to_string(overridden_path) {
         let truncate_vec: Vec<&str> = content.split('\n').filter(|c| !c.is_empty()).collect();
-        plugins_applied.add(QueryPlugin::PluginDomainOverride(Box::new(
-          DomainOverrideRule::from(truncate_vec),
-        )));
+        plugins_applied.add(QueryPlugin::PluginDomainOverride(Box::new(DomainOverrideRule::from(
+          truncate_vec,
+        ))));
         info!("[Query plugin] Domain overriding is enabled");
       }
     }
@@ -167,10 +160,7 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
   // Anonymization
   if let Some(anon) = config.anonymization {
     if let Some(odoh_relay_urls) = anon.odoh_relay_urls {
-      if !odoh_relay_urls
-        .iter()
-        .all(|x| verify_target_url(x.to_string()).is_ok())
-      {
+      if !odoh_relay_urls.iter().all(|x| verify_target_url(x.to_string()).is_ok()) {
         bail!("Invalid ODoH relay urls");
       }
       globals_local.odoh_relay_urls = Some(odoh_relay_urls);
@@ -245,9 +235,7 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
       }
       info!("Token API: {}", token_api);
 
-      Some(Credential::new(
-        &username, &password, &client_id, &token_api,
-      ))
+      Some(Credential::new(&username, &password, &client_id, &token_api))
     } else {
       None
     }

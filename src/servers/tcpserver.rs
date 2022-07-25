@@ -18,10 +18,7 @@ impl TCPServer {
     let counter = self.globals.counter.clone();
 
     if counter.increment(CounterType::Tcp) >= self.globals.max_connections {
-      error!(
-        "Too many connections: max = {} (udp+tcp)",
-        self.globals.max_connections
-      );
+      error!("Too many connections: max = {} (udp+tcp)", self.globals.max_connections);
       counter.decrement(CounterType::Tcp);
       bail!("Too many connections");
     }

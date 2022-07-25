@@ -21,13 +21,7 @@ impl From<Vec<&str>> for DomainBlockRule {
     let re = Regex::new(&format!("{}{}{}", r"^", REGEXP_DOMAIN_OR_PREFIX, r"$")).unwrap();
     let dict: Vec<String> = vec_domain_str
       .iter()
-      .map(|d| {
-        if start_with_star.is_match(d) {
-          &d[2..]
-        } else {
-          d
-        }
-      })
+      .map(|d| if start_with_star.is_match(d) { &d[2..] } else { d })
       .filter(|x| re.is_match(x) || (x.split('.').count() == 1))
       .map(|y| y.to_ascii_lowercase())
       .collect();
@@ -173,6 +167,5 @@ mod tests {
 
     q_key.query_name = "WWW.gOoGlE.COM.".to_string();
     assert!(domain_block_rule.in_blocklist(&q_key).unwrap());
-
   }
 }

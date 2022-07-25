@@ -19,21 +19,13 @@ impl HttpClient {
     resolve_endpoint_by_system: bool,
   ) -> Result<Self> {
     let mut client = reqwest::Client::builder()
-      .user_agent(format!(
-        "{}/{}",
-        env!("CARGO_PKG_NAME"),
-        env!("CARGO_PKG_VERSION")
-      ))
+      .user_agent(format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")))
       .timeout(globals.timeout_sec)
       .trust_dns(true);
 
     client = if resolve_endpoint_by_system {
-      let (target_host_str, target_addresses) = resolve_by_bootstrap(
-        &globals.bootstrap_dns,
-        endpoint,
-        globals.runtime_handle.clone(),
-      )
-      .await?;
+      let (target_host_str, target_addresses) =
+        resolve_by_bootstrap(&globals.bootstrap_dns, endpoint, globals.runtime_handle.clone()).await?;
       let target_addr = target_addresses[0];
       debug!(
         "Via bootstrap DNS [{:?}], endpoint {:?} resolved: {:?}",
@@ -62,8 +54,7 @@ pub async fn resolve_by_bootstrap(
   target_url: &str,
   runtime_handle: tokio::runtime::Handle,
 ) -> Result<(String, Vec<SocketAddr>)> {
-  let name_servers =
-    NameServerConfigGroup::from_ips_clear(&[bootstrap_dns.ip()], bootstrap_dns.port(), true);
+  let name_servers = NameServerConfigGroup::from_ips_clear(&[bootstrap_dns.ip()], bootstrap_dns.port(), true);
   let resolver_config = ResolverConfig::from_parts(None, vec![], name_servers);
 
   let resolver = runtime_handle

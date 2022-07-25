@@ -66,8 +66,7 @@ fn is(packet_buf: &[u8], mtype: MessageType) -> Result<Message> {
 }
 
 pub fn decode(packet_buf: &[u8]) -> Result<Message> {
-  Message::from_bytes(packet_buf)
-    .map_err(|e| anyhow!("Undecodable packet buffer as DNS message: {}", e))
+  Message::from_bytes(packet_buf).map_err(|e| anyhow!("Undecodable packet buffer as DNS message: {}", e))
 }
 
 pub fn encode(msg: &Message) -> Result<Vec<u8>> {
@@ -96,12 +95,7 @@ pub fn build_response_nx(msg: &Message) -> Message {
   res
 }
 
-pub fn build_response_given_ipaddr(
-  msg: &Message,
-  q_key: &QueryKey,
-  ipaddr: &IpAddr,
-  min_ttl: u32,
-) -> Result<Message> {
+pub fn build_response_given_ipaddr(msg: &Message, q_key: &QueryKey, ipaddr: &IpAddr, min_ttl: u32) -> Result<Message> {
   let mut res = msg.clone();
   res.set_message_type(trust_dns_proto::op::MessageType::Response);
   res.set_response_code(trust_dns_proto::op::ResponseCode::NoError);

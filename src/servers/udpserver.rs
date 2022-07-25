@@ -19,10 +19,7 @@ impl UDPServer {
     let counter = self.globals.counter.clone();
 
     if counter.increment(CounterType::Udp) >= self.globals.max_connections {
-      error!(
-        "Too many connections: max = {} (udp+tcp)",
-        self.globals.max_connections
-      );
+      error!("Too many connections: max = {} (udp+tcp)", self.globals.max_connections);
       counter.decrement(CounterType::Udp);
       bail!("Too many connections");
     }
@@ -78,8 +75,7 @@ impl UDPServer {
 
   pub async fn start(self, listen_address: SocketAddr) -> Result<()> {
     // setup a channel for sending out responses
-    let (channel_sender, channel_receiver) =
-      mpsc::channel::<(Vec<u8>, SocketAddr)>(self.globals.udp_channel_capacity);
+    let (channel_sender, channel_receiver) = mpsc::channel::<(Vec<u8>, SocketAddr)>(self.globals.udp_channel_capacity);
 
     let udp_socket = UdpSocket::bind(&listen_address).await?;
     // .map_err(DoHError::Io)?;
@@ -113,11 +109,10 @@ impl UDPServer {
         // too many threads?
         let self_clone = self.clone();
         let channel_sender_clone = channel_sender.clone();
-        self.globals.runtime_handle.spawn(async move {
-          self_clone
-            .serve_query(packet_buf, src_addr, channel_sender_clone)
-            .await
-        });
+        self
+          .globals
+          .runtime_handle
+          .spawn(async move { self_clone.serve_query(packet_buf, src_addr, channel_sender_clone).await });
       }
     };
     udp_socket_service.await;

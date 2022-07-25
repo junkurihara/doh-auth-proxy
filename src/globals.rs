@@ -52,14 +52,9 @@ impl Globals {
     };
     {
       let doh_target_urls = self.doh_target_urls.clone();
-      let polls = doh_target_urls.iter().map(|target| {
-        DoHClient::new(
-          target,
-          self.odoh_relay_urls.clone(),
-          Arc::new(self.clone()),
-          &id_token,
-        )
-      });
+      let polls = doh_target_urls
+        .iter()
+        .map(|target| DoHClient::new(target, self.odoh_relay_urls.clone(), Arc::new(self.clone()), &id_token));
       let doh_clients = future::join_all(polls)
         .await
         .into_iter()

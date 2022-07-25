@@ -50,9 +50,7 @@ impl Proxy {
   async fn clients_health_check(&self) -> bool {
     match &self.globals.doh_clients.read().await.as_ref() {
       Some(doh_clients) => {
-        let polls = doh_clients
-          .iter()
-          .map(|client| client.health_check(&self.globals));
+        let polls = doh_clients.iter().map(|client| client.health_check(&self.globals));
         join_all(polls).await.iter().all(|r| match r {
           Ok(()) => true,
           Err(e) => {
@@ -79,10 +77,7 @@ impl Proxy {
       sleep(period).await;
       match self.update_client().await {
         Ok(_) => debug!("Successfully re-fetched target resolver (DoH) / relay (ODoH) addresses via bootstrap DNS"),
-        Err(e) => error!(
-          "Failed to update DoH client with new DoH resolver addresses {:?}",
-          e
-        ), // TODO: should exit?
+        Err(e) => error!("Failed to update DoH client with new DoH resolver addresses {:?}", e), // TODO: should exit?
       };
 
       // cache handling here to remove expired entries
@@ -164,10 +159,7 @@ impl Proxy {
           };
         }
         Err(e) => {
-          warn!(
-            "Failed to refresh. maybe refresh token expired. retry login: {}",
-            e
-          );
+          warn!("Failed to refresh. maybe refresh token expired. retry login: {}", e);
           retry_login += 1;
           continue;
         }

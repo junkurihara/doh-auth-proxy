@@ -51,9 +51,7 @@ impl Credential {
   pub async fn login(&mut self, globals: &Arc<Globals>) -> Result<()> {
     // token endpoint is resolved via bootstrap DNS resolver
     let token_endpoint = format!("{}{}", self.token_api, ENDPOINT_LOGIN_PATH);
-    let client = HttpClient::new(globals, &token_endpoint, None, true)
-      .await?
-      .client;
+    let client = HttpClient::new(globals, &token_endpoint, None, true).await?.client;
     // let client = http_client_resolved_by_bootstrap(&token_endpoint, globals, None).await?;
 
     // TODO: maybe define as a struct for strongly typed definition
@@ -96,10 +94,7 @@ impl Credential {
     // check validity of id token
     match self.verify_id_token().await {
       Ok(_) => (),
-      Err(e) => bail!(
-        "Invalid Id token! Carefully check if bootstrap DNS is poisoned! {}",
-        e
-      ),
+      Err(e) => bail!("Invalid Id token! Carefully check if bootstrap DNS is poisoned! {}", e),
     };
     debug!("Logged in: Token endpoint {}", token_endpoint);
 
@@ -109,9 +104,7 @@ impl Credential {
   pub async fn refresh(&mut self, globals: &Arc<Globals>) -> Result<()> {
     // refresh endpoint is NOT resolved via configured system DNS resolver. resolve by proxy itself
     let refresh_endpoint = format!("{}{}", self.token_api, ENDPOINT_REFRESH_PATH);
-    let client = HttpClient::new(globals, &refresh_endpoint, None, false)
-      .await?
-      .client;
+    let client = HttpClient::new(globals, &refresh_endpoint, None, false).await?.client;
 
     let refresh_token = if let Some(r) = &self.refresh_token {
       r
@@ -148,10 +141,7 @@ impl Credential {
     // check validity of id token
     match self.verify_id_token().await {
       Ok(_) => (),
-      Err(e) => bail!(
-        "Invalid Id token! Carefully check if bootstrap DNS is poisoned! {}",
-        e
-      ),
+      Err(e) => bail!("Invalid Id token! Carefully check if bootstrap DNS is poisoned! {}", e),
     };
     debug!("Refreshed Id token: Refresh endpoint {}", refresh_endpoint);
 
@@ -164,9 +154,7 @@ impl Credential {
     meta: TokenMetadata,
   ) -> Result<()> {
     let jwks_endpoint = format!("{}{}", self.token_api, ENDPOINT_JWKS_PATH);
-    let client = HttpClient::new(globals, &jwks_endpoint, None, true)
-      .await?
-      .client;
+    let client = HttpClient::new(globals, &jwks_endpoint, None, true).await?.client;
     let jwks_response = client.get(&jwks_endpoint).send().await?;
     let text_body = jwks_response.text().await?;
     let json_response: serde_json::Value = serde_json::from_str(&text_body)?;

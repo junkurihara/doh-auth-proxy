@@ -2,8 +2,7 @@
 use crate::{error::*, log::*};
 use bytes::Bytes;
 use odoh_rs::{
-  parse, ObliviousDoHConfigContents, ObliviousDoHConfigs, ObliviousDoHMessage,
-  ObliviousDoHMessagePlaintext, OdohSecret,
+  parse, ObliviousDoHConfigContents, ObliviousDoHConfigs, ObliviousDoHMessage, ObliviousDoHMessagePlaintext, OdohSecret,
 };
 use rand::{rngs::StdRng, SeedableRng};
 
@@ -22,15 +21,10 @@ impl ODoHClientContext {
     };
     let odoh_config_contents: ObliviousDoHConfigContents = client_config.into();
 
-    Ok(ODoHClientContext {
-      odoh_config_contents,
-    })
+    Ok(ODoHClientContext { odoh_config_contents })
   }
 
-  pub fn encrypt_query(
-    &self,
-    plaintext_query: &[u8],
-  ) -> Result<(ObliviousDoHMessagePlaintext, Bytes, OdohSecret)> {
+  pub fn encrypt_query(&self, plaintext_query: &[u8]) -> Result<(ObliviousDoHMessagePlaintext, Bytes, OdohSecret)> {
     debug!("[ODoH] Encrypt query");
     let mut rng = StdRng::from_entropy();
 
@@ -40,8 +34,7 @@ impl ODoHClientContext {
     // let query = ObliviousDoHMessagePlaintext::new(&plaintext_query, padding_len);
     // debug!("[ODoH] Encrypting DNS message with {} bytes of padding", padding_len);
     let query = ObliviousDoHMessagePlaintext::new(&plaintext_query, 0);
-    let (query_enc, cli_secret) =
-      odoh_rs::encrypt_query(&query, &self.odoh_config_contents, &mut rng)?;
+    let (query_enc, cli_secret) = odoh_rs::encrypt_query(&query, &self.odoh_config_contents, &mut rng)?;
     let query_body = odoh_rs::compose(&query_enc)?.freeze();
     Ok((query, query_body, cli_secret))
   }
