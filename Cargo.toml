@@ -30,7 +30,7 @@ edition = "2021"
 
 [dependencies]
 data-encoding = "2.3.2"
-clap = { version = "3.2.16", default-features = false, features = [
+clap = { version = "3.2.17", default-features = false, features = [
   "std",
   "cargo",
   "wrap_help",
@@ -45,23 +45,23 @@ tokio = { version = "1.20.1", features = [
   "sync",
   "macros",
 ] }
-futures = "0.3.21"
+futures = "0.3.23"
 reqwest = { version = "0.11.11", features = ["default", "trust-dns", "json"] }
 url = "2.2.2"
 trust-dns-proto = "0.21.2"
 trust-dns-resolver = "0.21.2"
-anyhow = "1.0.59"
+anyhow = "1.0.62"
 dotenv = "0.15.0"
-serde_json = "1.0.82"
+serde_json = "1.0.83"
 jwt-simple = { git = "https://github.com/junkurihara/rust-jwt-simple" }
 p256 = { version = "0.11.1", features = ["jwk", "pem"] }
-chrono = "0.4.19"
+chrono = "0.4.22"
 odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git" }
 rand = "0.8.5"
 bytes = "1.2.1"
 urlencoding = "2.1.0"
 toml = "0.5.9"
-serde = "1.0.140"
+serde = "1.0.143"
 hashlink = "0.8.0"
 cedarwood = "0.4.5"
 regex = "1.6.0"

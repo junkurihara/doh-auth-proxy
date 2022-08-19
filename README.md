@@ -120,7 +120,7 @@ that is a fork of [`DNSCrypt/doh-server`](https://github.com/DNSCrypt/doh-server
 
 **When you run your relay servers, please make sure their security settings and fully understand the risk.** Everything must be done at your own risk.
 
-See also the DNSCrypt-based &mu;ODNS as well, by referring to [our website](https://dns.secarchlab.net/).
+See also the DNSCrypt-based &mu;ODNS as well, by referring to [our website](https://junkurihara.github.io/dns/).
 
 ## All options in a configuration file
 
