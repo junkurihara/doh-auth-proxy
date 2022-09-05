@@ -48,7 +48,7 @@ tokio = { version = "1.20.1", features = [
 futures = "0.3.24"
 reqwest = { version = "0.11.11", features = ["default", "trust-dns", "json"] }
 url = "2.2.2"
-trust-dns-proto = "0.21.2"
+trust-dns-proto = "0.22.0"
 trust-dns-resolver = "0.21.2"
 anyhow = "1.0.63"
 dotenv = "0.15.0"
