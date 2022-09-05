@@ -49,7 +49,7 @@ futures = "0.3.24"
 reqwest = { version = "0.11.11", features = ["default", "trust-dns", "json"] }
 url = "2.2.2"
 trust-dns-proto = "0.21.2"
-trust-dns-resolver = "0.21.2"
+trust-dns-resolver = "0.22.0"
 anyhow = "1.0.63"
 dotenv = "0.15.0"
 serde_json = "1.0.85"
