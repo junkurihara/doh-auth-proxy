@@ -71,7 +71,7 @@ rustc-hash = "1.1.0"
 tikv-jemallocator = "0.5.0"
 
 [dev-dependencies]
-trust-dns-client = "0.21.2"
+trust-dns-client = "0.22.0"
 
 [profile.release]
 codegen-units = 1
