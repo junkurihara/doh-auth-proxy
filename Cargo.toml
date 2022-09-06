@@ -30,14 +30,14 @@ edition = "2021"
 
 [dependencies]
 data-encoding = "2.3.2"
-clap = { version = "3.2.19", default-features = false, features = [
+clap = { version = "3.2.20", default-features = false, features = [
   "std",
   "cargo",
   "wrap_help",
 ] }
 env_logger = "0.9.0"
 log = "0.4.17"
-tokio = { version = "1.20.1", features = [
+tokio = { version = "1.21.0", features = [
   "net",
   "rt-multi-thread",
   "parking_lot",
@@ -48,9 +48,9 @@ tokio = { version = "1.20.1", features = [
 futures = "0.3.24"
 reqwest = { version = "0.11.11", features = ["default", "trust-dns", "json"] }
 url = "2.2.2"
-trust-dns-proto = "0.21.2"
-trust-dns-resolver = "0.21.2"
-anyhow = "1.0.63"
+trust-dns-proto = "0.22.0"
+trust-dns-resolver = "0.22.0"
+anyhow = "1.0.64"
 dotenv = "0.15.0"
 serde_json = "1.0.85"
 jwt-simple = { git = "https://github.com/junkurihara/rust-jwt-simple" }
@@ -59,7 +59,7 @@ chrono = "0.4.22"
 odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git" }
 rand = "0.8.5"
 bytes = "1.2.1"
-urlencoding = "2.1.0"
+urlencoding = "2.1.2"
 toml = "0.5.9"
 serde = "1.0.144"
 hashlink = "0.8.0"
