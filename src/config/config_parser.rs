@@ -192,6 +192,11 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
       } else {
         globals_local.max_mid_relays = 0usize;
       }
+      if let Some(v) = globals_local.mid_relay_urls.clone() {
+        if globals_local.max_mid_relays > v.len()  {
+          bail!("max_mid_relays must be equal to or less than # of mid_relay_urls.");
+        }
+      }
 
       if globals_local.mid_relay_urls.is_some() {
         info!("[m-ODoH] Multiple-relay-based Oblivious DNS over HTTPS is enabled");

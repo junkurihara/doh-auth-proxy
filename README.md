@@ -311,4 +311,4 @@ We plan to implement kinds of 'round-robin' based distribution and other variant
 
 ## Notes
 
-ODoH implementation follows the current standardization proposal (Draft 11: [https://datatracker.ietf.org/doc/html/draft-pauly-dprive-oblivious-doh-11](https://datatracker.ietf.org/doc/html/draft-pauly-dprive-oblivious-doh-11))
+ODoH implementation follows [RFC9230](https://datatracker.ietf.org/doc/rfc9230/).
