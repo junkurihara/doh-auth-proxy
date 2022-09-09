@@ -25,6 +25,11 @@ reboot_period = 3
 ## servers is chosen (if target_randomization = true, randomly every time).
 target_urls = ["https://odoh.cloudflare-dns.com/dns-query"]
 
+## Currently, we cannot detect loop of path, and it sometimes stops
+## (responds nothing) when a relaying host forward a request to itself.
+## So, for safety, target_urls, odoh_relay_urls, and mid_relay_urls
+## should be DISJOINT one another.
+
 ## According to the suggestion in "Designing for Tussle in Encrypted DNS" (HotNets'21),
 ## multiple (O)DoH servers should be specified and used in randomized fashion in this
 ## proxy when "target_randomization = true". Otherwise, the first one is always chosen.

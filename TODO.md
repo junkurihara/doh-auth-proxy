@@ -13,3 +13,4 @@
 - Tweaks for anonymization
   - Override user-agent for DoH/ODoH/MODoH by specifying one in `config.toml`
 - Refactor
+- More sophisticated url building for query. Currently there exist cases of 'loop'.
