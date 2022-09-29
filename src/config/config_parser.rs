@@ -17,7 +17,7 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
     Arg::new("config_file")
       .long("config")
       .short('c')
-      .takes_value(true)
+      .value_name("FILE")
       .help("Configuration file path like \"doh-auth-proxy.toml\""),
   );
 
@@ -57,7 +57,7 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
   /////////////////////////////
   //   reading toml file     //
   /////////////////////////////
-  let config = if let Some(config_file_path) = matches.value_of("config_file") {
+  let config = if let Some(config_file_path) = matches.get_one::<String>("config_file") {
     ConfigToml::new(config_file_path)?
   } else {
     // Default config Toml
@@ -193,7 +193,7 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
         globals_local.max_mid_relays = 0usize;
       }
       if let Some(v) = globals_local.mid_relay_urls.clone() {
-        if globals_local.max_mid_relays > v.len()  {
+        if globals_local.max_mid_relays > v.len() {
           bail!("max_mid_relays must be equal to or less than # of mid_relay_urls.");
         }
       }

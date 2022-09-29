@@ -30,14 +30,14 @@ edition = "2021"
 
 [dependencies]
 data-encoding = "2.3.2"
-clap = { version = "3.2.22", default-features = false, features = [
+clap = { version = "4.0.2", default-features = false, features = [
   "std",
   "cargo",
   "wrap_help",
 ] }
 env_logger = "0.9.1"
 log = "0.4.17"
-tokio = { version = "1.21.1", features = [
+tokio = { version = "1.21.2", features = [
   "net",
   "rt-multi-thread",
   "parking_lot",
@@ -61,7 +61,7 @@ rand = "0.8.5"
 bytes = "1.2.1"
 urlencoding = "2.1.2"
 toml = "0.5.9"
-serde = "1.0.144"
+serde = "1.0.145"
 hashlink = "0.8.1"
 cedarwood = "0.4.5"
 regex = "1.6.0"
