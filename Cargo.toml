@@ -30,7 +30,7 @@ edition = "2021"
 
 [dependencies]
 data-encoding = "2.3.2"
-clap = { version = "3.2.22", default-features = false, features = [
+clap = { version = "4.0.2", default-features = false, features = [
   "std",
   "cargo",
   "wrap_help",
