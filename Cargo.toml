@@ -30,7 +30,7 @@ edition = "2021"
 
 [dependencies]
 data-encoding = "2.3.2"
-clap = { version = "4.0.2", default-features = false, features = [
+clap = { version = "4.0.15", default-features = false, features = [
   "std",
   "cargo",
   "wrap_help",
@@ -52,7 +52,7 @@ trust-dns-proto = "0.22.0"
 trust-dns-resolver = "0.22.0"
 anyhow = "1.0.65"
 dotenv = "0.15.0"
-serde_json = "1.0.85"
+serde_json = "1.0.86"
 jwt-simple = { git = "https://github.com/junkurihara/rust-jwt-simple" }
 p256 = { version = "0.11.1", features = ["jwk", "pem"] }
 chrono = "0.4.22"
@@ -63,7 +63,7 @@ urlencoding = "2.1.2"
 toml = "0.5.9"
 serde = "1.0.145"
 hashlink = "0.8.1"
-cedarwood = "0.4.5"
+cedarwood = "0.4.6"
 regex = "1.6.0"
 rustc-hash = "1.1.0"
 
