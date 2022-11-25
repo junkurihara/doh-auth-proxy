@@ -35,7 +35,7 @@ clap = { version = "4.0.18", default-features = false, features = [
   "cargo",
   "wrap_help",
 ] }
-env_logger = "0.9.1"
+env_logger = "0.10.0"
 log = "0.4.17"
 tokio = { version = "1.21.2", features = [
   "net",
