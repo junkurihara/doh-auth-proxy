@@ -395,7 +395,7 @@ impl DoHClient {
       copied.shuffle(&mut rng);
       let num = rng.gen_range(1..*max_mid_relays + 1);
       for idx in 0..num {
-        let rurl = Url::parse(&copied[idx as usize]).unwrap();
+        let rurl = Url::parse(&copied[idx]).unwrap();
         let rhost_str = match rurl.port() {
           Some(port) => format!("{}:{}", rurl.host_str().unwrap(), port),
           None => rurl.host_str().unwrap().to_string(),
