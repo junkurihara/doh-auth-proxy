@@ -30,14 +30,14 @@ edition = "2021"
 
 [dependencies]
 data-encoding = "2.3.3"
-clap = { version = "4.0.30", default-features = false, features = [
+clap = { version = "4.0.32", default-features = false, features = [
   "std",
   "cargo",
   "wrap_help",
 ] }
 env_logger = "0.10.0"
 log = "0.4.17"
-tokio = { version = "1.23.0", features = [
+tokio = { version = "1.24.1", features = [
   "net",
   "rt-multi-thread",
   "parking_lot",
@@ -61,10 +61,10 @@ rand = "0.8.5"
 bytes = "1.3.0"
 urlencoding = "2.1.2"
 toml = "0.5.10"
-serde = "1.0.151"
+serde = "1.0.152"
 hashlink = "0.8.1"
 cedarwood = "0.4.6"
-regex = "1.7.0"
+regex = "1.7.1"
 rustc-hash = "1.1.0"
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
