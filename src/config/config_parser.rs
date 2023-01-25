@@ -219,7 +219,7 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
   let credential = if let Some(auth) = config.authentication {
     if let (Some(credential_file), Some(token_api)) = (auth.credential_file, auth.token_api) {
       let cred_path = env::current_dir()?.join(credential_file);
-      dotenv::from_path(&cred_path).ok();
+      dotenv::from_path(cred_path).ok();
       let username = if let Ok(x) = env::var(CREDENTIAL_USERNAME_FIELD) {
         x
       } else {

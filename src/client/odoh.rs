@@ -33,7 +33,7 @@ impl ODoHClientContext {
     // let padding_len = rng.gen_range(0..10);
     // let query = ObliviousDoHMessagePlaintext::new(&plaintext_query, padding_len);
     // debug!("[ODoH] Encrypting DNS message with {} bytes of padding", padding_len);
-    let query = ObliviousDoHMessagePlaintext::new(&plaintext_query, 0);
+    let query = ObliviousDoHMessagePlaintext::new(plaintext_query, 0);
     let (query_enc, cli_secret) = odoh_rs::encrypt_query(&query, &self.odoh_config_contents, &mut rng)?;
     let query_body = odoh_rs::compose(&query_enc)?.freeze();
     Ok((query, query_body, cli_secret))

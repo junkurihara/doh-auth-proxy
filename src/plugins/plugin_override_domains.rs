@@ -48,9 +48,7 @@ impl From<Vec<&str>> for DomainOverrideRule {
       if split.len() != 2 {
         warn!("Invalid override rule: {}", split[0]);
       } else if let Some(maps_to) = MapsTo::new(split[1]) {
-        hm.entry(split[0].to_ascii_lowercase())
-          .or_insert(Vec::new())
-          .push(maps_to);
+        hm.entry(split[0].to_ascii_lowercase()).or_default().push(maps_to);
       }
     }
     DomainOverrideRule(hm)
