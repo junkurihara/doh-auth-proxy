@@ -60,7 +60,7 @@ odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git" }
 rand = "0.8.5"
 bytes = "1.3.0"
 urlencoding = "2.1.2"
-toml = { version = "0.6.0", default-features = false, features = ["parse"] }
+toml = { version = "0.7.0", default-features = false, features = ["parse"] }
 serde = "1.0.152"
 hashlink = "0.8.1"
 cedarwood = "0.4.6"
