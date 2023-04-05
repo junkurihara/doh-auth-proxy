@@ -30,14 +30,14 @@ edition = "2021"
 
 [dependencies]
 data-encoding = "2.3.3"
-clap = { version = "4.1.8", default-features = false, features = [
+clap = { version = "4.2.1", default-features = false, features = [
   "std",
   "cargo",
   "wrap_help",
 ] }
 env_logger = "0.10.0"
 log = "0.4.17"
-tokio = { version = "1.26.0", features = [
+tokio = { version = "1.27.0", features = [
   "net",
   "rt-multi-thread",
   "parking_lot",
@@ -45,14 +45,14 @@ tokio = { version = "1.26.0", features = [
   "sync",
   "macros",
 ] }
-futures = { version = "0.3.27", default-features = false }
-reqwest = { version = "0.11.14", features = ["default", "trust-dns", "json"] }
+futures = { version = "0.3.28", default-features = false }
+reqwest = { version = "0.11.16", features = ["default", "trust-dns", "json"] }
 url = "2.3.1"
 trust-dns-proto = { version = "0.22.0", default-features = false }
 trust-dns-resolver = { version = "0.22.0", default-features = false }
-anyhow = "1.0.69"
+anyhow = "1.0.70"
 dotenv = "0.15.0"
-serde_json = "1.0.94"
+serde_json = "1.0.95"
 jwt-simple = "0.11.4"
 p256 = { version = "0.13.0", features = ["jwk", "pem"] }
 chrono = "0.4.24"
@@ -61,10 +61,10 @@ rand = "0.8.5"
 bytes = "1.4.0"
 urlencoding = "2.1.2"
 toml = { version = "0.7.3", default-features = false, features = ["parse"] }
-serde = "1.0.156"
+serde = "1.0.159"
 hashlink = "0.8.1"
 cedarwood = "0.4.6"
-regex = "1.7.1"
+regex = "1.7.3"
 rustc-hash = "1.1.0"
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
