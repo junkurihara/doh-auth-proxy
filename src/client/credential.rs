@@ -75,12 +75,12 @@ impl Credential {
     // TODO: maybe define as a struct for strongly typed definition
     let text_body = token_response.text().await?;
     let json_response: serde_json::Value = serde_json::from_str(&text_body)?;
-    self.id_token = if let Some(x) = json_response["Access"]["token"]["id"].as_str() {
+    self.id_token = if let Some(x) = json_response["token"]["id"].as_str() {
       Some(x.to_string())
     } else {
       bail!("Invalid Id token format");
     };
-    self.refresh_token = if let Some(x) = json_response["Access"]["token"]["refresh"].as_str() {
+    self.refresh_token = if let Some(x) = json_response["token"]["refresh"].as_str() {
       Some(x.to_string())
     } else {
       bail!("Invalid refresh token format");
@@ -127,7 +127,7 @@ impl Credential {
     // TODO: maybe define as a struct for strongly typed definition
     let text_body = response.text().await?;
     let json_response: serde_json::Value = serde_json::from_str(&text_body)?;
-    self.id_token = if let Some(x) = json_response["Access"]["token"]["id"].as_str() {
+    self.id_token = if let Some(x) = json_response["token"]["id"].as_str() {
       Some(x.to_string())
     } else {
       bail!("Invalid Id token format");
