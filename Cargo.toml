@@ -29,15 +29,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-data-encoding = "2.3.3"
-clap = { version = "4.2.7", default-features = false, features = [
+data-encoding = "2.4.0"
+clap = { version = "4.3.0", default-features = false, features = [
   "std",
   "cargo",
   "wrap_help",
 ] }
 env_logger = "0.10.0"
-log = "0.4.17"
-tokio = { version = "1.28.0", features = [
+log = "0.4.18"
+tokio = { version = "1.28.2", features = [
   "net",
   "rt-multi-thread",
   "parking_lot",
@@ -46,7 +46,7 @@ tokio = { version = "1.28.0", features = [
   "macros",
 ] }
 futures = { version = "0.3.28", default-features = false }
-reqwest = { version = "0.11.17", features = ["default", "trust-dns", "json"] }
+reqwest = { version = "0.11.18", features = ["default", "trust-dns", "json"] }
 url = "2.3.1"
 trust-dns-proto = { version = "0.22.0", default-features = false }
 trust-dns-resolver = { version = "0.22.0", default-features = false }
@@ -55,16 +55,16 @@ dotenv = "0.15.0"
 serde_json = "1.0.96"
 jwt-simple = "0.11.5"
 p256 = { version = "0.13.2", features = ["jwk", "pem"] }
-chrono = "0.4.24"
+chrono = "0.4.26"
 odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git" }
 rand = "0.8.5"
 bytes = "1.4.0"
 urlencoding = "2.1.2"
-toml = { version = "0.7.3", default-features = false, features = ["parse"] }
-serde = "1.0.162"
-hashlink = "0.8.1"
+toml = { version = "0.7.4", default-features = false, features = ["parse"] }
+serde = "1.0.163"
+hashlink = "0.8.2"
 cedarwood = "0.4.6"
-regex = "1.8.1"
+regex = "1.8.3"
 rustc-hash = "1.1.0"
 
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
