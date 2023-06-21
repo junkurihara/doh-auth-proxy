@@ -25,7 +25,7 @@ services:
       - HOST_GID=501
     volumes:
       # Plugin Directory
-      - ./plugins:/opt/doh-auth-proxy/etc/plugins
+      - ./plugins:/modoh/plugins
       # Log Directory for the case of LOG_TO_FILE=true
       - ./log:/modoh/log
 

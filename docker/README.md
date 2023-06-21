@@ -44,8 +44,7 @@ ODOH_RELAY_RANDOMIZATION=true
 # CLIENT_ID=xxxxxxx # i.e., app_id
 
 ## Plugins
-# PLUGINS_DIR="./plugins"
-## Place below files in ${PLUGINS_DIR} directory
+## Place below files in your plugin directory mapped to /modoh/plugins inside the docker container
 # DOMAINS_BLOCKED_FILE="blocklist.txt"
 # DOMAINS_OVERRIDDEN_FILE="override.txt"
 ```
@@ -56,4 +55,4 @@ and execute `docker-compose` as
 % docker-compose up -d
 ```
 
-By this example, it listens at the port `50553` by default and outputs a log file to `./log` directory. You should configure params in `docker-compose.yml` as you like in addition to `.env`.
+By this example, it listens at the port `50553` by default, outputs a log file to `./log` directory mapped to `/modoh/log`, the plugins directory on your host must be mapped to `/modoh/plugins` of the container. You should configure params in `docker-compose.yml` as you like in addition to `.env`.
