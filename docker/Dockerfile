@@ -29,25 +29,26 @@ RUN apt-get update && apt-get install -qy --no-install-recommends $BUILD_DEPS &&
 FROM base AS runner
 LABEL maintainer="Jun Kurihara"
 
-ENV RUNTIME_DEPS logrotate ca-certificates
+ENV RUNTIME_DEPS logrotate ca-certificates gosu
 
 RUN apt-get update && \
     apt-get install -qy --no-install-recommends $RUNTIME_DEPS && \
     apt-get -qy clean && \
     rm -fr /tmp/* /var/tmp/* /var/cache/apt/* /var/lib/apt/lists/* /var/log/apt/* /var/log/*.log &&\
-    mkdir -p /opt/doh-auth-proxy/sbin &&\
-    mkdir -p /var/log/doh-auth-proxy && \
-    touch /var/log/doh-auth-proxy.log
+    find / -type d -path /proc -prune -o -type f -perm /u+s -ignore_readdir_race -exec chmod u-s {} \; && \
+    find / -type d -path /proc -prune -o -type f -perm /g+s -ignore_readdir_race -exec chmod g-s {} \; && \
+    mkdir -p /modoh/bin &&\
+    mkdir -p /modoh/log
 
-COPY --from=builder /tmp/target/release/doh-auth-proxy /opt/doh-auth-proxy/sbin/doh-auth-proxy
-COPY docker-bin/run.sh /
-COPY docker-bin/entrypoint.sh /
+COPY --from=builder /tmp/target/release/doh-auth-proxy /modoh/bin/doh-auth-proxy
+COPY ./docker/run.sh /modoh
+COPY ./docker/entrypoint.sh /modoh
 
-RUN chmod 755 /run.sh && \
-    chmod 755 /entrypoint.sh
+RUN chmod +x /modoh/run.sh && \
+    chmod +x /modoh/entrypoint.sh
 
 EXPOSE 53/udp 53/tcp
 
-CMD ["/entrypoint.sh"]
+CMD ["/usr/bin/bash", "/modoh/entrypoint.sh"]
 
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/bash", "/modoh/entrypoint.sh"]

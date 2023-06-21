@@ -232,58 +232,9 @@ odoh_relay_randomization = true
 
 ## Docker container
 
-You can run this proxy as a docker container, where the docker image is hosted at [Docker Hub](https://hub.docker.com/r/jqtype/doh-auth-proxy). You can run the docker container by appropriately configure `.env` file as
+You can run this proxy as a docker container, where the docker image is hosted at [Docker Hub](https://hub.docker.com/r/jqtype/doh-auth-proxy). You can run the docker container by appropriately configure env vers or an env file imported by the container.
 
-```:.env
-## Common to DoH and ODoH
-### Required
-# TARGET_URLS=https://dns.google/dns-query
-TARGET_URLS=https://odoh.cloudflare-dns.com/dns-query
-LOG_DIR=./log
-
-### Optional
-TARGET_RANDOMIZATION=true
-BOOTSTRAP_DNS_ADDR=1.1.1.1
-BOOTSTRAP_DNS_PORT=53
-DEBUG=true # If set, it outputs debug log
-LOG_NUM=3
-LOG_SIZE=10M
-
-## ODoH
-## If specified, ODoH is enabled.
-ODOH_RELAY_URLS=https://odoh1.surfdomeinen.nl/proxy
-ODOH_RELAY_RANDOMIZATION=true
-
-## Mutualized ODoH
-## If specified, ODoH queries are transferred over multiple hops,
-## where the first hop (nexthop) is always ODOH_RELAY_URL as a trusted relay.
-## ODOH_RELAY_URL must be specified.
-# MODOH_MID_RELAY_URLS=https://relay1.example.com/proxy,https://relay2.example.com/proxy
-# MODOH_MAX_MID_RELAYS=2
-
-## Authentication at the nexthop
-## If specified, authentication is enabled at
-## - DoH: Target DoH server, i.e., TARGET_URL.
-## - ODoH/Mutualized ODoH: Nexthop relay url, i.e., ODOH_RELAY_URL.
-# TOKEN_API=https://xxx.token.com/v1.0 # i.e., token issuer
-# USERNAME=user
-# PASSWORD=password
-# CLIENT_ID=xxxxxxx # i.e., app_id
-
-## Plugins
-# PLUGINS_DIR="./plugins"
-## Place below files in ${PLUGINS_DIR} directory
-# DOMAINS_BLOCKED_FILE="blocklist.txt"
-# DOMAINS_OVERRIDDEN_FILE="override.txt"
-```
-
-and execute `docker-compose` as
-
-```shell
-% docker-compose up -d
-```
-
-which listens at the port `50553` as default and outputs a log file to `./log` directory. You should configure params in `docker-compose.yml` as you like in addition to `.env`.
+See the [`./docker/](./docker) directory and [`./docker/README.md`](./docker/README.md) for the detailed configuration for the docker container.
 
 ## Authentication at the next hop node (DoH target or ODoH relay)
 
