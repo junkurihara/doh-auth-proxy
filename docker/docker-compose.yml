@@ -5,9 +5,10 @@ services:
     container_name: doh-auth-proxy
     ## Uncomment if you build by yourself
     build:
-      context: ./
+      context: ../
+      dockerfile: ./docker/Dockerfile
+    init: true
     restart: unless-stopped
-    env_file: .env
     ports:
       - 50053:53/udp
       - 50053:53/tcp
@@ -15,10 +16,18 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    env_file: .env
+    environment:
+      - LOG_LEVEL=debug # debug|info|warn|error
+      - LOG_TO_FILE=true
+      - HOST_USER=jun
+      - HOST_UID=501
+      - HOST_GID=501
     volumes:
-      - ${PLUGINS_DIR}:/opt/doh-auth-proxy/etc/plugins
-      - ./.env:/opt/doh-auth-proxy/etc/.env
-      - ${LOG_DIR}:/var/log/doh-auth-proxy
+      # Plugin Directory
+      - ./plugins:/opt/doh-auth-proxy/etc/plugins
+      # Log Directory for the case of LOG_TO_FILE=true
+      - ./log:/modoh/log
 
   # watchtower:
   #   image: containrrr/watchtower

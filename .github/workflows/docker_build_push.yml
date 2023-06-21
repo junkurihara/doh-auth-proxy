@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - develop
 
 jobs:
   build_and_push:
@@ -24,11 +25,22 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push
+      - name: Release Build and push x86_64
+        if: ${{ env.BRANCH == 'main' }}
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
-          file: ./Dockerfile
+          file: ./docker/Dockerfile
+
+      - name: Nightly build and push x86_64
+        if: ${{ env.BRANCH == 'develop' }}
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:nightly
+          file: ./docker/Dockerfile

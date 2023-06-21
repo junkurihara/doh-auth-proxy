@@ -13,8 +13,12 @@
 You should also include the user name that made the change.
 -->
 
-## 0.1.x (unreleased)
+## 0.1.6 (unreleased)
 
+### Improvements
+
+- Docker UID:GID: Update Dockerfiles to allow arbitrary UID and GID (non-root users) for rpxy. Now they can be set as you like by specifying through env vars.
+- Refactor: Various minor improvements
 
 ## 0.1.5 (Jun. 6, 2022)
 ### Improvements
