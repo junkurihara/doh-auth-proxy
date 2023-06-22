@@ -4,9 +4,9 @@ use crate::{
   error::*,
   globals::Globals,
   servers::{TCPServer, UDPServer},
+  log::*
 };
 use futures::future::{join_all, select_all};
-use log::*;
 use std::sync::Arc;
 use tokio::time::{sleep, Duration};
 

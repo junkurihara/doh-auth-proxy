@@ -16,26 +16,9 @@ mod plugins;
 mod proxy;
 mod servers;
 use crate::{config::parse_opts, log::*, proxy::Proxy};
-// use std::env;
-use std::io::Write;
 
 fn main() {
-  // env::set_var("RUST_LOG", "info");
-  env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
-    .format(|buf, record| {
-      let ts = buf.timestamp();
-      writeln!(
-        buf,
-        "{} [{}] {}",
-        ts,
-        record.level(),
-        // record.target(),
-        record.args(),
-        // record.file().unwrap_or("unknown"),
-        // record.line().unwrap_or(0),
-      )
-    })
-    .init();
+  init_logger();
   info!("Start DoH w/ Auth Proxy");
 
   let mut runtime_builder = tokio::runtime::Builder::new_multi_thread();
