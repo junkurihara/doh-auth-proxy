@@ -1,5 +1,11 @@
 # doh-auth-proxy
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Unit Test](https://github.com/junkurihara/doh-auth-proxy/actions/workflows/test.yml/badge.svg)
+![Build and Publish Docker](https://github.com/junkurihara/doh-auth-proxy/actions/workflows/docker_build_push.yml/badge.svg)
+![ShiftLeft Scan](https://github.com/junkurihara/doh-auth-proxy/actions/workflows/shiftleft-analysis.yml/badge.svg)
+[![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/jqtype/doh-auth-proxy)](https://hub.docker.com/r/jqtype/doh-auth-proxy)
+
 Local proxy for DoH, Oblivious DoH and ODoH-based Mutualized Oblivious DNS (ODoH-based &mu;ODNS; &mu;ODoH) supporting super-fast domain-based blocking and authenticated connection, written in Rust.
 
 > **NOTE: For &mu;ODNS, please see also [https://junkurihara.github.io/dns/](https://junkurihara.github.io/dns/) and other repositories listed there.**
