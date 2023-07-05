@@ -30,12 +30,12 @@ edition = "2021"
 
 [dependencies]
 data-encoding = "2.4.0"
-clap = { version = "4.3.8", default-features = false, features = [
+clap = { version = "4.3.10", default-features = false, features = [
   "std",
   "cargo",
   "wrap_help",
 ] }
-tokio = { version = "1.29.0", features = [
+tokio = { version = "1.29.1", features = [
   "net",
   "rt-multi-thread",
   "parking_lot",
@@ -50,7 +50,7 @@ trust-dns-proto = { version = "0.22.0", default-features = false }
 trust-dns-resolver = { version = "0.22.0", default-features = false }
 anyhow = "1.0.71"
 dotenv = "0.15.0"
-serde_json = "1.0.99"
+serde_json = "1.0.100"
 jwt-simple = "0.11.5"
 p256 = { version = "0.13.2", features = ["jwk", "pem"] }
 chrono = "0.4.26"
@@ -59,7 +59,7 @@ rand = "0.8.5"
 bytes = "1.4.0"
 urlencoding = "2.1.2"
 toml = { version = "0.7.5", default-features = false, features = ["parse"] }
-serde = "1.0.164"
+serde = "1.0.166"
 hashlink = "0.8.3"
 cedarwood = "0.4.6"
 regex = "1.8.4"
