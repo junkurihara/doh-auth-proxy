@@ -11,7 +11,7 @@ use std::{net::SocketAddr, sync::Arc};
 use tokio::{sync::RwLock, time::Duration};
 
 #[derive(Debug, Clone)]
-pub struct Globals {
+pub struct ProxyContext {
   pub listen_addresses: Vec<SocketAddr>,
   pub udp_buffer_size: usize,
   pub udp_channel_capacity: usize,
@@ -41,7 +41,7 @@ pub struct Globals {
   pub cache: Arc<Cache>,
 }
 
-impl Globals {
+impl ProxyContext {
   // This updates doh_client in globals.rw in order to
   // - re-fetch the resolver address by the bootstrap DNS (Do53)
   // - re-fetch the ODoH configs when ODoH

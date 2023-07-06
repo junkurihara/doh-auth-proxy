@@ -1,5 +1,5 @@
 use super::counter::CounterType;
-use crate::{error::*, globals::Globals, log::*};
+use crate::{context::ProxyContext, error::*, log::*};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{
   io::{AsyncReadExt, AsyncWriteExt},
@@ -8,7 +8,7 @@ use tokio::{
 
 #[derive(Clone)]
 pub struct TCPServer {
-  pub globals: Arc<Globals>,
+  pub globals: Arc<ProxyContext>,
 }
 
 impl TCPServer {

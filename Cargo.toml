@@ -1,7 +1,7 @@
 [package]
 name = "doh-auth-proxy"
 description = "DNS Proxy for DoH, ODoH and Mutualized ODoH with Authorization"
-version = "0.1.6"
+version = "0.2.0"
 authors = ["Jun Kurihara"]
 homepage = "https://github.com/junkurihara/doh-auth-proxy"
 repository = "https://github.com/junkurihara/doh-auth-proxy"
@@ -30,7 +30,7 @@ edition = "2021"
 
 [dependencies]
 data-encoding = "2.4.0"
-clap = { version = "4.3.10", default-features = false, features = [
+clap = { version = "4.3.11", default-features = false, features = [
   "std",
   "cargo",
   "wrap_help",
@@ -38,13 +38,16 @@ clap = { version = "4.3.10", default-features = false, features = [
 tokio = { version = "1.29.1", features = [
   "net",
   "rt-multi-thread",
-  "parking_lot",
   "time",
   "sync",
   "macros",
 ] }
 futures = { version = "0.3.28", default-features = false }
-reqwest = { version = "0.11.18", features = ["default", "trust-dns", "json"] }
+reqwest = { version = "0.11.18", default-features = false, features = [
+  "default",
+  "trust-dns",
+  "json",
+] }
 url = "2.4.0"
 trust-dns-proto = { version = "0.22.0", default-features = false }
 trust-dns-resolver = { version = "0.22.0", default-features = false }
@@ -58,11 +61,11 @@ odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git" }
 rand = "0.8.5"
 bytes = "1.4.0"
 urlencoding = "2.1.2"
-toml = { version = "0.7.5", default-features = false, features = ["parse"] }
+toml = { version = "0.7.6", default-features = false, features = ["parse"] }
 serde = "1.0.166"
 hashlink = "0.8.3"
 cedarwood = "0.4.6"
-regex = "1.8.4"
+regex = "1.9.0"
 rustc-hash = "1.1.0"
 
 # logging

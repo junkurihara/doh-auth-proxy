@@ -2,8 +2,8 @@ use super::{config_toml::ConfigToml, utils_verifier::*};
 use crate::{
   client::{Cache, Credential, DoHMethod},
   constants::*,
+  context::ProxyContext,
   error::*,
-  globals::Globals,
   log::*,
   plugins::{DomainBlockRule, DomainOverrideRule, QueryPlugin, QueryPluginsApplied},
 };
@@ -11,7 +11,7 @@ use clap::Arg;
 use std::{env, fs, sync::Arc};
 use tokio::{runtime::Handle, sync::RwLock, time::Duration};
 
-pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
+pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<ProxyContext>> {
   let _ = include_str!("../../Cargo.toml");
   let options = clap::command!().arg(
     Arg::new("config_file")
@@ -26,7 +26,7 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<Globals>> {
   ///////////////////////////////
   // format with initial value //
   ///////////////////////////////
-  let mut globals_local = Globals {
+  let mut globals_local = ProxyContext {
     listen_addresses: LISTEN_ADDRESSES.to_vec().iter().map(|x| x.parse().unwrap()).collect(),
     udp_buffer_size: UDP_BUFFER_SIZE,
     udp_channel_capacity: UDP_CHANNEL_CAPACITY,

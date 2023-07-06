@@ -9,7 +9,7 @@
 */
 
 use super::http_bootstrap::HttpClient;
-use crate::{constants::*, error::*, globals::Globals, log::*};
+use crate::{constants::*, context::ProxyContext, error::*, log::*};
 use chrono::{DateTime, Local};
 use jwt_simple::prelude::*;
 use p256::elliptic_curve::sec1::ToEncodedPoint;
@@ -48,7 +48,7 @@ impl Credential {
     self.id_token.clone()
   }
 
-  pub async fn login(&mut self, globals: &Arc<Globals>) -> Result<()> {
+  pub async fn login(&mut self, globals: &Arc<ProxyContext>) -> Result<()> {
     // token endpoint is resolved via bootstrap DNS resolver
     let token_endpoint = format!("{}{}", self.token_api, ENDPOINT_LOGIN_PATH);
     let client = HttpClient::new(globals, &token_endpoint, None, true).await?.client;
@@ -101,7 +101,7 @@ impl Credential {
     Ok(())
   }
 
-  pub async fn refresh(&mut self, globals: &Arc<Globals>) -> Result<()> {
+  pub async fn refresh(&mut self, globals: &Arc<ProxyContext>) -> Result<()> {
     // refresh endpoint is NOT resolved via configured system DNS resolver. resolve by proxy itself
     let refresh_endpoint = format!("{}{}", self.token_api, ENDPOINT_REFRESH_PATH);
     let client = HttpClient::new(globals, &refresh_endpoint, None, false).await?.client;
@@ -150,7 +150,7 @@ impl Credential {
 
   async fn update_validation_key_matched_to_key_id(
     &mut self,
-    globals: &Arc<Globals>,
+    globals: &Arc<ProxyContext>,
     meta: TokenMetadata,
   ) -> Result<()> {
     let jwks_endpoint = format!("{}{}", self.token_api, ENDPOINT_JWKS_PATH);

@@ -1,11 +1,11 @@
 use super::counter::CounterType;
-use crate::{error::*, globals::Globals, log::*};
+use crate::{context::ProxyContext, error::*, log::*};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{net::UdpSocket, sync::mpsc, time::Duration};
 
 #[derive(Clone)]
 pub struct UDPServer {
-  pub globals: Arc<Globals>,
+  pub globals: Arc<ProxyContext>,
 }
 
 impl UDPServer {

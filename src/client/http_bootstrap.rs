@@ -1,4 +1,4 @@
-use crate::{error::*, globals::Globals, log::*};
+use crate::{context::ProxyContext, error::*, log::*};
 use reqwest::header::HeaderMap;
 use std::{net::SocketAddr, sync::Arc};
 use trust_dns_resolver::{config::*, TokioAsyncResolver};
@@ -13,7 +13,7 @@ pub struct HttpClient {
 
 impl HttpClient {
   pub async fn new(
-    globals: &Arc<Globals>,
+    globals: &Arc<ProxyContext>,
     endpoint: &str,
     default_headers: Option<&HeaderMap>,
     resolve_endpoint_by_system: bool,

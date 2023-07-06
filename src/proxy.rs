@@ -1,10 +1,9 @@
 use crate::{
-  client::Credential,
   constants::*,
+  context::ProxyContext,
   error::*,
-  globals::Globals,
+  log::*,
   servers::{TCPServer, UDPServer},
-  log::*
 };
 use futures::future::{join_all, select_all};
 use std::sync::Arc;
@@ -12,23 +11,16 @@ use tokio::time::{sleep, Duration};
 
 #[derive(Debug, Clone)]
 pub struct Proxy {
-  pub globals: Arc<Globals>,
+  pub globals: Arc<ProxyContext>,
 }
 
 impl Proxy {
-  async fn get_credential_clone(&self) -> Option<Credential> {
-    self.globals.credential.read().await.clone()
-  }
-
   // TODO: Should login to relay when odoh
   async fn authenticate(&self) -> Result<()> {
     // Read credential first
-    let mut credential = match self.get_credential_clone().await {
-      None => {
-        // No credential is set (no authorization server)
-        return Ok(());
-      }
-      Some(c) => c,
+    let Some(mut credential) = self.globals.credential.read().await.clone() else {
+      // No credential is set (no authorization server)
+      return Ok(());
     };
     credential.login(&self.globals).await?;
     {
@@ -69,8 +61,8 @@ impl Proxy {
     Ok(())
   }
 
-  async fn run_periodic_rebootstrap(self) {
-    debug!("Start periodic rebootstrap process to acquire target URL IP Addr");
+  async fn client_refresh_service(&self) {
+    debug!("Start periodic re-bootstrap process to acquire target URL IP Addr");
 
     let period = self.globals.rebootstrap_period_sec;
     loop {
@@ -86,7 +78,7 @@ impl Proxy {
     }
   }
 
-  async fn run_periodic_token_refresh(self) {
+  async fn token_refresh_service(&self) {
     // read current token in globals.rw, check its expiration, and set period
     debug!("Start periodic expiration-check and refresh process of Id token");
     let mut retry_login = 0;
@@ -116,13 +108,9 @@ impl Proxy {
       {
         // every XX secs, check credential expiration (recovery from hibernation...)
         sleep(Duration::from_secs(CREDENTIAL_CHECK_PERIOD_SECS)).await;
-        let credential = {
-          if let Some(c) = self.get_credential_clone().await {
-            c
-          } else {
-            // No need to refresh, stash thread
-            return;
-          }
+        let Some(credential) = self.globals.credential.read().await.clone() else {
+          // No need to refresh, stash thread
+          return;
         };
         match credential.id_token_expires_in_secs().await {
           Ok(secs) => {
@@ -167,7 +155,7 @@ impl Proxy {
     }
   }
 
-  pub async fn entrypoint(self) -> Result<()> {
+  pub async fn entrypoint(&self) -> Result<()> {
     // 1. prepare authorization
     {
       // TODO: 一番初めにログインさせるのが本当にいいのかは疑問。token持つだけの方がいい？
@@ -184,25 +172,9 @@ impl Proxy {
       }
     }
 
-    // spawn a thread to periodically refresh token if credential is given
-    {
-      self
-        .globals
-        .runtime_handle
-        .spawn(self.clone().run_periodic_token_refresh());
-    }
-
-    // spawn a process to periodically update the DoH client via global.bootstrap_dns
-    {
-      self
-        .globals
-        .runtime_handle
-        .spawn(self.clone().run_periodic_rebootstrap());
-    }
-
     // handle TCP and UDP servers on listen socket addresses
     let addresses = self.globals.listen_addresses.clone();
-    let futures = select_all(addresses.into_iter().flat_map(|addr| {
+    let udp_tcp_services = select_all(addresses.into_iter().flat_map(|addr| {
       info!("Listen address: {:?}", addr);
 
       // TCP server here
@@ -221,17 +193,33 @@ impl Proxy {
         self.globals.runtime_handle.spawn(tcp_server.start(addr)),
       ]
     }));
-    // .collect::<Vec<_>>();
 
-    // wait for all future
-    if let (Ok(_), _, _) = futures.await {
-      error!("Some packet acceptors are down");
-    };
-
-    // for f in futures {
-    //   // await for each future
-    //   let _ = f.await;
-    // }
+    if self.globals.credential.read().await.is_none() {
+      debug!("No credential found");
+      tokio::select! {
+        _ = udp_tcp_services => {
+          error!("Some packet acceptors got down");
+        }
+        // Periodic rebootstrap for client refresh to get IP addr for the next hop url
+        _ = self.client_refresh_service() => {
+          error!("Rebootstrapping task got down");
+        }
+      }
+    } else {
+      tokio::select! {
+        _ = udp_tcp_services => {
+          error!("Some packet acceptors got down");
+        }
+        // Periodic rebootstrap for client refresh to get IP addr for the next hop url
+        _ = self.client_refresh_service() => {
+          error!("Rebootstrapping task got down");
+        }
+        // Periodic token retrieval when authentication is enabled
+        _ = self.token_refresh_service() => {
+          error!("Token refreshing task got down");
+        }
+      }
+    }
 
     Ok(())
   }

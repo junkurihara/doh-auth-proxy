@@ -1,9 +1,9 @@
 use super::{cache::CacheObject, http_bootstrap::HttpClient, odoh::ODoHClientContext};
 use crate::{
   constants::*,
+  context::ProxyContext,
   dns_message::{self, Request},
   error::*,
-  globals::Globals,
   log::*,
   plugins,
 };
@@ -53,7 +53,7 @@ impl DoHClient {
   pub async fn new(
     target_url_str: &str,
     relay_urls_str: Option<Vec<String>>,
-    globals: Arc<Globals>,
+    globals: Arc<ProxyContext>,
     auth_token: &Option<String>,
   ) -> Result<Self> {
     let (doh_type, nexthop_urls) = match &relay_urls_str {
@@ -142,7 +142,7 @@ impl DoHClient {
 
   async fn fetch_odoh_config_from_well_known(
     target_url_str: &str,
-    globals: &Arc<Globals>,
+    globals: &Arc<ProxyContext>,
   ) -> Result<ODoHClientContext> {
     // TODO: Add auth token when fetching config?
     // fetch public key from odoh target (/.well-known)
@@ -166,7 +166,7 @@ impl DoHClient {
     ODoHClientContext::new(&body)
   }
 
-  pub async fn health_check(&self, globals: &Arc<Globals>) -> Result<()> {
+  pub async fn health_check(&self, globals: &Arc<ProxyContext>) -> Result<()> {
     let q_msg = dns_message::build_query_a(HEALTHCHECK_TARGET_FQDN)?;
     let packet_buf = dns_message::encode(&q_msg)?;
     let res = self.make_doh_query(&packet_buf, globals).await?;
@@ -229,7 +229,7 @@ impl DoHClient {
     dns_message::encode(&cached_msg)
   }
 
-  pub async fn make_doh_query(&self, packet_buf: &[u8], globals: &Arc<Globals>) -> Result<Vec<u8>> {
+  pub async fn make_doh_query(&self, packet_buf: &[u8], globals: &Arc<ProxyContext>) -> Result<Vec<u8>> {
     // Check if the given packet buffer is consistent as a DNS query
     let query_msg = dns_message::is_query(packet_buf).map_err(|_| anyhow!("Invalid DNS query"))?;
     // If error, should we build and return a synthetic reject response message?
@@ -314,7 +314,7 @@ impl DoHClient {
     Ok(body.to_vec())
   }
 
-  async fn serve_oblivious_doh_query(&self, packet_buf: &[u8], globals: &Arc<Globals>) -> Result<Vec<u8>> {
+  async fn serve_oblivious_doh_query(&self, packet_buf: &[u8], globals: &Arc<ProxyContext>) -> Result<Vec<u8>> {
     assert!(globals.odoh_relay_urls.is_some() && !self.clients.is_empty());
 
     let client_ctx = match &self.odoh_client_context {
@@ -382,7 +382,7 @@ impl DoHClient {
     Ok(dec_bytes.to_vec())
   }
 
-  fn get_randomized_mid_relay_str(&self, globals: &Arc<Globals>) -> Option<String> {
+  fn get_randomized_mid_relay_str(&self, globals: &Arc<ProxyContext>) -> Option<String> {
     // add randomized order of mu-ODoH intermediate relays
     let mut mid_relay_str = "".to_string();
     let max_mid_relays = &globals.max_mid_relays;
