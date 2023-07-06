@@ -37,9 +37,7 @@ pub struct Authentication {
 
 impl ConfigToml {
   pub fn new(config_file: &str) -> Result<Self> {
-    let config_str = if let Ok(s) = fs::read_to_string(config_file) {
-      s
-    } else {
+    let Ok(config_str) = fs::read_to_string(config_file) else {
       bail!("Failed to read config file");
     };
     let parsed: Result<ConfigToml> =
