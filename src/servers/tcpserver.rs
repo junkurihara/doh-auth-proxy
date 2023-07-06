@@ -8,17 +8,17 @@ use tokio::{
 
 #[derive(Clone)]
 pub struct TCPServer {
-  pub globals: Arc<ProxyContext>,
+  pub context: Arc<ProxyContext>,
 }
 
 impl TCPServer {
   async fn serve_query(self, mut stream: TcpStream, src_addr: SocketAddr) -> Result<()> {
     debug!("handle query from {:?}", src_addr);
-    let doh_client = self.globals.get_random_client().await?;
-    let counter = self.globals.counter.clone();
+    let doh_client = self.context.get_random_client().await?;
+    let counter = self.context.counter.clone();
 
-    if counter.increment(CounterType::Tcp) >= self.globals.max_connections {
-      error!("Too many connections: max = {} (udp+tcp)", self.globals.max_connections);
+    if counter.increment(CounterType::Tcp) >= self.context.max_connections {
+      error!("Too many connections: max = {} (udp+tcp)", self.context.max_connections);
       counter.decrement(CounterType::Tcp);
       bail!("Too many connections");
     }
@@ -35,9 +35,9 @@ impl TCPServer {
 
     // make DoH query
     let res = tokio::time::timeout(
-      self.globals.timeout_sec + std::time::Duration::from_secs(1),
+      self.context.timeout_sec + std::time::Duration::from_secs(1),
       // serve udp dns message here
-      doh_client.make_doh_query(&packet_buf, &self.globals),
+      doh_client.make_doh_query(&packet_buf, &self.context),
     )
     .await
     .ok();
@@ -72,7 +72,7 @@ impl TCPServer {
           Ok(res) => res,
         };
         let self_clone = self.clone();
-        self.globals.runtime_handle.spawn(async move {
+        self.context.runtime_handle.spawn(async move {
           if let Err(e) = self_clone.serve_query(stream, src_addr).await {
             error!("Failed to handle query: {}", e);
           }

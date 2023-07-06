@@ -13,23 +13,23 @@ pub struct HttpClient {
 
 impl HttpClient {
   pub async fn new(
-    globals: &Arc<ProxyContext>,
+    context: &Arc<ProxyContext>,
     endpoint: &str,
     default_headers: Option<&HeaderMap>,
     resolve_endpoint_by_system: bool,
   ) -> Result<Self> {
     let mut client = reqwest::Client::builder()
       .user_agent(format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")))
-      .timeout(globals.timeout_sec)
+      .timeout(context.timeout_sec)
       .trust_dns(true);
 
     client = if resolve_endpoint_by_system {
       let (target_host_str, target_addresses) =
-        resolve_by_bootstrap(&globals.bootstrap_dns, endpoint, globals.runtime_handle.clone()).await?;
+        resolve_by_bootstrap(&context.bootstrap_dns, endpoint, context.runtime_handle.clone()).await?;
       let target_addr = target_addresses[0];
       debug!(
         "Via bootstrap DNS [{:?}], endpoint {:?} resolved: {:?}",
-        &globals.bootstrap_dns, &endpoint, &target_addr
+        &context.bootstrap_dns, &endpoint, &target_addr
       );
       client.resolve(&target_host_str, target_addr)
     } else {

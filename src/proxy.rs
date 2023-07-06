@@ -11,26 +11,26 @@ use tokio::time::{sleep, Duration};
 
 #[derive(Debug, Clone)]
 pub struct Proxy {
-  pub globals: Arc<ProxyContext>,
+  pub context: Arc<ProxyContext>,
 }
 
 impl Proxy {
   // TODO: Should login to relay when odoh
   async fn authenticate(&self) -> Result<()> {
     // Read credential first
-    let Some(mut credential) = self.globals.credential.read().await.clone() else {
+    let Some(mut credential) = self.context.credential.read().await.clone() else {
       // No credential is set (no authorization server)
       return Ok(());
     };
-    credential.login(&self.globals).await?;
+    credential.login(&self.context).await?;
     {
-      *self.globals.credential.write().await = Some(credential);
+      *self.context.credential.write().await = Some(credential);
     }
     Ok(())
   }
 
   async fn update_client(&self) -> Result<()> {
-    self.globals.update_doh_client().await?;
+    self.context.update_doh_client().await?;
     if self.clients_health_check().await {
       info!("All pairs of client - destination are healthy");
     } else {
@@ -40,9 +40,9 @@ impl Proxy {
   }
 
   async fn clients_health_check(&self) -> bool {
-    match &self.globals.doh_clients.read().await.as_ref() {
+    match &self.context.doh_clients.read().await.as_ref() {
       Some(doh_clients) => {
-        let polls = doh_clients.iter().map(|client| client.health_check(&self.globals));
+        let polls = doh_clients.iter().map(|client| client.health_check(&self.context));
         join_all(polls).await.iter().all(|r| match r {
           Ok(()) => true,
           Err(e) => {
@@ -57,14 +57,14 @@ impl Proxy {
 
   // TODO: update id_token for odoh_relay when odoh
   async fn update_id_token(&self) -> Result<()> {
-    self.globals.update_credential().await?;
+    self.context.update_credential().await?;
     Ok(())
   }
 
   async fn client_refresh_service(&self) {
     debug!("Start periodic re-bootstrap process to acquire target URL IP Addr");
 
-    let period = self.globals.rebootstrap_period_sec;
+    let period = self.context.rebootstrap_period_sec;
     loop {
       sleep(period).await;
       match self.update_client().await {
@@ -73,7 +73,7 @@ impl Proxy {
       };
 
       // cache handling here to remove expired entries
-      let purged = self.globals.cache.purge_expired_entries().await;
+      let purged = self.context.cache.purge_expired_entries().await;
       debug!("Purged expired cached content: {} entries", purged);
     }
   }
@@ -108,7 +108,7 @@ impl Proxy {
       {
         // every XX secs, check credential expiration (recovery from hibernation...)
         sleep(Duration::from_secs(CREDENTIAL_CHECK_PERIOD_SECS)).await;
-        let Some(credential) = self.globals.credential.read().await.clone() else {
+        let Some(credential) = self.context.credential.read().await.clone() else {
           // No need to refresh, stash thread
           return;
         };
@@ -173,28 +173,28 @@ impl Proxy {
     }
 
     // handle TCP and UDP servers on listen socket addresses
-    let addresses = self.globals.listen_addresses.clone();
+    let addresses = self.context.listen_addresses.clone();
     let udp_tcp_services = select_all(addresses.into_iter().flat_map(|addr| {
       info!("Listen address: {:?}", addr);
 
       // TCP server here
       let tcp_server = TCPServer {
-        globals: self.globals.clone(),
+        context: self.context.clone(),
       };
 
       // UDP server here
       let udp_server = UDPServer {
-        globals: self.globals.clone(),
+        context: self.context.clone(),
       };
 
       // spawn as a tuple of (udp, tcp) for each socket address
       vec![
-        self.globals.runtime_handle.spawn(udp_server.start(addr)),
-        self.globals.runtime_handle.spawn(tcp_server.start(addr)),
+        self.context.runtime_handle.spawn(udp_server.start(addr)),
+        self.context.runtime_handle.spawn(tcp_server.start(addr)),
       ]
     }));
 
-    if self.globals.credential.read().await.is_none() {
+    if self.context.credential.read().await.is_none() {
       debug!("No credential found");
       tokio::select! {
         _ = udp_tcp_services => {

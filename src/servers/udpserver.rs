@@ -5,7 +5,7 @@ use tokio::{net::UdpSocket, sync::mpsc, time::Duration};
 
 #[derive(Clone)]
 pub struct UDPServer {
-  pub globals: Arc<ProxyContext>,
+  pub context: Arc<ProxyContext>,
 }
 
 impl UDPServer {
@@ -15,21 +15,21 @@ impl UDPServer {
     src_addr: std::net::SocketAddr,
     res_sender: mpsc::Sender<(Vec<u8>, std::net::SocketAddr)>,
   ) -> Result<()> {
-    let doh_client = self.globals.get_random_client().await?;
-    let counter = self.globals.counter.clone();
+    let doh_client = self.context.get_random_client().await?;
+    let counter = self.context.counter.clone();
 
-    if counter.increment(CounterType::Udp) >= self.globals.max_connections {
-      error!("Too many connections: max = {} (udp+tcp)", self.globals.max_connections);
+    if counter.increment(CounterType::Udp) >= self.context.max_connections {
+      error!("Too many connections: max = {} (udp+tcp)", self.context.max_connections);
       counter.decrement(CounterType::Udp);
       bail!("Too many connections");
     }
 
-    self.globals.runtime_handle.clone().spawn(async move {
+    self.context.runtime_handle.clone().spawn(async move {
       debug!("handle query from {:?}", src_addr);
       let res = tokio::time::timeout(
-        self.globals.timeout_sec + Duration::from_secs(1),
+        self.context.timeout_sec + Duration::from_secs(1),
         // serve udp dns message here
-        doh_client.make_doh_query(&packet_buf, &self.globals),
+        doh_client.make_doh_query(&packet_buf, &self.context),
       )
       .await
       .ok();
@@ -75,7 +75,7 @@ impl UDPServer {
 
   pub async fn start(self, listen_address: SocketAddr) -> Result<()> {
     // setup a channel for sending out responses
-    let (channel_sender, channel_receiver) = mpsc::channel::<(Vec<u8>, SocketAddr)>(self.globals.udp_channel_capacity);
+    let (channel_sender, channel_receiver) = mpsc::channel::<(Vec<u8>, SocketAddr)>(self.context.udp_channel_capacity);
 
     let udp_socket = UdpSocket::bind(&listen_address).await?;
     // .map_err(DoHError::Io)?;
@@ -88,12 +88,12 @@ impl UDPServer {
     let socket_receiver = socket_sender.clone();
     // create sender thread that sends out response given through channel
     self
-      .globals
+      .context
       .runtime_handle
       .spawn(self.clone().respond_to_src(socket_sender, channel_receiver));
 
     // Setup buffer
-    let mut udp_buf = vec![0u8; self.globals.udp_buffer_size];
+    let mut udp_buf = vec![0u8; self.context.udp_buffer_size];
 
     // receive from src
     let udp_socket_service = async {
@@ -110,7 +110,7 @@ impl UDPServer {
         let self_clone = self.clone();
         let channel_sender_clone = channel_sender.clone();
         self
-          .globals
+          .context
           .runtime_handle
           .spawn(async move { self_clone.serve_query(packet_buf, src_addr, channel_sender_clone).await });
       }

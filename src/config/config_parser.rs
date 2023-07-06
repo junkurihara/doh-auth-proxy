@@ -26,7 +26,7 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<ProxyContext>> {
   ///////////////////////////////
   // format with initial value //
   ///////////////////////////////
-  let mut globals_local = ProxyContext {
+  let mut context_local = ProxyContext {
     listen_addresses: LISTEN_ADDRESSES.to_vec().iter().map(|x| x.parse().unwrap()).collect(),
     udp_buffer_size: UDP_BUFFER_SIZE,
     udp_channel_capacity: UDP_CHANNEL_CAPACITY,
@@ -67,7 +67,7 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<ProxyContext>> {
   /////////////////////////////
   // listen addresses
   if let Some(val) = config.listen_addresses {
-    globals_local.listen_addresses = val
+    context_local.listen_addresses = val
       .iter()
       .map(|x| {
         if verify_sock_addr(x.clone()).is_err() {
@@ -84,23 +84,23 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<ProxyContext>> {
     if verify_sock_addr(val.clone()).is_err() {
       panic!("Invalid bootstrap DNS address");
     }
-    globals_local.bootstrap_dns = val.parse().unwrap()
+    context_local.bootstrap_dns = val.parse().unwrap()
   };
-  info!("Bootstrap DNS: {:?}", globals_local.bootstrap_dns);
+  info!("Bootstrap DNS: {:?}", context_local.bootstrap_dns);
   if let Some(val) = config.reboot_period {
-    globals_local.rebootstrap_period_sec = Duration::from_secs((val as u64) * 60);
+    context_local.rebootstrap_period_sec = Duration::from_secs((val as u64) * 60);
   }
   info!(
     "Target DoH Address is re-fetched every {:?} min",
-    globals_local.rebootstrap_period_sec.as_secs() / 60
+    context_local.rebootstrap_period_sec.as_secs() / 60
   );
 
   /////////////////////////////
   // cache size
   if let Some(val) = config.max_cache_size {
-    globals_local.cache = Arc::new(Cache::new(val));
+    context_local.cache = Arc::new(Cache::new(val));
   }
-  info!("Max cache size: {} (entries)", globals_local.cache.max_size);
+  info!("Max cache size: {} (entries)", context_local.cache.max_size);
 
   /////////////////////////////
   // DoH target and method
@@ -108,20 +108,20 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<ProxyContext>> {
     if !val.iter().all(|x| verify_target_url(x.to_string()).is_ok()) {
       bail!("Invalid target urls");
     }
-    globals_local.doh_target_urls = val;
+    context_local.doh_target_urls = val;
   }
-  info!("Target (O)DoH resolvers: {:?}", globals_local.doh_target_urls);
+  info!("Target (O)DoH resolvers: {:?}", context_local.doh_target_urls);
   if let Some(val) = config.target_randomization {
     if !val {
-      globals_local.target_randomization = false
+      context_local.target_randomization = false
     }
   }
-  if globals_local.target_randomization {
+  if context_local.target_randomization {
     info!("Target randomization is enabled");
   }
   if let Some(val) = config.use_get_method {
     if val {
-      globals_local.doh_method = DoHMethod::Get;
+      context_local.doh_method = DoHMethod::Get;
       info!("Use GET method for query");
     }
   }
@@ -154,7 +154,7 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<ProxyContext>> {
     }
   };
 
-  globals_local.query_plugins = Some(plugins_applied);
+  context_local.query_plugins = Some(plugins_applied);
 
   /////////////////////////////
   // Anonymization
@@ -163,17 +163,17 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<ProxyContext>> {
       if !odoh_relay_urls.iter().all(|x| verify_target_url(x.to_string()).is_ok()) {
         bail!("Invalid ODoH relay urls");
       }
-      globals_local.odoh_relay_urls = Some(odoh_relay_urls);
+      context_local.odoh_relay_urls = Some(odoh_relay_urls);
       info!("[ODoH] Oblivious DNS over HTTPS is enabled");
       info!(
         "[ODoH] Nexthop relay URL: {:?}",
-        globals_local.odoh_relay_urls.clone().unwrap()
+        context_local.odoh_relay_urls.clone().unwrap()
       );
 
       if let Some(val) = anon.odoh_relay_randomization {
-        globals_local.odoh_relay_randomization = val;
+        context_local.odoh_relay_randomization = val;
       }
-      if globals_local.odoh_relay_randomization {
+      if context_local.odoh_relay_randomization {
         info!("ODoH relay randomization is enabled");
       }
 
@@ -182,27 +182,27 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<ProxyContext>> {
           bail!("Invalid mid relay urls");
         }
         if !val.is_empty() {
-          globals_local.mid_relay_urls = Some(val);
+          context_local.mid_relay_urls = Some(val);
         }
       }
       if let Some(val) = anon.max_mid_relays {
-        globals_local.max_mid_relays = val;
-      } else if globals_local.mid_relay_urls.is_some() {
-        globals_local.max_mid_relays = 1usize;
+        context_local.max_mid_relays = val;
+      } else if context_local.mid_relay_urls.is_some() {
+        context_local.max_mid_relays = 1usize;
       } else {
-        globals_local.max_mid_relays = 0usize;
+        context_local.max_mid_relays = 0usize;
       }
-      if let Some(v) = globals_local.mid_relay_urls.clone() {
-        if globals_local.max_mid_relays > v.len() {
+      if let Some(v) = context_local.mid_relay_urls.clone() {
+        if context_local.max_mid_relays > v.len() {
           bail!("max_mid_relays must be equal to or less than # of mid_relay_urls.");
         }
       }
 
-      if globals_local.mid_relay_urls.is_some() {
+      if context_local.mid_relay_urls.is_some() {
         info!("[m-ODoH] Multiple-relay-based Oblivious DNS over HTTPS is enabled");
         info!(
           "[m-ODoH] Intermediate relay URLs employed after the next hop: {:?}",
-          globals_local.mid_relay_urls.clone().unwrap()
+          context_local.mid_relay_urls.clone().unwrap()
         );
         info!(
           "[m-ODoH] Maximum number of intermediate relays after the nexthop: {}",
@@ -253,13 +253,13 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<ProxyContext>> {
 
   ////////////////////////
 
-  if let (Some(_), Some(_)) = (&credential, &globals_local.odoh_relay_urls) {
+  if let (Some(_), Some(_)) = (&credential, &context_local.odoh_relay_urls) {
     warn!("-----------------------------------");
     warn!("[NOTE!!!!] Both credential and ODoH nexthop proxy is set up.");
     warn!("[NOTE!!!!] This means the authorization token will be sent not to the target but to the proxy.");
     warn!("[NOTE!!!!] Check if this is your intended behavior.");
     warn!("-----------------------------------");
-  } else if let (Some(_), None) = (&credential, &globals_local.odoh_relay_urls) {
+  } else if let (Some(_), None) = (&credential, &context_local.odoh_relay_urls) {
     warn!("-----------------------------------");
     warn!("[NOTE!!!!] Authorization token will be sent to the target server!");
     warn!("[NOTE!!!!] Check if this is your intended behavior.");
@@ -267,9 +267,9 @@ pub async fn parse_opts(runtime_handle: &Handle) -> Result<Arc<ProxyContext>> {
   }
   ////////////////////////
 
-  *globals_local.credential.write().await = credential.clone();
+  *context_local.credential.write().await = credential.clone();
 
-  let globals = Arc::new(globals_local);
+  let context = Arc::new(context_local);
 
-  Ok(globals)
+  Ok(context)
 }

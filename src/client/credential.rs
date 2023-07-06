@@ -48,11 +48,11 @@ impl Credential {
     self.id_token.clone()
   }
 
-  pub async fn login(&mut self, globals: &Arc<ProxyContext>) -> Result<()> {
+  pub async fn login(&mut self, context: &Arc<ProxyContext>) -> Result<()> {
     // token endpoint is resolved via bootstrap DNS resolver
     let token_endpoint = format!("{}{}", self.token_api, ENDPOINT_LOGIN_PATH);
-    let client = HttpClient::new(globals, &token_endpoint, None, true).await?.client;
-    // let client = http_client_resolved_by_bootstrap(&token_endpoint, globals, None).await?;
+    let client = HttpClient::new(context, &token_endpoint, None, true).await?.client;
+    // let client = http_client_resolved_by_bootstrap(&token_endpoint, context, None).await?;
 
     // TODO: maybe define as a struct for strongly typed definition
     let json_request = format!(
@@ -88,7 +88,7 @@ impl Credential {
 
     // jwks retrieval process and update self
     self
-      .update_validation_key_matched_to_key_id(globals, self.get_meta_from_id_token()?)
+      .update_validation_key_matched_to_key_id(context, self.get_meta_from_id_token()?)
       .await?;
 
     // check validity of id token
@@ -101,10 +101,10 @@ impl Credential {
     Ok(())
   }
 
-  pub async fn refresh(&mut self, globals: &Arc<ProxyContext>) -> Result<()> {
+  pub async fn refresh(&mut self, context: &Arc<ProxyContext>) -> Result<()> {
     // refresh endpoint is NOT resolved via configured system DNS resolver. resolve by proxy itself
     let refresh_endpoint = format!("{}{}", self.token_api, ENDPOINT_REFRESH_PATH);
-    let client = HttpClient::new(globals, &refresh_endpoint, None, false).await?.client;
+    let client = HttpClient::new(context, &refresh_endpoint, None, false).await?.client;
 
     let refresh_token = if let Some(r) = &self.refresh_token {
       r
@@ -135,7 +135,7 @@ impl Credential {
 
     // jwks retrieval process and update self
     self
-      .update_validation_key_matched_to_key_id(globals, self.get_meta_from_id_token()?)
+      .update_validation_key_matched_to_key_id(context, self.get_meta_from_id_token()?)
       .await?;
 
     // check validity of id token
@@ -150,11 +150,11 @@ impl Credential {
 
   async fn update_validation_key_matched_to_key_id(
     &mut self,
-    globals: &Arc<ProxyContext>,
+    context: &Arc<ProxyContext>,
     meta: TokenMetadata,
   ) -> Result<()> {
     let jwks_endpoint = format!("{}{}", self.token_api, ENDPOINT_JWKS_PATH);
-    let client = HttpClient::new(globals, &jwks_endpoint, None, true).await?.client;
+    let client = HttpClient::new(context, &jwks_endpoint, None, true).await?.client;
     let jwks_response = client.get(&jwks_endpoint).send().await?;
     let text_body = jwks_response.text().await?;
     let json_response: serde_json::Value = serde_json::from_str(&text_body)?;

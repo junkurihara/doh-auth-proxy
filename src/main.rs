@@ -27,7 +27,7 @@ fn main() {
   let runtime = runtime_builder.build().unwrap();
 
   runtime.block_on(async {
-    let globals = match parse_opts(runtime.handle()).await {
+    let context = match parse_opts(runtime.handle()).await {
       Ok(g) => g,
       Err(e) => {
         error!("Failed to parse config TOML: {}", e);
@@ -35,7 +35,7 @@ fn main() {
       }
     };
 
-    let proxy = Proxy { globals };
+    let proxy = Proxy { context };
     proxy.entrypoint().await.unwrap()
   });
 }

@@ -53,7 +53,7 @@ impl DoHClient {
   pub async fn new(
     target_url_str: &str,
     relay_urls_str: Option<Vec<String>>,
-    globals: Arc<ProxyContext>,
+    context: Arc<ProxyContext>,
     auth_token: &Option<String>,
   ) -> Result<Self> {
     let (doh_type, nexthop_urls) = match &relay_urls_str {
@@ -119,15 +119,15 @@ impl DoHClient {
     // the relay url by the bootstrap DNS outside this proxy.
     let polls = nexthop_urls
       .iter()
-      .map(|nexthop| HttpClient::new(&globals, nexthop, Some(&headers), true))
+      .map(|nexthop| HttpClient::new(&context, nexthop, Some(&headers), true))
       .collect::<Vec<_>>();
     let clients = future::join_all(polls).await.into_iter().collect::<Result<Vec<_>>>()?;
 
-    let doh_method = globals.doh_method.clone();
+    let doh_method = context.doh_method.clone();
 
     // When ODoH, first fetch configs
     let odoh_client_context = match doh_type {
-      DoHType::Oblivious => Some(DoHClient::fetch_odoh_config_from_well_known(target_url_str, &globals).await?),
+      DoHType::Oblivious => Some(DoHClient::fetch_odoh_config_from_well_known(target_url_str, &context).await?),
       DoHType::Standard => None,
     };
 
@@ -142,7 +142,7 @@ impl DoHClient {
 
   async fn fetch_odoh_config_from_well_known(
     target_url_str: &str,
-    globals: &Arc<ProxyContext>,
+    context: &Arc<ProxyContext>,
   ) -> Result<ODoHClientContext> {
     // TODO: Add auth token when fetching config?
     // fetch public key from odoh target (/.well-known)
@@ -156,7 +156,7 @@ impl DoHClient {
     let destination = format!("{}://{}{}", scheme, host_str, ODOH_CONFIG_PATH);
     info!("[ODoH] Fetch server public key from {}", destination);
 
-    let simple_client = HttpClient::new(globals, target_url_str, None, true).await?.client;
+    let simple_client = HttpClient::new(context, target_url_str, None, true).await?.client;
     let response = simple_client.get(destination).send().await?;
     if response.status() != reqwest::StatusCode::OK {
       error!("Failed to fetch ODoH config!: {:?}", response.status());
@@ -166,10 +166,10 @@ impl DoHClient {
     ODoHClientContext::new(&body)
   }
 
-  pub async fn health_check(&self, globals: &Arc<ProxyContext>) -> Result<()> {
+  pub async fn health_check(&self, context: &Arc<ProxyContext>) -> Result<()> {
     let q_msg = dns_message::build_query_a(HEALTHCHECK_TARGET_FQDN)?;
     let packet_buf = dns_message::encode(&q_msg)?;
-    let res = self.make_doh_query(&packet_buf, globals).await?;
+    let res = self.make_doh_query(&packet_buf, context).await?;
     ensure!(
       dns_message::is_response(&res).is_ok(),
       "Not a response in healthcheck for {}",
@@ -229,7 +229,7 @@ impl DoHClient {
     dns_message::encode(&cached_msg)
   }
 
-  pub async fn make_doh_query(&self, packet_buf: &[u8], globals: &Arc<ProxyContext>) -> Result<Vec<u8>> {
+  pub async fn make_doh_query(&self, packet_buf: &[u8], context: &Arc<ProxyContext>) -> Result<Vec<u8>> {
     // Check if the given packet buffer is consistent as a DNS query
     let query_msg = dns_message::is_query(packet_buf).map_err(|_| anyhow!("Invalid DNS query"))?;
     // If error, should we build and return a synthetic reject response message?
@@ -238,8 +238,8 @@ impl DoHClient {
       Request::try_from(&query_msg).map_err(|_| anyhow!("Failed to parse DNS query, maybe invalid DNS query"))?;
 
     // Process query plugins, e.g., domain filtering, cloaking, etc.
-    if let Some(query_plugins) = globals.query_plugins.clone() {
-      let execution_result = query_plugins.execute(&query_msg, &req.0[0], globals.min_ttl)?;
+    if let Some(query_plugins) = context.query_plugins.clone() {
+      let execution_result = query_plugins.execute(&query_msg, &req.0[0], context.min_ttl)?;
       match execution_result.action {
         plugins::QueryPluginAction::Pass => (),
         _ => {
@@ -255,7 +255,7 @@ impl DoHClient {
     }
 
     // Check cache
-    if let Some(res) = globals.cache.get(&req).await {
+    if let Some(res) = context.cache.get(&req).await {
       debug!("Cache hit!: {:?}", res.message().queries());
       if let Ok(response_buf) = self.build_response_from_cache(res, query_id).await {
         return Ok(response_buf);
@@ -266,7 +266,7 @@ impl DoHClient {
 
     let response_result = match self.doh_type {
       DoHType::Standard => self.serve_doh_query(packet_buf).await,
-      DoHType::Oblivious => self.serve_oblivious_doh_query(packet_buf, globals).await,
+      DoHType::Oblivious => self.serve_oblivious_doh_query(packet_buf, context).await,
     };
 
     match response_result {
@@ -276,7 +276,7 @@ impl DoHClient {
         let response_message =
           dns_message::is_response(&response_buf).map_err(|_| anyhow!("Invalid or not a DNS response"))?;
 
-        if (globals.cache.put(req, &response_message).await).is_err() {
+        if (context.cache.put(req, &response_message).await).is_err() {
           error!("Failed to cache response");
         };
         // TODO: should rebuild buffer from decoded dns response_msg?
@@ -314,8 +314,8 @@ impl DoHClient {
     Ok(body.to_vec())
   }
 
-  async fn serve_oblivious_doh_query(&self, packet_buf: &[u8], globals: &Arc<ProxyContext>) -> Result<Vec<u8>> {
-    assert!(globals.odoh_relay_urls.is_some() && !self.clients.is_empty());
+  async fn serve_oblivious_doh_query(&self, packet_buf: &[u8], context: &Arc<ProxyContext>) -> Result<Vec<u8>> {
+    assert!(context.odoh_relay_urls.is_some() && !self.clients.is_empty());
 
     let client_ctx = match &self.odoh_client_context {
       Some(client_ctx) => client_ctx,
@@ -327,14 +327,14 @@ impl DoHClient {
       Err(e) => bail!("[ODoH] Failed to encrypt!: {}", e),
     };
 
-    let mid_relay_str = if let Some(s) = self.get_randomized_mid_relay_str(globals) {
+    let mid_relay_str = if let Some(s) = self.get_randomized_mid_relay_str(context) {
       s
     } else {
       "".to_string()
     };
 
     // nexthop relay randomization
-    let relay_idx = if globals.odoh_relay_randomization {
+    let relay_idx = if context.odoh_relay_randomization {
       let mut rng = rand::thread_rng();
       rng.gen::<usize>() % self.clients.len()
     } else {
@@ -369,7 +369,7 @@ impl DoHClient {
       || (response.status() == reqwest::StatusCode::OK && clength == 0)
     {
       warn!("ODoH public key is expired. Refetch.");
-      globals.update_doh_client().await?;
+      context.update_doh_client().await?;
     }
     if response.status() != reqwest::StatusCode::OK {
       error!("DoH query error!: {:?}", response.status());
@@ -382,11 +382,11 @@ impl DoHClient {
     Ok(dec_bytes.to_vec())
   }
 
-  fn get_randomized_mid_relay_str(&self, globals: &Arc<ProxyContext>) -> Option<String> {
+  fn get_randomized_mid_relay_str(&self, context: &Arc<ProxyContext>) -> Option<String> {
     // add randomized order of mu-ODoH intermediate relays
     let mut mid_relay_str = "".to_string();
-    let max_mid_relays = &globals.max_mid_relays;
-    if let Some(mid_relay_urls) = &globals.mid_relay_urls {
+    let max_mid_relays = &context.max_mid_relays;
+    if let Some(mid_relay_urls) = &context.mid_relay_urls {
       if mid_relay_urls.is_empty() {
         return None;
       }
