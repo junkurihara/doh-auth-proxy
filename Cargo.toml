@@ -67,13 +67,12 @@ hashlink = "0.8.3"
 cedarwood = "0.4.6"
 regex = "1.9.3"
 rustc-hash = "1.1.0"
+mimalloc = { version = "*", default-features = false }
+
 
 # logging
 tracing = { version = "0.1.37" }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
-
-[target.'cfg(not(target_env = "msvc"))'.dependencies]
-tikv-jemallocator = "0.5.4"
 
 [dev-dependencies]
 trust-dns-client = "0.22.0"
