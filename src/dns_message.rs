@@ -3,7 +3,11 @@ use crate::error::*;
 use std::{net::IpAddr, str::FromStr};
 use trust_dns_proto::{
   op::{Message, MessageType},
-  rr::{domain::Name, DNSClass, RData, Record, RecordType},
+  rr::{
+    domain::Name,
+    rdata::{A, AAAA},
+    DNSClass, RData, Record, RecordType,
+  },
   serialize::binary::{BinDecodable, BinEncodable},
 };
 
@@ -102,10 +106,10 @@ pub fn build_response_given_ipaddr(msg: &Message, q_key: &QueryKey, ipaddr: &IpA
   let name = Name::from_str(&q_key.query_name)?;
   match ipaddr {
     IpAddr::V4(ipv4) => {
-      res.insert_answers(vec![Record::from_rdata(name, min_ttl, RData::A(*ipv4))]);
+      res.insert_answers(vec![Record::from_rdata(name, min_ttl, RData::A(A(*ipv4)))]);
     }
     IpAddr::V6(ipv6) => {
-      res.insert_answers(vec![Record::from_rdata(name, min_ttl, RData::AAAA(*ipv6))]);
+      res.insert_answers(vec![Record::from_rdata(name, min_ttl, RData::AAAA(AAAA(*ipv6)))]);
     }
   }
   Ok(res)

@@ -59,7 +59,7 @@ pub async fn resolve_by_bootstrap(
 
   let resolver = runtime_handle
     .spawn(async move { TokioAsyncResolver::tokio(resolver_config, ResolverOpts::default()) })
-    .await??;
+    .await?;
 
   // Lookup the IP addresses associated with a name.
   // The final dot forces this to be an FQDN, otherwise the search rules as specified
