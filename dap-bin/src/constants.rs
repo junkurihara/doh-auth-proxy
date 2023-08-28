@@ -1,0 +1,1 @@
+pub const CONFIG_WATCH_DELAY_SECS: u32 = 20;

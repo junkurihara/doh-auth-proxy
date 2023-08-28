@@ -1,0 +1,32 @@
+[package]
+name = "doh-auth-proxy-lib"
+description = "DNS Proxy Library for DoH, ODoH and Mutualized ODoH with Authorization"
+version = "0.3.0"
+authors = ["Jun Kurihara"]
+homepage = "https://github.com/junkurihara/doh-auth-proxy"
+repository = "https://github.com/junkurihara/doh-auth-proxy"
+license = "MIT"
+readme = "../README.md"
+categories = [
+  "asynchronous",
+  "network-programming",
+  "command-line-utilities",
+  "web-programming::http-client",
+]
+keywords = [
+  "dns",
+  "https",
+  "dns-over-https",
+  "doh",
+  "oblivious-dns-over-https",
+  "odoh",
+  "mutualized-odoh",
+  "proxy",
+  "authorization",
+]
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
