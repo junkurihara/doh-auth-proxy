@@ -65,7 +65,7 @@ target_urls = ["https://dns.google/dns-query"]
 
 All the options are referred to below. Using your specific config file is recommended for better setting in your environment.
 
-### Connecting to Cloudflare ODoH server via `surfdomeinen.nl` ODoH relay
+### Connecting to Cloudflare ODoH server via `odohrelay-ams` ODoH relay
 
 Start `doh-auth-proxy` as
 
@@ -82,10 +82,10 @@ bootstrap_dns = "8.8.8.8:53"
 target_urls = ["https://odoh.cloudflare-dns.com/dns-query"]
 
 [anonymization]
-odoh_relay_urls = ["https://odoh1.surfdomeinen.nl/proxy"]
+odoh_relay_urls = ["https://odoh-nl.alekberg.net:443/proxy"]
 ```
 
-This example issues ODoH encrypted queries by an URL `https://odoh1.surfdomeinen.nl/proxy?targethost=odoh.cloudflare-dns.com&targetpath=/dns-query`.
+This example issues ODoH encrypted queries by an URL `https://odoh-nl.alekberg.net:443/proxy?targethost=odoh.cloudflare-dns.com&targetpath=/dns-query`.
 
 Now you can query through `127.0.0.1:50053` as
 
@@ -205,7 +205,7 @@ target_randomization = true
 [anonymization]
 
 ## (optional) URL of ODoH nexthop relay server like "https://relay.example.com/relay"
-odoh_relay_urls = ["https://odoh1.surfdomeinen.nl/proxy"]
+odoh_relay_urls = ["https://odoh-nl.alekberg.net:443/proxy"]
 
 
 ## (optional)
