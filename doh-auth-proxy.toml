@@ -63,7 +63,7 @@ target_randomization = true
 [anonymization]
 
 ## (optional) URL of ODoH nexthop relay server like "https://relay.example.com/relay"
-odoh_relay_urls = ["https://odoh1.surfdomeinen.nl/proxy"]
+odoh_relay_urls = ["https://odoh-nl.alekberg.net:443/proxy"]
 
 
 ## (optional)
