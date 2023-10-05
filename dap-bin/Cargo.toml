@@ -30,6 +30,8 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+doh-auth-proxy-lib = { path = "../dap-lib/" }
+
 anyhow = "1.0.75"
 mimalloc = { version = "*", default-features = false }
 serde = { version = "1.0.188", default-features = false, features = ["derive"] }
@@ -51,3 +53,4 @@ hot_reload = "0.1.4"
 # logging
 tracing = { version = "0.1.37" }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+url = "2.4.1"

@@ -11,6 +11,7 @@ use crate::{
   constants::CONFIG_WATCH_DELAY_SECS,
   log::*,
 };
+use doh_auth_proxy_lib::entrypoint;
 use hot_reload::{ReloaderReceiver, ReloaderService};
 
 fn main() {
@@ -69,21 +70,18 @@ async fn proxy_service_without_watcher(
       std::process::exit(1);
     }
   };
-  // let (proxy_conf, app_conf) = match build_settings(&config_toml) {
-  match build_settings(&config_toml) {
+
+  let proxy_conf = match build_settings(&config_toml) {
     Ok(v) => v,
     Err(e) => {
       error!("Invalid configuration: {e}");
       return Err(anyhow::anyhow!(e));
     }
   };
-  println!("build");
 
-  // entrypoint(&proxy_conf, &app_conf, &runtime_handle, None)
-  //   .await
-  //   .map_err(|e| anyhow::anyhow!(e))
-  tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
-  Ok(())
+  entrypoint(&proxy_conf, &runtime_handle, None)
+    .await
+    .map_err(|e| anyhow::anyhow!(e))
 }
 
 async fn proxy_service_with_watcher(
@@ -94,8 +92,7 @@ async fn proxy_service_with_watcher(
   // Initial loading
   config_rx.changed().await?;
   let config_toml = config_rx.borrow().clone().unwrap();
-  // let (mut proxy_conf, mut app_conf) = match build_settings(&config_toml) {
-  match build_settings(&config_toml) {
+  let mut proxy_conf = match build_settings(&config_toml) {
     Ok(v) => v,
     Err(e) => {
       error!("Invalid configuration: {e}");
@@ -104,38 +101,36 @@ async fn proxy_service_with_watcher(
   };
 
   // Notifier for proxy service termination
-  let _term_notify = std::sync::Arc::new(tokio::sync::Notify::new());
+  let term_notify = std::sync::Arc::new(tokio::sync::Notify::new());
 
   // Continuous monitoring
-  // loop {
-  //   tokio::select! {
-  //     _ = entrypoint(&proxy_conf, &app_conf, &runtime_handle, Some(term_notify.clone())) => {
-  //       error!("proxy entrypoint exited");
-  //       break;
-  //     }
-  //     _ = config_rx.changed() => {
-  //       if config_rx.borrow().is_none() {
-  //         error!("Something wrong in config reloader receiver");
-  //         break;
-  //       }
-  //       let config_toml = config_rx.borrow().clone().unwrap();
-  //       match build_settings(&config_toml) {
-  //         Ok((p, a)) => {
-  //           (proxy_conf, app_conf) = (p, a)
-  //         },
-  //         Err(e) => {
-  //           error!("Invalid configuration. Configuration does not updated: {e}");
-  //           continue;
-  //         }
-  //       };
-  //       info!("Configuration updated. Terminate all spawned proxy services and force to re-bind TCP/UDP sockets");
-  //       term_notify.notify_waiters();
-  //       // tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
-  //     }
-  //     else => break
-  //   }
-  // }
+  loop {
+    tokio::select! {
+      _ = entrypoint(&proxy_conf, &runtime_handle, Some(term_notify.clone())) => {
+        error!("proxy entrypoint exited");
+        break;
+      }
+      _ = config_rx.changed() => {
+        if config_rx.borrow().is_none() {
+          error!("Something wrong in config reloader receiver");
+          break;
+        }
+        let config_toml = config_rx.borrow().clone().unwrap();
+        match build_settings(&config_toml) {
+          Ok(p) => {
+            proxy_conf = p
+          },
+          Err(e) => {
+            error!("Invalid configuration. Configuration does not updated: {e}");
+            continue;
+          }
+        };
+        info!("Configuration updated. Terminate all spawned proxy services and force to re-bind TCP/UDP sockets");
+        term_notify.notify_waiters();
+      }
+      else => break
+    }
+  }
 
-  // Err(anyhow::anyhow!("proxy or continuous monitoring service exited"))
-  Ok(())
+  Err(anyhow::anyhow!("proxy or continuous monitoring service exited"))
 }

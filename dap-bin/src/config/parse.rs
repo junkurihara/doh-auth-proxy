@@ -1,6 +1,7 @@
 use super::toml::ConfigToml;
 use crate::error::{anyhow, ensure};
 use clap::{Arg, ArgAction};
+use doh_auth_proxy_lib::ProxyConfig;
 
 /// Parsed options
 pub struct Opts {
@@ -39,14 +40,10 @@ pub fn parse_opts() -> Result<Opts, anyhow::Error> {
   })
 }
 
-pub fn build_settings(
-  config: &ConfigToml,
-  // ) -> std::result::Result<(ProxyConfig, AppConfigList<CryptoFileSource>), anyhow::Error> {
-) -> std::result::Result<(), anyhow::Error> {
-  println!("{:#?}", config);
-  // ///////////////////////////////////
-  // // build proxy config
-  // let proxy_config: ProxyConfig = config.try_into()?;
+pub fn build_settings(config: &ConfigToml) -> std::result::Result<ProxyConfig, anyhow::Error> {
+  ///////////////////////////////////
+  // build proxy config
+  let proxy_config: ProxyConfig = config.try_into()?;
 
   // ///////////////////////////////////
   // // backend_apps
@@ -92,5 +89,5 @@ pub fn build_settings(
   // };
 
   // Ok((proxy_config, app_config_list))
-  Ok(())
+  Ok(proxy_config)
 }
