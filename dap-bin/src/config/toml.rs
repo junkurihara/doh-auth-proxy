@@ -110,6 +110,8 @@ impl TryInto<ProxyConfig> for &ConfigToml {
       }
     }
 
+    // TODO: これ以降、Anon関係は既存のコンフィグ何も読んでないので注意
+
     Ok(proxy_config)
   }
 }
