@@ -20,12 +20,13 @@ fn main() {
   runtime_builder.enable_all();
   runtime_builder.thread_name("doh-auth-proxy");
   let runtime = runtime_builder.build().unwrap();
+  println!("ok");
 
   runtime.block_on(async {
     // Initially load options
     let Ok(parsed_opts) = parse_opts() else {
-        error!("Invalid toml file");
-        std::process::exit(1);
+      error!("Invalid toml file");
+      std::process::exit(1);
     };
 
     if !parsed_opts.watch {
