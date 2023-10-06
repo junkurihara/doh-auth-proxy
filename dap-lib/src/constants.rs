@@ -7,10 +7,6 @@ pub const UDP_CHANNEL_CAPACITY: usize = 1024; // TODO: channelキャパシティ
 pub const MAX_CONNECTIONS: usize = 128; // TODO: 最大接続数(UDP+TCP)めちゃ適当
 pub const TIMEOUT_SEC: u64 = 10;
 
-// pub const CREDENTIAL_USERNAME_FIELD: &str = "username";
-// pub const CREDENTIAL_API_KEY_FIELD: &str = "password";
-// pub const CREDENTIAL_CLIENT_ID_FIELD: &str = "client_id";
-
 pub const MIN_TTL: u32 = 10; // TTL for overridden records (plugin)
 
 ////////////////////////////////

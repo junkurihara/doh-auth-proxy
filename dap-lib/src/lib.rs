@@ -8,7 +8,7 @@ use crate::{error::*, globals::Globals, log::info};
 use std::sync::Arc;
 
 pub use client::DoHMethod;
-pub use globals::{NextHopRelayConfig, ProxyConfig, SubseqRelayConfig, TargetConfig};
+pub use globals::{AuthenticationConfig, NextHopRelayConfig, ProxyConfig, SubseqRelayConfig, TargetConfig};
 
 pub async fn entrypoint(
   proxy_config: &ProxyConfig,

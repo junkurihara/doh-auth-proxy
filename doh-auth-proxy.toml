@@ -68,6 +68,7 @@ odoh_relay_urls = ["https://odoh-nl.alekberg.net:443/proxy"]
 
 ## (optional)
 ## Choose ODoH relay in a randomized fashion from `odoh_relay_urls`.
+## Default is true
 odoh_relay_randomization = true
 
 ## (optional)
@@ -77,6 +78,7 @@ odoh_relay_randomization = true
 
 ## (optional)
 ## Maximum number of intermediate relays between nexthop and target.
+## Default is 1
 # max_mid_relays = 2
 
 ##################################

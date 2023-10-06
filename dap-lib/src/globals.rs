@@ -36,6 +36,9 @@ pub struct ProxyConfig {
 
   // modoh
   pub subseq_relay_config: Option<SubseqRelayConfig>,
+
+  // authentication
+  pub authentication_config: Option<AuthenticationConfig>,
   // pub query_plugins: Option<QueryPluginsApplied>,
   // pub min_ttl: u32, // TTL of overridden response
   // pub credential: Arc<RwLock<Option<Credential>>>,
@@ -61,6 +64,14 @@ pub struct NextHopRelayConfig {
 pub struct SubseqRelayConfig {
   pub mid_relay_urls: Vec<String>,
   pub max_mid_relays: usize,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct AuthenticationConfig {
+  pub username: String,
+  pub password: String,
+  pub client_id: String,
+  pub token_api: String,
 }
 
 impl Default for TargetConfig {
@@ -90,6 +101,8 @@ impl Default for ProxyConfig {
       target_config: TargetConfig::default(),
       nexthop_relay_config: None,
       subseq_relay_config: None,
+
+      authentication_config: None,
     }
   }
 }
