@@ -1,4 +1,4 @@
-use super::token::{Algorithm, TokenInner, TokenMeta};
+use super::token::{Algorithm, TokenInner, TokenMeta, VerificationKeyType};
 use crate::{
   constants::{ENDPOINT_JWKS_PATH, ENDPOINT_LOGIN_PATH},
   error::*,
@@ -6,7 +6,8 @@ use crate::{
   http::HttpClient,
   log::*,
 };
-use jwt_simple::prelude::{JWTClaims, NoCustomClaims};
+use jwt_simple::prelude::{ES256PublicKey, JWTClaims, NoCustomClaims};
+use p256::elliptic_curve::sec1::ToEncodedPoint;
 use serde::{Deserialize, Serialize};
 use std::{str::FromStr, sync::Arc};
 use tokio::sync::RwLock;
@@ -33,7 +34,8 @@ pub struct AuthenticationResponse {
 }
 
 #[derive(Deserialize, Debug)]
-pub struct Jwks {
+/// Jwks response
+pub struct JwksResponse {
   pub keys: Vec<serde_json::Value>,
 }
 
@@ -43,7 +45,7 @@ pub struct Authenticator {
   http_client: Arc<RwLock<HttpClient>>,
   id_token: Arc<RwLock<Option<TokenInner>>>,
   refresh_token: Arc<RwLock<Option<String>>>,
-  validation_key: Arc<RwLock<Option<String>>>,
+  validation_key: Arc<RwLock<Option<VerificationKeyType>>>,
 }
 
 impl Authenticator {
@@ -91,7 +93,7 @@ impl Authenticator {
     }
 
     let jwks = res
-      .json::<Jwks>()
+      .json::<JwksResponse>()
       .await
       .map_err(|_e| DapError::AuthenticationError("Failed to parse jwks response".to_string()))?;
 
@@ -122,16 +124,17 @@ impl Authenticator {
     };
     debug!("Matched JWK given at jwks endpoint is {}", &jwk_string);
 
-    let pem = match Algorithm::from_str(meta.algorithm())? {
+    let verification_key = match Algorithm::from_str(meta.algorithm())? {
       Algorithm::ES256 => {
         let pk =
           p256::PublicKey::from_jwk_str(&jwk_string).map_err(|e| DapError::AuthenticationError(e.to_string()))?;
-        pk.to_string()
+        let sec1key = pk.to_encoded_point(false);
+        VerificationKeyType::ES256(ES256PublicKey::from_bytes(sec1key.as_bytes())?)
       }
     };
 
     let mut validation_key_lock = self.validation_key.write().await;
-    validation_key_lock.replace(pem.clone());
+    validation_key_lock.replace(verification_key);
     drop(validation_key_lock);
 
     info!("validation key updated");
@@ -141,12 +144,12 @@ impl Authenticator {
 
   /// Verify id token
   async fn verify_id_token(&self) -> Result<JWTClaims<NoCustomClaims>> {
-    let pk_str_lock = self.validation_key.read().await;
-    let Some(pk_str) = pk_str_lock.as_ref() else {
+    let vk_lock = self.validation_key.read().await;
+    let Some(vk) = vk_lock.as_ref() else {
       return Err(DapError::AuthenticationError("No validation key".to_string()));
     };
-    let pk_str = pk_str.clone();
-    drop(pk_str_lock);
+    let verification_key = vk.to_owned();
+    drop(vk_lock);
 
     let token_lock = self.id_token.read().await;
     let Some(token_inner) = token_lock.as_ref() else {
@@ -155,7 +158,7 @@ impl Authenticator {
     let token = token_inner.clone();
     drop(token_lock);
 
-    token.verify_id_token(&pk_str, &self.config).await
+    token.verify_id_token(&verification_key, &self.config).await
   }
 
   /// Login to the authentication server

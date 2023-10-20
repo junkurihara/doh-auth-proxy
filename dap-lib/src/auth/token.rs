@@ -3,7 +3,6 @@ use jwt_simple::{
   prelude::*,
   token::{Token, TokenMetadata},
 };
-use p256::elliptic_curve::sec1::ToEncodedPoint;
 use serde::Deserialize;
 use std::str::FromStr;
 
@@ -19,6 +18,11 @@ impl FromStr for Algorithm {
       _ => Err(DapError::Other(anyhow!("Invalid Algorithm Name"))),
     }
   }
+}
+
+#[derive(Debug, Clone)]
+pub enum VerificationKeyType {
+  ES256(ES256PublicKey),
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -54,7 +58,7 @@ impl TokenInner {
   /// Verify id token with key string
   pub async fn verify_id_token(
     &self,
-    validation_key: &str,
+    validation_key: &VerificationKeyType,
     config: &AuthenticationConfig,
   ) -> Result<JWTClaims<NoCustomClaims>> {
     let meta = self.decode_id_token().await?;
@@ -68,14 +72,16 @@ impl TokenInner {
 
     let clm: JWTClaims<NoCustomClaims> = match Algorithm::from_str(meta.algorithm())? {
       Algorithm::ES256 => {
-        let public_key = validation_key
-          .parse::<p256::PublicKey>()
-          .map_err(|e| DapError::Other(anyhow!(e)))?;
-        let sec1key = public_key.to_encoded_point(false);
-        let key = ES256PublicKey::from_bytes(sec1key.as_bytes())?;
+        let VerificationKeyType::ES256(key) = validation_key else {
+          return Err(DapError::AuthenticationError(
+            "validation key is inconsistent!".to_string(),
+          ));
+        };
         key.verify_token::<NoCustomClaims>(&self.id, Some(options))?
       }
     };
+
+    //TODO: Ed25519!
 
     Ok(clm)
   }
