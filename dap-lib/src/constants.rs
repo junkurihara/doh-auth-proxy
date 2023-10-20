@@ -15,7 +15,8 @@ pub const MIN_TTL: u32 = 10; // TTL for overridden records (plugin)
 // Can override by specifying values in config.toml
 pub const LISTEN_ADDRESSES: &[&str] = &["127.0.0.1:50053", "[::1]:50053"];
 
-pub const BOOTSTRAP_DNS: &[&str] = &["1.1.1.1:53"];
+pub const BOOTSTRAP_DNS_IPS: &[&str] = &["1.1.1.1"];
+pub const BOOTSTRAP_DNS_PORT: u16 = 53;
 pub const REBOOTSTRAP_PERIOD_MIN: u64 = 60;
 pub const DOH_TARGET_URL: &[&str] = &["https://dns.google/dns-query"];
 
@@ -25,10 +26,10 @@ pub const MAX_CACHE_SIZE: usize = 16384;
 // Constant Values for Proxy //
 ///////////////////////////////
 // Cannot override below by config.toml
-pub const ODOH_CONFIG_PATH: &str = "/.well-known/odohconfigs"; // client
-pub const ENDPOINT_LOGIN_PATH: &str = "/tokens"; // client::credential
-pub const ENDPOINT_REFRESH_PATH: &str = "/refresh"; // client::credential
-pub const ENDPOINT_JWKS_PATH: &str = "/jwks"; // client::credential
+pub const ODOH_CONFIG_PATH: &str = ".well-known/odohconfigs"; // client
+pub const ENDPOINT_LOGIN_PATH: &str = "tokens"; // client::credential
+pub const ENDPOINT_REFRESH_PATH: &str = "refresh"; // client::credential
+pub const ENDPOINT_JWKS_PATH: &str = "jwks"; // client::credential
 
 // pub const CREDENTIAL_REFRESH_BEFORE_EXPIRATION_IN_SECS: i64 = 600; // refresh 10 minutes before expiration // proxy
 // pub const CREDENTIAL_REFRESH_MARGIN: i64 = 10; // at least 10 secs must be left to refresh // client::credential

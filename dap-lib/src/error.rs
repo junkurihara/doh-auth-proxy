@@ -1,5 +1,26 @@
-pub use anyhow::{anyhow, bail, ensure, Context, Result};
-// use std::io;
-// use thiserror::Error;
+pub use anyhow::{anyhow, bail, ensure, Context};
+use thiserror::Error;
 
-// pub type Result<T> = std::result::Result<T, RpxyError>;
+pub type Result<T> = std::result::Result<T, DapError>;
+
+/// Describes things that can go wrong in the Rpxy
+#[derive(Debug, Error)]
+pub enum DapError {
+  #[error("Bootstrap resolver error: {0}")]
+  BootstrapResolverError(#[from] trust_dns_resolver::error::ResolveError),
+
+  #[error("Http client build error: {0}")]
+  HttpClientError(String),
+
+  #[error("Url error: {0}")]
+  UrlError(#[from] url::ParseError),
+
+  #[error("Authentication error: {0}")]
+  AuthenticationError(String),
+
+  #[error("Token error: {0}")]
+  TokenError(String),
+
+  #[error(transparent)]
+  Other(#[from] anyhow::Error),
+}

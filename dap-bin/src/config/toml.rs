@@ -66,18 +66,18 @@ impl TryInto<ProxyConfig> for &ConfigToml {
     /////////////////////////////
     // bootstrap dns
     if let Some(val) = &self.bootstrap_dns {
-      if !val.iter().all(|v| verify_sock_addr(v).is_ok()) {
+      if !val.iter().all(|v| verify_ip_addr(v).is_ok()) {
         bail!("Invalid bootstrap DNS address");
       }
-      proxy_config.bootstrap_dns = val.iter().map(|x| x.parse().unwrap()).collect()
+      proxy_config.bootstrap_dns.ips = val.iter().map(|x| x.parse().unwrap()).collect()
     };
-    info!("Bootstrap DNS: {:?}", proxy_config.bootstrap_dns);
+    info!("Bootstrap DNS: {:?}", proxy_config.bootstrap_dns.ips);
     if let Some(val) = self.reboot_period {
-      proxy_config.rebootstrap_period_sec = Duration::from_secs((val as u64) * 60);
+      proxy_config.bootstrap_dns.rebootstrap_period_sec = Duration::from_secs((val as u64) * 60);
     }
     info!(
       "Target DoH Address is re-fetched every {:?} min via Bootsrap DNS",
-      proxy_config.rebootstrap_period_sec.as_secs() / 60
+      proxy_config.bootstrap_dns.rebootstrap_period_sec.as_secs() / 60
     );
 
     /////////////////////////////
@@ -93,11 +93,16 @@ impl TryInto<ProxyConfig> for &ConfigToml {
       if !val.iter().all(|x| verify_target_url(x).is_ok()) {
         bail!("Invalid target urls");
       }
-      proxy_config.target_config.doh_target_urls = val.to_owned();
+      proxy_config.target_config.doh_target_urls = val.iter().map(|v| url::Url::parse(v).unwrap()).collect();
     }
     info!(
       "Target (O)DoH resolvers: {:?}",
-      proxy_config.target_config.doh_target_urls
+      proxy_config
+        .target_config
+        .doh_target_urls
+        .iter()
+        .map(|x| x.as_str())
+        .collect::<Vec<_>>()
     );
     if let Some(val) = &self.target_randomization {
       if !val {
@@ -122,11 +127,18 @@ impl TryInto<ProxyConfig> for &ConfigToml {
           bail!("Invalid ODoH relay urls");
         }
         let mut nexthop_relay_config = NextHopRelayConfig {
-          odoh_relay_urls: odoh_relay_urls.to_owned(),
+          odoh_relay_urls: odoh_relay_urls.iter().map(|v| url::Url::parse(v).unwrap()).collect(),
           odoh_relay_randomization: true,
         };
         info!("[ODoH] Oblivious DNS over HTTPS is enabled");
-        info!("[ODoH] Nexthop relay URL: {:?}", nexthop_relay_config.odoh_relay_urls);
+        info!(
+          "[ODoH] Nexthop relay URL: {:?}",
+          nexthop_relay_config
+            .odoh_relay_urls
+            .iter()
+            .map(|x| x.as_str())
+            .collect::<Vec<_>>()
+        );
 
         if let Some(val) = anon.odoh_relay_randomization {
           nexthop_relay_config.odoh_relay_randomization = val;
@@ -149,14 +161,18 @@ impl TryInto<ProxyConfig> for &ConfigToml {
             bail!("max_mid_relays must be equal to or less than # of mid_relay_urls.");
           }
           let subseq_relay_config = SubseqRelayConfig {
-            mid_relay_urls: val.to_owned(),
+            mid_relay_urls: val.iter().map(|v| url::Url::parse(v).unwrap()).collect(),
             max_mid_relays: anon.max_mid_relays.unwrap_or(1),
           };
 
           info!("[m-ODoH] Multiple-relay-based Oblivious DNS over HTTPS is enabled");
           info!(
             "[m-ODoH] Intermediate relay URLs employed after the next hop: {:?}",
-            subseq_relay_config.mid_relay_urls
+            subseq_relay_config
+              .mid_relay_urls
+              .iter()
+              .map(|x| x.as_str())
+              .collect::<Vec<_>>()
           );
           info!(
             "[m-ODoH] Maximum number of intermediate relays after the nexthop: {}",
@@ -193,7 +209,7 @@ impl TryInto<ProxyConfig> for &ConfigToml {
           username,
           password,
           client_id,
-          token_api: token_api.to_owned(),
+          token_api: token_api.parse().unwrap(),
         };
         proxy_config.authentication_config = Some(authentication_config);
       }
@@ -217,7 +233,7 @@ impl TryInto<ProxyConfig> for &ConfigToml {
 
     ////////////////////////
 
-    // TODO: plugin関係は既存のコンフィグ何も読んでないので注意。rpxyのcryptosourcereloaderと同じように処理しなければいけない
+    // TODO: plugin関係は既存のコンフィグ何も読んでないので注意。rpxyのcrypto sourcere loaderと同じように処理しなければいけない
 
     Ok(proxy_config)
   }

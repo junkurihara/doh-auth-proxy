@@ -1,16 +1,22 @@
-use crate::{client::DoHMethod, constants::*};
+use crate::{client::DoHMethod, constants::*, http::HttpClient};
 // use futures::future;
 // use rand::Rng;
-use std::net::SocketAddr;
-use tokio::time::Duration;
+use std::{
+  net::{IpAddr, SocketAddr},
+  sync::{Arc, RwLock},
+};
+use tokio::{sync::Notify, time::Duration};
+use url::Url;
 
 #[derive(Debug, Clone)]
 pub struct Globals {
   // pub cache: Arc<Cache>,
   // pub counter: ConnCounter,
-  // pub doh_clients: Arc<RwLock<Option<Vec<DoHClient>>>>,
+  pub http_client: Arc<RwLock<HttpClient>>,
+
   pub proxy_config: ProxyConfig,
   pub runtime_handle: tokio::runtime::Handle,
+  pub term_notify: Option<Arc<Notify>>,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -20,8 +26,7 @@ pub struct ProxyConfig {
   pub max_cache_size: usize,
 
   /// bootstrap DNS
-  pub bootstrap_dns: Vec<SocketAddr>,
-  pub rebootstrap_period_sec: Duration,
+  pub bootstrap_dns: BootstrapDns,
 
   // udp proxy setting
   pub udp_buffer_size: usize,
@@ -45,24 +50,32 @@ pub struct ProxyConfig {
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
+/// Bootstrap DNS Addresses
+pub struct BootstrapDns {
+  pub ips: Vec<IpAddr>,
+  pub port: u16,
+  pub rebootstrap_period_sec: Duration,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
 /// doh, odoh, modoh target settings
 pub struct TargetConfig {
   pub doh_method: DoHMethod,
-  pub doh_target_urls: Vec<String>,
+  pub doh_target_urls: Vec<Url>,
   pub target_randomization: bool,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 /// odoh and modoh nexthop
 pub struct NextHopRelayConfig {
-  pub odoh_relay_urls: Vec<String>,
+  pub odoh_relay_urls: Vec<Url>,
   pub odoh_relay_randomization: bool,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 /// modoh
 pub struct SubseqRelayConfig {
-  pub mid_relay_urls: Vec<String>,
+  pub mid_relay_urls: Vec<Url>,
   pub max_mid_relays: usize,
 }
 
@@ -71,7 +84,7 @@ pub struct AuthenticationConfig {
   pub username: String,
   pub password: String,
   pub client_id: String,
-  pub token_api: String,
+  pub token_api: Url,
 }
 
 impl Default for TargetConfig {
@@ -91,8 +104,11 @@ impl Default for ProxyConfig {
       max_connections: MAX_CONNECTIONS,
       max_cache_size: MAX_CACHE_SIZE,
 
-      bootstrap_dns: BOOTSTRAP_DNS.iter().map(|v| v.parse().unwrap()).collect(),
-      rebootstrap_period_sec: Duration::from_secs(REBOOTSTRAP_PERIOD_MIN * 60),
+      bootstrap_dns: BootstrapDns {
+        ips: BOOTSTRAP_DNS_IPS.iter().map(|v| v.parse().unwrap()).collect(),
+        port: BOOTSTRAP_DNS_PORT,
+        rebootstrap_period_sec: Duration::from_secs(REBOOTSTRAP_PERIOD_MIN * 60),
+      },
 
       udp_buffer_size: UDP_BUFFER_SIZE,
       udp_channel_capacity: UDP_CHANNEL_CAPACITY,
