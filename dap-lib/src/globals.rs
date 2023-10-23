@@ -1,6 +1,5 @@
 use crate::{client::DoHMethod, constants::*, http::HttpClient};
-// use futures::future;
-// use rand::Rng;
+use auth_client::AuthenticationConfig;
 use std::{
   net::{IpAddr, SocketAddr},
   sync::{Arc, RwLock},
@@ -77,14 +76,6 @@ pub struct NextHopRelayConfig {
 pub struct SubseqRelayConfig {
   pub mid_relay_urls: Vec<Url>,
   pub max_mid_relays: usize,
-}
-
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub struct AuthenticationConfig {
-  pub username: String,
-  pub password: String,
-  pub client_id: String,
-  pub token_api: Url,
 }
 
 impl Default for TargetConfig {

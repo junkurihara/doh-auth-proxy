@@ -60,6 +60,7 @@ trust-dns-resolver = { version = "0.23.1", default-features = false, features = 
 
 
 # authentication
+auth-client = { git = "https://github.com/junkurihara/rust-token-server", package = "rust-token-server-client", branch = "main" }
 jwt-simple = "0.11.7"
 chrono = "0.4.31"
 serde = { version = "1.0.189", features = ["derive"] }

@@ -28,7 +28,7 @@ impl HttpClient {
     let resolve_ips_fut = endpoints.iter().map(|endpoint| resolver_ips.resolve_ips(endpoint));
     let resolve_ips = join_all(resolve_ips_fut).await;
     if resolve_ips.iter().any(|resolve_ip| resolve_ip.is_err()) {
-      return Err(DapError::HttpClientError("Failed to resolve ip addresses".to_string()));
+      return Err(DapError::HttpClientBuildError);
     }
     let resolve_ips_iter = resolve_ips.into_iter().map(|resolve_ip| resolve_ip.unwrap());
 
@@ -48,7 +48,7 @@ impl HttpClient {
     }
 
     Ok(Self {
-      client: client.build().map_err(|e| DapError::HttpClientError(e.to_string()))?,
+      client: client.build().map_err(|e| DapError::HttpClientError(e))?,
       timeout_sec,
       endpoints: endpoints.to_vec(),
     })

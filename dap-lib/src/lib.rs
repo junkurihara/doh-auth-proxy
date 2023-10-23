@@ -14,8 +14,9 @@ use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::RwLock;
 use url::Url;
 
+pub use auth_client::AuthenticationConfig;
 pub use client::DoHMethod;
-pub use globals::{AuthenticationConfig, NextHopRelayConfig, ProxyConfig, SubseqRelayConfig, TargetConfig};
+pub use globals::{NextHopRelayConfig, ProxyConfig, SubseqRelayConfig, TargetConfig};
 
 #[async_trait]
 pub trait ResolveIps {

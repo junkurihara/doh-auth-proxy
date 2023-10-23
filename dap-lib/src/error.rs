@@ -1,4 +1,5 @@
 pub use anyhow::{anyhow, bail, ensure, Context};
+use serde_json::error;
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, DapError>;
@@ -9,9 +10,6 @@ pub enum DapError {
   #[error("Bootstrap resolver error: {0}")]
   BootstrapResolverError(#[from] trust_dns_resolver::error::ResolveError),
 
-  #[error("Http client build error: {0}")]
-  HttpClientError(String),
-
   #[error("Url error: {0}")]
   UrlError(#[from] url::ParseError),
 
@@ -20,6 +18,11 @@ pub enum DapError {
 
   #[error("Token error: {0}")]
   TokenError(String),
+
+  #[error("HttpClient error")]
+  HttpClientError(#[from] reqwest::Error),
+  #[error("HttpClient build error")]
+  HttpClientBuildError,
 
   #[error(transparent)]
   Other(#[from] anyhow::Error),
