@@ -1,5 +1,4 @@
 pub use anyhow::{anyhow, bail, ensure, Context};
-use serde_json::error;
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, DapError>;

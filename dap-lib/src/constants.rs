@@ -27,9 +27,6 @@ pub const MAX_CACHE_SIZE: usize = 16384;
 ///////////////////////////////
 // Cannot override below by config.toml
 pub const ODOH_CONFIG_PATH: &str = ".well-known/odohconfigs"; // client
-pub const ENDPOINT_LOGIN_PATH: &str = "tokens"; // client::credential
-pub const ENDPOINT_REFRESH_PATH: &str = "refresh"; // client::credential
-pub const ENDPOINT_JWKS_PATH: &str = "jwks"; // client::credential
 
 // pub const CREDENTIAL_REFRESH_BEFORE_EXPIRATION_IN_SECS: i64 = 600; // refresh 10 minutes before expiration // proxy
 // pub const CREDENTIAL_REFRESH_MARGIN: i64 = 10; // at least 10 secs must be left to refresh // client::credential

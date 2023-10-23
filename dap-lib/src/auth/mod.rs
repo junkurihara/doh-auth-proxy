@@ -1,6 +1,8 @@
+mod service;
+
 use crate::{
   error::{bail, DapError},
-  http::HttpClient,
+  http::HttpClientInner,
   log::*,
 };
 use async_trait::async_trait;
@@ -11,13 +13,13 @@ use tokio::sync::RwLock;
 use url::Url;
 
 #[async_trait]
-impl TokenHttpClient for HttpClient {
+impl TokenHttpClient for HttpClientInner {
   async fn post_json<S, R>(&self, url: &Url, json_body: &S) -> anyhow::Result<R>
   where
     S: Serialize + Send + Sync,
     R: DeserializeOwned + Send + Sync,
   {
-    let res = self.post(url.to_owned()).await.json(json_body).send().await?;
+    let res = self.client.post(url.to_owned()).json(json_body).send().await?;
     if !res.status().is_success() {
       let err_res = res.error_for_status_ref();
       bail!(DapError::HttpClientError(err_res.unwrap_err()));
@@ -30,7 +32,7 @@ impl TokenHttpClient for HttpClient {
   where
     R: DeserializeOwned + Send + Sync,
   {
-    let res = self.get(url.to_owned()).await.send().await?;
+    let res = self.client.get(url.to_owned()).send().await?;
     if !res.status().is_success() {
       let err_res = res.error_for_status_ref();
       bail!(DapError::HttpClientError(err_res.unwrap_err()));
@@ -41,11 +43,15 @@ impl TokenHttpClient for HttpClient {
   }
 }
 
+/// Authentication client
 pub struct Authenticator {
-  inner: TokenClient<HttpClient>,
+  inner: TokenClient<HttpClientInner>,
 }
 impl Authenticator {
-  pub async fn new(auth_config: &AuthenticationConfig, http_client: Arc<RwLock<HttpClient>>) -> Result<Self, DapError> {
+  pub async fn new(
+    auth_config: &AuthenticationConfig,
+    http_client: Arc<RwLock<HttpClientInner>>,
+  ) -> Result<Self, DapError> {
     let inner = TokenClient::new(auth_config, http_client).await?;
     Ok(Self { inner })
   }

@@ -11,7 +11,6 @@ mod proxy;
 use crate::{error::*, globals::Globals, http::HttpClient, log::info};
 use async_trait::async_trait;
 use std::{net::SocketAddr, sync::Arc};
-use tokio::sync::RwLock;
 use url::Url;
 
 pub use auth_client::AuthenticationConfig;
@@ -56,12 +55,15 @@ pub async fn entrypoint(
   )
   .await?;
 
-  let http_client = Arc::new(RwLock::new(http_client));
-
   if let Some(auth_config) = &proxy_config.authentication_config {
-    let authenticator = auth::Authenticator::new(auth_config, http_client).await?;
+    let authenticator = auth::Authenticator::new(auth_config, http_client.inner()).await?;
     authenticator.login().await?;
   }
+
+  // TODO: services
+  // - Authentication refresh/re-login service loop
+  // - HTTP client update service loop, changing DNS resolver to the self when it works
+  // - Health check service checking every path, flag unreachable patterns as unhealthy
 
   // // build global
   // let globals = Arc::new(Globals {
