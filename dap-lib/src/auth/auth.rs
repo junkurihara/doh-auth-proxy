@@ -6,6 +6,7 @@ use crate::{
   http::HttpClient,
   log::*,
 };
+use jwt_compact::alg::Es256;
 use jwt_simple::prelude::{ES256PublicKey, JWTClaims, NoCustomClaims};
 use p256::elliptic_curve::sec1::ToEncodedPoint;
 use serde::{Deserialize, Serialize};
@@ -129,7 +130,23 @@ impl Authenticator {
         let pk =
           p256::PublicKey::from_jwk_str(&jwk_string).map_err(|e| DapError::AuthenticationError(e.to_string()))?;
         let sec1key = pk.to_encoded_point(false);
+
+        // use jwt_compact::{
+        //   alg::{Es256, VerifyingKey},
+        //   jwk::JsonWebKey,
+        //   Algorithm,
+        // };
+        // type PublicKey = <Es256 as Algorithm>::VerifyingKey;
+        // let jwk: JsonWebKey<'_> = serde_json::from_str(&jwk_string).unwrap();
+
+        // println!("{:?}", jwk);
+
         VerificationKeyType::ES256(ES256PublicKey::from_bytes(sec1key.as_bytes())?)
+      }
+      Algorithm::EdDSA => {
+        // TODO: Ed25519
+
+        todo!()
       }
     };
 

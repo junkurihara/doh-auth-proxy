@@ -9,12 +9,14 @@ use std::str::FromStr;
 #[derive(Debug)]
 pub(crate) enum Algorithm {
   ES256,
+  EdDSA,
 }
 impl FromStr for Algorithm {
   type Err = DapError;
   fn from_str(s: &str) -> Result<Self> {
     match s {
       "ES256" => Ok(Algorithm::ES256),
+      "EdDSA" => Ok(Algorithm::EdDSA),
       _ => Err(DapError::Other(anyhow!("Invalid Algorithm Name"))),
     }
   }
@@ -23,6 +25,7 @@ impl FromStr for Algorithm {
 #[derive(Debug, Clone)]
 pub enum VerificationKeyType {
   ES256(ES256PublicKey),
+  EdDSA(Ed25519PublicKey),
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -79,9 +82,15 @@ impl TokenInner {
         };
         key.verify_token::<NoCustomClaims>(&self.id, Some(options))?
       }
+      Algorithm::EdDSA => {
+        let VerificationKeyType::EdDSA(key) = validation_key else {
+          return Err(DapError::AuthenticationError(
+            "validation key is inconsistent!".to_string(),
+          ));
+        };
+        key.verify_token::<NoCustomClaims>(&self.id, Some(options))?
+      }
     };
-
-    //TODO: Ed25519!
 
     Ok(clm)
   }
