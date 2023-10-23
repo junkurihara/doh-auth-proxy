@@ -1,4 +1,7 @@
-use super::token::{Algorithm, TokenInner, TokenMeta, VerificationKeyType};
+use super::{
+  message::{AuthenticationReqInner, AuthenticationRequest, AuthenticationResponse, JwksResponse},
+  token::{Algorithm, TokenInner, VerificationKeyType},
+};
 use crate::{
   constants::{ENDPOINT_JWKS_PATH, ENDPOINT_LOGIN_PATH},
   error::*,
@@ -8,36 +11,8 @@ use crate::{
 };
 use jwt_simple::prelude::{ES256PublicKey, JWTClaims, NoCustomClaims};
 use p256::elliptic_curve::sec1::ToEncodedPoint;
-use serde::{Deserialize, Serialize};
 use std::{str::FromStr, sync::Arc};
 use tokio::sync::RwLock;
-
-/// Authentication request
-#[derive(Serialize)]
-pub struct AuthenticationRequest {
-  auth: AuthenticationReqInner,
-  client_id: String,
-}
-#[derive(Serialize)]
-/// Auth req inner
-pub struct AuthenticationReqInner {
-  username: String,
-  password: String,
-}
-
-#[derive(Deserialize, Debug)]
-/// Auth response
-pub struct AuthenticationResponse {
-  pub token: TokenInner,
-  pub metadata: TokenMeta,
-  pub message: String,
-}
-
-#[derive(Deserialize, Debug)]
-/// Jwks response
-pub struct JwksResponse {
-  pub keys: Vec<serde_json::Value>,
-}
 
 /// Authenticator client
 pub struct Authenticator {

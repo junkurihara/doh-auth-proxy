@@ -1,4 +1,5 @@
-mod auth;
+mod authenticator;
+mod message;
 mod token;
 
-pub use auth::Authenticator;
+pub use authenticator::Authenticator;

@@ -62,7 +62,7 @@ pub async fn entrypoint(
     authenticator.login().await?;
   }
 
-  // build global
+  // // build global
   // let globals = Arc::new(Globals {
   //   proxy_config: proxy_config.clone(),
   //   runtime_handle: runtime_handle.clone(),
