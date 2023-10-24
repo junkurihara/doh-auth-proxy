@@ -1,4 +1,4 @@
-use crate::{client::DoHMethod, constants::*, http::HttpClient};
+use crate::{client::DoHMethod, constants::*, http_client::HttpClient};
 use auth_client::AuthenticationConfig;
 use std::{
   net::{IpAddr, SocketAddr},

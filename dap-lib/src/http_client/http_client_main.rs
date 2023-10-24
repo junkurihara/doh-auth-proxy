@@ -44,6 +44,7 @@ impl HttpClient {
 }
 
 #[derive(Debug)]
+/// Simple wrapper of reqwest::Client
 pub struct HttpClientInner {
   /// client: reqwest::Client,
   pub client: Client,

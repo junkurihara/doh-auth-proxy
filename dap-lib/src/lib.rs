@@ -4,11 +4,11 @@ mod client;
 mod constants;
 mod error;
 mod globals;
-mod http;
+mod http_client;
 mod log;
 mod proxy;
 
-use crate::{error::*, globals::Globals, http::HttpClient, log::info};
+use crate::{error::*, globals::Globals, http_client::HttpClient, log::info};
 use async_trait::async_trait;
 use std::{net::SocketAddr, sync::Arc};
 use url::Url;
@@ -71,7 +71,7 @@ pub async fn entrypoint(
   tokio::time::sleep(tokio::time::Duration::from_secs(600)).await;
 
   // TODO: services
-  // - Authentication refresh/re-login service loop
+  // - Authentication refresh/re-login service loop (Done)
   // - HTTP client update service loop, changing DNS resolver to the self when it works
   // - Health check service checking every path, flag unreachable patterns as unhealthy
 

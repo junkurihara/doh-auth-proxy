@@ -1,7 +1,7 @@
 use crate::{
   constants::TOKEN_REFRESH_MARGIN,
   error::{bail, Context, DapError},
-  http::HttpClientInner,
+  http_client::HttpClientInner,
   log::*,
 };
 use async_trait::async_trait;

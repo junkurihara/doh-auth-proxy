@@ -28,8 +28,12 @@ pub const MAX_CACHE_SIZE: usize = 16384;
 // Cannot override below by config.toml
 pub const ODOH_CONFIG_PATH: &str = ".well-known/odohconfigs"; // client
 
-pub const TOKEN_REFRESH_MARGIN: i64 = 1500; // refresh at least two minutes before expiration
-pub const TOKEN_REFRESH_WATCH_DELAY: i64 = 60; // wait for 60 secs before watching token expiration
+// Authentication
+
+/// refresh at least two minutes before expiration
+pub const TOKEN_REFRESH_MARGIN: i64 = 120;
+/// wait for 60 secs before watching token expiration
+pub const TOKEN_REFRESH_WATCH_DELAY: i64 = 60;
 
 // pub const CREDENTIAL_REFRESH_MARGIN: i64 = 10; // at least 10 secs must be left to refresh // client::credential
 // pub const CREDENTIAL_CHECK_PERIOD_SECS: u64 = 60; // proxy
