@@ -18,6 +18,8 @@ pub use client::DoHMethod;
 pub use globals::{NextHopRelayConfig, ProxyConfig, SubseqRelayConfig, TargetConfig};
 
 #[async_trait]
+/// Trait that resolves ip addresses from a given url.
+/// This will be used both for bootstrap DNS resolver and MODoH resolver itself.
 pub trait ResolveIps {
   async fn resolve_ips(&self, target_url: &Url) -> Result<ResolveIpResponse>;
 }
@@ -55,10 +57,18 @@ pub async fn entrypoint(
   )
   .await?;
 
+  // spawn authentication service
   if let Some(auth_config) = &proxy_config.authentication_config {
     let authenticator = auth::Authenticator::new(auth_config, http_client.inner()).await?;
-    authenticator.login().await?;
+    runtime_handle.spawn(async move {
+      authenticator
+        .start_service(term_notify.clone())
+        .await
+        .with_context(|| "auth service got down")
+    });
   }
+
+  tokio::time::sleep(tokio::time::Duration::from_secs(600)).await;
 
   // TODO: services
   // - Authentication refresh/re-login service loop

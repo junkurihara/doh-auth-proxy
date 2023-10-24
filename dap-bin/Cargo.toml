@@ -34,24 +34,24 @@ doh-auth-proxy-lib = { path = "../dap-lib/" }
 
 anyhow = "1.0.75"
 mimalloc = { version = "*", default-features = false }
-serde = { version = "1.0.188", default-features = false, features = ["derive"] }
+serde = { version = "1.0.189", default-features = false, features = ["derive"] }
 derive_builder = "0.12.0"
-tokio = { version = "1.32.0", default-features = false, features = [
+tokio = { version = "1.33.0", default-features = false, features = [
   "net",
   "rt-multi-thread",
   "time",
   "sync",
   "macros",
 ] }
-async-trait = "0.1.73"
+async-trait = "0.1.74"
 
 # config
 clap = { version = "4.4.6", features = ["std", "cargo", "wrap_help"] }
-toml = { version = "0.8.2", default-features = false, features = ["parse"] }
+toml = { version = "0.8.4", default-features = false, features = ["parse"] }
 hot_reload = "0.1.4"
 
 # logging
-tracing = { version = "0.1.37" }
+tracing = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 url = "2.4.1"
 dotenv = "0.15.0"

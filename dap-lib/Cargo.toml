@@ -31,7 +31,7 @@ publish = false
 
 [dependencies]
 rand = "0.8.5"
-tokio = { version = "1.32.0", features = [
+tokio = { version = "1.33.0", features = [
   "net",
   "rt-multi-thread",
   "time",
@@ -40,7 +40,7 @@ tokio = { version = "1.32.0", features = [
 ] }
 futures = { version = "0.3.28", default-features = false }
 anyhow = "1.0.75"
-tracing = "0.1.37"
+tracing = "0.1.40"
 thiserror = "1.0.50"
 async-trait = "0.1.74"
 
@@ -54,13 +54,13 @@ url = "2.4.1"
 
 
 # for bootstrap dns resolver
-trust-dns-resolver = { version = "0.23.1", default-features = false, features = [
+trust-dns-resolver = { version = "0.23.2", default-features = false, features = [
   "tokio-runtime",
 ] }
 
 
 # authentication
-auth-client = { git = "https://github.com/junkurihara/rust-token-server", package = "rust-token-server-client", branch = "main" }
+auth-client = { git = "https://github.com/junkurihara/rust-token-server", package = "rust-token-server-client", branch = "develop" }
 jwt-simple = "0.11.7"
 chrono = "0.4.31"
 serde = { version = "1.0.189", features = ["derive"] }
