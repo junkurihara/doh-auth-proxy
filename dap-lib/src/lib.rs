@@ -122,7 +122,7 @@ pub async fn entrypoint(
   // TODO: services
   // - Authentication refresh/re-login service loop (Done)
   // - HTTP client update service loop, changing DNS resolver to the self when it works (Done)
-  // - Health check service checking every path, flag unreachable patterns as unhealthy (as individual service using doh_client?)
+  // - Health check service checking every path, flag unreachable patterns as unhealthy (as individual service inside doh_client?) this also needs ODoH config refresh.
 
   Ok(())
 }
