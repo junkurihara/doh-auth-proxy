@@ -1,4 +1,5 @@
 use crate::{
+  auth::Authenticator,
   error::*,
   globals::Globals,
   http_client::HttpClientInner,
@@ -9,16 +10,28 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use url::Url;
 
-#[derive(Debug)]
 /// DoH, ODoH, MODoH client
 pub struct DoHClient {
-  inner: Arc<RwLock<HttpClientInner>>,
+  http_client: Arc<RwLock<HttpClientInner>>,
+  auth_client: Option<Arc<Authenticator>>,
+  // odoh config
+  // path candidates
 }
 
 impl DoHClient {
   /// Create a new DoH client
-  pub fn new(inner: Arc<RwLock<HttpClientInner>>) -> Self {
-    Self { inner }
+  pub fn new(
+    globals: Arc<Globals>,
+    http_client: Arc<RwLock<HttpClientInner>>,
+    auth_client: Option<Arc<Authenticator>>,
+  ) -> Self {
+    // TODO: 1. build all path candidates from globals
+    // TODO: 2. spawn odoh config service
+    // TODO: 3. spawn healthcheck for every path
+    Self {
+      http_client,
+      auth_client,
+    }
   }
 
   /// Make DoH query

@@ -10,9 +10,8 @@ use url::Url;
 #[derive(Debug)]
 /// Global objects containing shared resources
 pub struct Globals {
-  /// HTTP client shared by DoH client and authentication client, etc.
-  pub http_client: Arc<HttpClient>,
-
+  // /// HTTP client shared by DoH client and authentication client, etc.
+  // pub http_client: Arc<HttpClient>,
   /// proxy configuration
   pub proxy_config: ProxyConfig,
 

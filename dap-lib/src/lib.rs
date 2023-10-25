@@ -28,6 +28,13 @@ pub async fn entrypoint(
 ) -> Result<()> {
   info!("Start DoH w/ Auth Proxy");
 
+  // build global
+  let globals = Arc::new(Globals {
+    proxy_config: proxy_config.clone(),
+    runtime_handle: runtime_handle.clone(),
+    term_notify: term_notify.clone(),
+  });
+
   // build bootstrap DNS resolver
   let bootstrap_dns_resolver =
     Arc::new(bootstrap::BootstrapDnsResolver::try_new(&proxy_config.bootstrap_dns, runtime_handle.clone()).await?);
@@ -54,38 +61,33 @@ pub async fn entrypoint(
 
   // spawn authentication service
   let term_notify_clone = term_notify.clone();
+  let mut authenticator = None;
   let mut auth_service = None;
   if let Some(auth_config) = &proxy_config.authentication_config {
-    let authenticator = auth::Authenticator::new(auth_config, http_client.inner()).await?;
+    let auth = Arc::new(auth::Authenticator::new(auth_config, http_client.inner()).await?);
+    let auth_clone = auth.clone();
     let auth_service_inner = runtime_handle.spawn(async move {
-      authenticator
+      auth_clone
         .start_service(term_notify_clone)
         .await
         .with_context(|| "auth service got down")
     });
+    authenticator = Some(auth);
     auth_service = Some(auth_service_inner);
   }
 
   // build doh_client
-  let doh_client = Arc::new(DoHClient::new(http_client.inner()));
+  let doh_client = Arc::new(DoHClient::new(globals.clone(), http_client.inner(), authenticator));
 
-  // spawn endpoint ip update service
+  // spawn endpoint ip update service with bootstrap dns resolver and doh_client
   let doh_client_clone = doh_client.clone();
-  let term_notify_clone = term_notify.clone();
+  let term_notify_clone = term_notify;
   let http_client_clone = http_client.clone();
   let ip_resolution_service = runtime_handle.spawn(async move {
     http_client_clone
       .start_endpoint_ip_update_service(doh_client_clone, bootstrap_dns_resolver, term_notify_clone)
       .await
       .with_context(|| "endpoint ip update service got down")
-  });
-
-  // build global
-  let globals = Arc::new(Globals {
-    http_client,
-    proxy_config: proxy_config.clone(),
-    runtime_handle: runtime_handle.clone(),
-    term_notify,
   });
 
   // Start proxy for each listen address
@@ -122,7 +124,8 @@ pub async fn entrypoint(
   // TODO: services
   // - Authentication refresh/re-login service loop (Done)
   // - HTTP client update service loop, changing DNS resolver to the self when it works (Done)
-  // - Health check service checking every path, flag unreachable patterns as unhealthy (as individual service inside doh_client?) this also needs ODoH config refresh.
+  // - Health check service checking every path, flag unreachable patterns as unhealthy (as individual service inside doh_client?),
+  //   which also needs ODoH config refresh.
 
   Ok(())
 }
