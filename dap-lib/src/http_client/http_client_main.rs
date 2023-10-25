@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use crate::{error::*, ResolveIpResponse, ResolveIps};
+use crate::{
+  error::*,
+  trait_resolve_ips::{ResolveIpResponse, ResolveIps},
+};
 use futures::future::join_all;
 use reqwest::{header::HeaderMap, Client, IntoUrl, RequestBuilder, Url};
 use tokio::{sync::RwLock, time::Duration};

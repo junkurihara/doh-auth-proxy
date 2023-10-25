@@ -1,5 +1,5 @@
 use super::HttpClient;
-use crate::{error::*, log::*, ResolveIps};
+use crate::{error::*, log::*, trait_resolve_ips::ResolveIps};
 use std::sync::Arc;
 
 impl HttpClient {

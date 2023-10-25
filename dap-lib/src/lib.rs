@@ -1,33 +1,23 @@
 mod auth;
 mod bootstrap;
-mod client;
 mod constants;
+mod doh_client;
 mod error;
 mod globals;
 mod http_client;
 mod log;
 mod proxy;
+mod trait_resolve_ips;
 
-use crate::{error::*, globals::Globals, http_client::HttpClient, log::info};
-use async_trait::async_trait;
-use std::{net::SocketAddr, sync::Arc};
-use url::Url;
+use crate::{doh_client::DoHClient, error::*, globals::Globals, http_client::HttpClient, log::*, proxy::Proxy};
+use futures::future::select_all;
+use std::sync::Arc;
 
 pub use auth_client::AuthenticationConfig;
-pub use client::DoHMethod;
+pub use doh_client::DoHMethod;
 pub use globals::{NextHopRelayConfig, ProxyConfig, SubseqRelayConfig, TargetConfig};
 
-#[async_trait]
-/// Trait that resolves ip addresses from a given url.
-/// This will be used both for bootstrap DNS resolver and MODoH resolver itself.
-pub trait ResolveIps {
-  async fn resolve_ips(&self, target_url: &Url) -> Result<ResolveIpResponse>;
-}
-pub struct ResolveIpResponse {
-  pub hostname: String,
-  pub addresses: Vec<SocketAddr>,
-}
-
+/// entrypoint of DoH w/ Auth Proxy
 pub async fn entrypoint(
   proxy_config: &ProxyConfig,
   runtime_handle: &tokio::runtime::Handle,
@@ -51,36 +41,53 @@ pub async fn entrypoint(
   }
   let http_client = HttpClient::new(
     &endpoint_candidates,
-    proxy_config.timeout_sec,
+    proxy_config.http_timeout_sec,
     None,
     bootstrap_dns_resolver,
   )
   .await?;
 
   // spawn authentication service
+  let term_notify_clone = term_notify.clone();
   if let Some(auth_config) = &proxy_config.authentication_config {
     let authenticator = auth::Authenticator::new(auth_config, http_client.inner()).await?;
     runtime_handle.spawn(async move {
       authenticator
-        .start_service(term_notify.clone())
+        .start_service(term_notify_clone)
         .await
         .with_context(|| "auth service got down")
     });
   }
-
-  tokio::time::sleep(tokio::time::Duration::from_secs(600)).await;
 
   // TODO: services
   // - Authentication refresh/re-login service loop (Done)
   // - HTTP client update service loop, changing DNS resolver to the self when it works
   // - Health check service checking every path, flag unreachable patterns as unhealthy
 
-  // // build global
-  // let globals = Arc::new(Globals {
-  //   proxy_config: proxy_config.clone(),
-  //   runtime_handle: runtime_handle.clone(),
-  //   term_notify: term_notify.clone(),
-  // });
+  // build doh_client
+  let doh_client = Arc::new(DoHClient::new(http_client.inner()));
+
+  // TODO: doh_clientにResolveIps traitを実装、http client ip updateサービスをここでspawn
+
+  // build global
+  let globals = Arc::new(Globals {
+    http_client: Arc::new(http_client),
+    proxy_config: proxy_config.clone(),
+    runtime_handle: runtime_handle.clone(),
+    term_notify,
+  });
+
+  // Start proxy for each listen address
+  let addresses = globals.proxy_config.listen_addresses.clone();
+  let futures = select_all(addresses.into_iter().map(|addr| {
+    let proxy = Proxy::new(globals.clone(), &addr, &doh_client);
+    globals.runtime_handle.spawn(proxy.start())
+  }));
+
+  // wait for all future
+  if let (Ok(Err(e)), _, _) = futures.await {
+    error!("Some proxy services are down: {:?}", e);
+  };
 
   Ok(())
 }

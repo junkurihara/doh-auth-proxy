@@ -1,4 +1,5 @@
 pub use anyhow::{anyhow, bail, ensure, Context};
+use std::net::SocketAddr;
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, DapError>;
@@ -22,6 +23,18 @@ pub enum DapError {
   HttpClientError(#[from] reqwest::Error),
   #[error("HttpClient build error")]
   HttpClientBuildError,
+  #[error("Io Error: {0}")]
+  Io(#[from] std::io::Error),
+  #[error("Null TCP stream")]
+  NullTcpStream,
+  #[error("Udp channel send error")]
+  UdpChannelSendError(#[from] tokio::sync::mpsc::error::SendError<(Vec<u8>, SocketAddr)>),
+  #[error("Invalid DNS response size")]
+  InvalidDnsResponseSize,
+  #[error("Too many connections")]
+  TooManyConnections,
+  #[error("Failed to make DoH query")]
+  FailedToMakeDohQuery,
 
   #[error(transparent)]
   Other(#[from] anyhow::Error),

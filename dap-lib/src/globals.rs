@@ -1,21 +1,34 @@
-use crate::{client::DoHMethod, constants::*, http_client::HttpClient};
+use crate::{
+  constants::*,
+  doh_client::{DoHClient, DoHMethod},
+  http_client::HttpClient,
+};
 use auth_client::AuthenticationConfig;
 use std::{
   net::{IpAddr, SocketAddr},
-  sync::{Arc, RwLock},
+  sync::Arc,
 };
-use tokio::{sync::Notify, time::Duration};
+use tokio::{
+  sync::{Notify, RwLock},
+  time::Duration,
+};
 use url::Url;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
+/// Global objects containing shared resources
 pub struct Globals {
-  // pub cache: Arc<Cache>,
-  // pub counter: ConnCounter,
-  pub http_client: Arc<RwLock<HttpClient>>,
+  /// HTTP client shared by DoH client and authentication client, etc.
+  pub http_client: Arc<HttpClient>,
 
+  /// proxy configuration
   pub proxy_config: ProxyConfig,
+
+  /// tokio runtime handler
   pub runtime_handle: tokio::runtime::Handle,
+
+  /// notifier for termination at spawned tokio tasks
   pub term_notify: Option<Arc<Notify>>,
+  // pub cache: Arc<Cache>,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -27,10 +40,14 @@ pub struct ProxyConfig {
   /// bootstrap DNS
   pub bootstrap_dns: BootstrapDns,
 
-  // udp proxy setting
+  // udp and tcp proxy setting
   pub udp_buffer_size: usize,
   pub udp_channel_capacity: usize,
-  pub timeout_sec: Duration,
+  pub udp_timeout_sec: Duration,
+  pub tcp_listen_backlog: u32,
+
+  /// timeout for HTTP requests (DoH, ODoH, and authentication requests)
+  pub http_timeout_sec: Duration,
 
   // doh, odoh, modoh target settings
   pub target_config: TargetConfig,
@@ -103,7 +120,10 @@ impl Default for ProxyConfig {
 
       udp_buffer_size: UDP_BUFFER_SIZE,
       udp_channel_capacity: UDP_CHANNEL_CAPACITY,
-      timeout_sec: Duration::from_secs(TIMEOUT_SEC),
+      udp_timeout_sec: Duration::from_secs(UDP_TIMEOUT_SEC),
+      tcp_listen_backlog: TCP_LISTEN_BACKLOG,
+
+      http_timeout_sec: Duration::from_secs(HTTP_TIMEOUT_SEC),
 
       target_config: TargetConfig::default(),
       nexthop_relay_config: None,

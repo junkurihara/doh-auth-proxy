@@ -1,4 +1,9 @@
-use crate::{error::*, globals::BootstrapDns, log::*, ResolveIpResponse, ResolveIps};
+use crate::{
+  error::*,
+  globals::BootstrapDns,
+  log::*,
+  trait_resolve_ips::{ResolveIpResponse, ResolveIps},
+};
 use async_trait::async_trait;
 use reqwest::Url;
 use std::net::SocketAddr;
@@ -10,6 +15,7 @@ use trust_dns_resolver::{
 
 /// stub resolver using bootstrap DNS resolver
 pub struct BootstrapDnsResolver {
+  /// wrapper of trust-dns-resolver
   pub inner: AsyncResolver<GenericConnector<TokioRuntimeProvider>>,
 }
 
