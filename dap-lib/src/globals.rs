@@ -1,17 +1,10 @@
-use crate::{
-  constants::*,
-  doh_client::{DoHClient, DoHMethod},
-  http_client::HttpClient,
-};
+use crate::{constants::*, doh_client::DoHMethod, http_client::HttpClient};
 use auth_client::AuthenticationConfig;
 use std::{
   net::{IpAddr, SocketAddr},
   sync::Arc,
 };
-use tokio::{
-  sync::{Notify, RwLock},
-  time::Duration,
-};
+use tokio::{sync::Notify, time::Duration};
 use url::Url;
 
 #[derive(Debug)]
@@ -39,6 +32,7 @@ pub struct ProxyConfig {
 
   /// bootstrap DNS
   pub bootstrap_dns: BootstrapDns,
+  pub endpoint_resolution_period_sec: Duration,
 
   // udp and tcp proxy setting
   pub udp_buffer_size: usize,
@@ -70,7 +64,6 @@ pub struct ProxyConfig {
 pub struct BootstrapDns {
   pub ips: Vec<IpAddr>,
   pub port: u16,
-  pub rebootstrap_period_sec: Duration,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -115,8 +108,8 @@ impl Default for ProxyConfig {
       bootstrap_dns: BootstrapDns {
         ips: BOOTSTRAP_DNS_IPS.iter().map(|v| v.parse().unwrap()).collect(),
         port: BOOTSTRAP_DNS_PORT,
-        rebootstrap_period_sec: Duration::from_secs(REBOOTSTRAP_PERIOD_MIN * 60),
       },
+      endpoint_resolution_period_sec: Duration::from_secs(ENDPOINT_RESOLUTION_PERIOD_MIN * 60),
 
       udp_buffer_size: UDP_BUFFER_SIZE,
       udp_channel_capacity: UDP_CHANNEL_CAPACITY,

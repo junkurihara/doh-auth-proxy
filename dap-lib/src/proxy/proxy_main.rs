@@ -1,5 +1,6 @@
 use super::counter::ConnCounter;
 use crate::{doh_client::DoHClient, error::*, globals::Globals, log::*};
+use futures::future::select;
 use std::{net::SocketAddr, sync::Arc};
 
 /// Proxy object serving UDP and TCP queries
@@ -66,7 +67,7 @@ impl Proxy {
       }
     });
 
-    futures::future::select(udp_fut, tcp_fut).await;
+    select(udp_fut, tcp_fut).await;
 
     Ok(())
   }

@@ -6,13 +6,14 @@ use crate::{
 };
 use async_trait::async_trait;
 use reqwest::Url;
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 use trust_dns_resolver::{
   config::{NameServerConfigGroup, ResolverConfig, ResolverOpts},
   name_server::{GenericConnector, TokioRuntimeProvider},
   AsyncResolver, TokioAsyncResolver,
 };
 
+#[derive(Clone)]
 /// stub resolver using bootstrap DNS resolver
 pub struct BootstrapDnsResolver {
   /// wrapper of trust-dns-resolver
@@ -37,7 +38,7 @@ impl BootstrapDnsResolver {
 }
 
 #[async_trait]
-impl ResolveIps for BootstrapDnsResolver {
+impl ResolveIps for Arc<BootstrapDnsResolver> {
   /// Lookup the IP addresses associated with a name using the bootstrap resolver
   async fn resolve_ips(&self, target_url: &Url) -> Result<ResolveIpResponse> {
     // The final dot forces this to be an FQDN, otherwise the search rules as specified
@@ -88,11 +89,11 @@ mod tests {
     let bootstrap_dns = BootstrapDns {
       ips: vec![IpAddr::from([8, 8, 8, 8])],
       port: 53,
-      rebootstrap_period_sec: tokio::time::Duration::from_secs(1),
     };
     let resolver = BootstrapDnsResolver::try_new(&bootstrap_dns, tokio::runtime::Handle::current())
       .await
       .unwrap();
+    let resolver = Arc::new(resolver);
     let target_url = Url::parse("https://dns.google").unwrap();
     let response = resolver.resolve_ips(&target_url).await.unwrap();
 

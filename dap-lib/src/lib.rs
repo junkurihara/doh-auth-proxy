@@ -10,7 +10,10 @@ mod proxy;
 mod trait_resolve_ips;
 
 use crate::{doh_client::DoHClient, error::*, globals::Globals, http_client::HttpClient, log::*, proxy::Proxy};
-use futures::future::select_all;
+use futures::{
+  future::{select_all, FutureExt},
+  select,
+};
 use std::sync::Arc;
 
 pub use auth_client::AuthenticationConfig;
@@ -27,7 +30,7 @@ pub async fn entrypoint(
 
   // build bootstrap DNS resolver
   let bootstrap_dns_resolver =
-    bootstrap::BootstrapDnsResolver::try_new(&proxy_config.bootstrap_dns, runtime_handle.clone()).await?;
+    Arc::new(bootstrap::BootstrapDnsResolver::try_new(&proxy_config.bootstrap_dns, runtime_handle.clone()).await?);
 
   // build http client that is used commonly by DoH client and authentication client
   let mut endpoint_candidates = vec![];
@@ -43,9 +46,11 @@ pub async fn entrypoint(
     &endpoint_candidates,
     proxy_config.http_timeout_sec,
     None,
-    bootstrap_dns_resolver,
+    bootstrap_dns_resolver.clone(),
+    proxy_config.endpoint_resolution_period_sec,
   )
   .await?;
+  let http_client = Arc::new(http_client);
 
   // spawn authentication service
   let term_notify_clone = term_notify.clone();
@@ -61,19 +66,23 @@ pub async fn entrypoint(
     auth_service = Some(auth_service_inner);
   }
 
-  // TODO: services
-  // - Authentication refresh/re-login service loop (Done)
-  // - HTTP client update service loop, changing DNS resolver to the self when it works
-  // - Health check service checking every path, flag unreachable patterns as unhealthy
-
   // build doh_client
   let doh_client = Arc::new(DoHClient::new(http_client.inner()));
 
-  // TODO: doh_clientにResolveIps traitを実装、http client ip updateサービスをここでspawn
+  // spawn endpoint ip update service
+  let doh_client_clone = doh_client.clone();
+  let term_notify_clone = term_notify.clone();
+  let http_client_clone = http_client.clone();
+  let ip_resolution_service = runtime_handle.spawn(async move {
+    http_client_clone
+      .start_endpoint_ip_update_service(doh_client_clone, bootstrap_dns_resolver, term_notify_clone)
+      .await
+      .with_context(|| "endpoint ip update service got down")
+  });
 
   // build global
   let globals = Arc::new(Globals {
-    http_client: Arc::new(http_client),
+    http_client,
     proxy_config: proxy_config.clone(),
     runtime_handle: runtime_handle.clone(),
     term_notify,
@@ -88,12 +97,32 @@ pub async fn entrypoint(
 
   // wait for all future
   if let Some(auth_service) = auth_service {
-    futures::future::select(proxy_service, auth_service).await;
-    warn!("Some proxy services and auth service are down or term notified");
+    select! {
+      _ = proxy_service.fuse() => {
+        warn!("Proxy services are down, or term notified");
+      },
+      _ = auth_service.fuse() => {
+        warn!("Auth services are down, or term notified");
+      }
+      _ = ip_resolution_service.fuse() => {
+        warn!("Ip resolution service are down, or term notified");
+      }
+    }
   } else {
-    let _res = proxy_service.await;
-    warn!("Some proxy services are down or term notified");
+    select! {
+      _ = proxy_service.fuse() => {
+        warn!("Proxy services are down, or term notified");
+      },
+      _ = ip_resolution_service.fuse() => {
+        warn!("Ip resolution service are down, or term notified");
+      }
+    }
   }
+
+  // TODO: services
+  // - Authentication refresh/re-login service loop (Done)
+  // - HTTP client update service loop, changing DNS resolver to the self when it works (Done)
+  // - Health check service checking every path, flag unreachable patterns as unhealthy (as individual service using doh_client?)
 
   Ok(())
 }

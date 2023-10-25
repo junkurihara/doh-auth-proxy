@@ -16,11 +16,19 @@ pub const MIN_TTL: u32 = 10; // TTL for overridden records (plugin)
 // Default Values for Config  //
 ////////////////////////////////
 // Can override by specifying values in config.toml
+
+/// Default listen address
 pub const LISTEN_ADDRESSES: &[&str] = &["127.0.0.1:50053", "[::1]:50053"];
 
+/// Bootstrap DNS address
 pub const BOOTSTRAP_DNS_IPS: &[&str] = &["1.1.1.1"];
+/// Bootstrap DNS port
 pub const BOOTSTRAP_DNS_PORT: u16 = 53;
-pub const REBOOTSTRAP_PERIOD_MIN: u64 = 60;
+
+/// Endpoint resolution period in minutes
+pub const ENDPOINT_RESOLUTION_PERIOD_MIN: u64 = 60;
+
+/// Default DoH target server
 pub const DOH_TARGET_URL: &[&str] = &["https://dns.google/dns-query"];
 
 pub const MAX_CACHE_SIZE: usize = 16384;

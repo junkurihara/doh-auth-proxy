@@ -72,12 +72,15 @@ impl TryInto<ProxyConfig> for &ConfigToml {
       proxy_config.bootstrap_dns.ips = val.iter().map(|x| x.parse().unwrap()).collect()
     };
     info!("Bootstrap DNS: {:?}", proxy_config.bootstrap_dns.ips);
+
+    /////////////////////////////
+    // reboot period
     if let Some(val) = self.reboot_period {
-      proxy_config.bootstrap_dns.rebootstrap_period_sec = Duration::from_secs((val as u64) * 60);
+      proxy_config.endpoint_resolution_period_sec = Duration::from_secs((val as u64) * 60);
     }
     info!(
-      "Target DoH Address is re-fetched every {:?} min via Bootsrap DNS",
-      proxy_config.bootstrap_dns.rebootstrap_period_sec.as_secs() / 60
+      "Target DoH and auth server addresses are re-fetched every {:?} min via DoH itself or Bootsrap DNS",
+      proxy_config.endpoint_resolution_period_sec.as_secs() / 60
     );
 
     /////////////////////////////

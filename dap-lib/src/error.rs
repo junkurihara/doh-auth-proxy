@@ -21,8 +21,10 @@ pub enum DapError {
 
   #[error("HttpClient error")]
   HttpClientError(#[from] reqwest::Error),
-  #[error("HttpClient build error")]
-  HttpClientBuildError,
+  #[error("Failed to resolve Ips for HTTP client")]
+  FailedToResolveIpsForHttpClient,
+  #[error("Too many fails to resolve Ips for HTTP client in periodic task")]
+  TooManyFailsToResolveIps,
   #[error("Io Error: {0}")]
   Io(#[from] std::io::Error),
   #[error("Null TCP stream")]
