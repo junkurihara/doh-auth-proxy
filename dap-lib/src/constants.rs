@@ -39,8 +39,9 @@ pub const TOKEN_REFRESH_MARGIN: i64 = 120;
 /// every 60 secs, token is checked. then if the refresh condition is satisfied, refresh.
 /// this is to rapidly recover from the hibernation of PC on which this is working. (at most 60 secs is needed for recovery)
 pub const TOKEN_REFRESH_WATCH_DELAY: i64 = 60;
-
+/// wait for 10 secs before relogin
 pub const TOKEN_RELOGIN_WAITING_SEC: u64 = 10;
+/// relogin at most 5 times
 pub const MAX_RELOGIN_ATTEMPTS: usize = 5;
 
 pub const HEALTHCHECK_TARGET_FQDN: &str = "dns.google."; // client
