@@ -49,14 +49,16 @@ pub async fn entrypoint(
 
   // spawn authentication service
   let term_notify_clone = term_notify.clone();
+  let mut auth_service = None;
   if let Some(auth_config) = &proxy_config.authentication_config {
     let authenticator = auth::Authenticator::new(auth_config, http_client.inner()).await?;
-    runtime_handle.spawn(async move {
+    let auth_service_inner = runtime_handle.spawn(async move {
       authenticator
         .start_service(term_notify_clone)
         .await
         .with_context(|| "auth service got down")
     });
+    auth_service = Some(auth_service_inner);
   }
 
   // TODO: services
@@ -79,15 +81,19 @@ pub async fn entrypoint(
 
   // Start proxy for each listen address
   let addresses = globals.proxy_config.listen_addresses.clone();
-  let futures = select_all(addresses.into_iter().map(|addr| {
+  let proxy_service = select_all(addresses.into_iter().map(|addr| {
     let proxy = Proxy::new(globals.clone(), &addr, &doh_client);
-    globals.runtime_handle.spawn(proxy.start())
+    globals.runtime_handle.spawn(async move { proxy.start().await })
   }));
 
   // wait for all future
-  if let (Ok(Err(e)), _, _) = futures.await {
-    error!("Some proxy services are down: {:?}", e);
-  };
+  if let Some(auth_service) = auth_service {
+    futures::future::select(proxy_service, auth_service).await;
+    warn!("Some proxy services and auth service are down or term notified");
+  } else {
+    let _res = proxy_service.await;
+    warn!("Some proxy services are down or term notified");
+  }
 
   Ok(())
 }

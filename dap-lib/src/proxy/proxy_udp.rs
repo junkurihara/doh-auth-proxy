@@ -11,7 +11,7 @@ use tokio::{
 
 impl Proxy {
   /// Start UDP listener
-  pub async fn start_udp_listener(self) -> Result<()> {
+  pub async fn start_udp_listener(&self) -> Result<()> {
     // setup a channel for sending out responses
     let (channel_sender, channel_receiver) =
       mpsc::channel::<(Vec<u8>, SocketAddr)>(self.globals.proxy_config.udp_channel_capacity);

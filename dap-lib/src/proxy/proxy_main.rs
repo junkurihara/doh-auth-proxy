@@ -24,31 +24,50 @@ impl Proxy {
   /// Start proxy for single port
   pub async fn start(self) -> Result<()> {
     let term_notify = self.globals.term_notify.clone();
-    match term_notify {
-      Some(term) => {
-        tokio::select! {
-          _ = self.clone().start_udp_listener() => {
-            warn!("UDP listener service got down");
-          }
-          _ = self.start_tcp_listener() => {
-            warn!("TCP listener service got down");
-          }
-          _ = term.notified() => {
-            info!("Proxy receives term signal");
-          }
-        }
-      }
-      None => {
-        tokio::select! {
-          _ = self.clone().start_udp_listener() => {
-            warn!("UDP listener service got down");
-          }
-          _ = self.start_tcp_listener() => {
-            warn!("TCP listener service got down");
+    let self_clone = self.clone();
+
+    let udp_fut = self.globals.runtime_handle.spawn(async move {
+      match term_notify {
+        Some(term) => {
+          tokio::select! {
+            _ = self_clone.start_udp_listener() => {
+              warn!("UDP listener service got down");
+            }
+            _ = term.notified() => {
+              info!("UDP listener received term signal");
+            }
           }
         }
+        None => {
+          let _ = self_clone.start_udp_listener().await;
+          warn!("UDP listener service got down");
+        }
       }
-    }
+    });
+
+    let self_clone = self.clone();
+    let term_notify = self.globals.term_notify.clone();
+    let tcp_fut = self.globals.runtime_handle.spawn(async move {
+      match term_notify {
+        Some(term) => {
+          tokio::select! {
+            _ = self_clone.start_tcp_listener() => {
+              warn!("TCP listener service got down");
+            }
+            _ = term.notified() => {
+              info!("TCP listener received term signal");
+            }
+          }
+        }
+        None => {
+          let _ = self_clone.start_tcp_listener().await;
+          warn!("TCP listener service got down");
+        }
+      }
+    });
+
+    futures::future::select(udp_fut, tcp_fut).await;
+
     Ok(())
   }
 }

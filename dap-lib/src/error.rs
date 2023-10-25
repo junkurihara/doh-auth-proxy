@@ -13,8 +13,8 @@ pub enum DapError {
   #[error("Url error: {0}")]
   UrlError(#[from] url::ParseError),
 
-  #[error("Authentication error: {0}")]
-  AuthenticationError(String),
+  #[error("Failed all attempts of login and refresh")]
+  FailedAllAttemptsOfLoginAndRefresh,
 
   #[error("Token error: {0}")]
   TokenError(String),

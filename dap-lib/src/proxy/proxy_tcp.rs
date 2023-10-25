@@ -8,7 +8,7 @@ use tokio::{
 
 impl Proxy {
   /// Start TCP listener
-  pub async fn start_tcp_listener(self) -> Result<()> {
+  pub async fn start_tcp_listener(&self) -> Result<()> {
     let tcp_socket = bind_tcp_socket(&self.listening_on)?;
     let tcp_listener = tcp_socket.listen(self.globals.proxy_config.tcp_listen_backlog)?;
     info!("Listening on TCP: {:?}", tcp_listener.local_addr()?);

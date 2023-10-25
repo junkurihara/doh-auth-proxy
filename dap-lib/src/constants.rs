@@ -36,14 +36,12 @@ pub const ODOH_CONFIG_PATH: &str = ".well-known/odohconfigs"; // client
 /// refresh at least two minutes before expiration
 pub const TOKEN_REFRESH_MARGIN: i64 = 120;
 /// wait for 60 secs before watching token expiration
+/// every 60 secs, token is checked. then if the refresh condition is satisfied, refresh.
+/// this is to rapidly recover from the hibernation of PC on which this is working. (at most 60 secs is needed for recovery)
 pub const TOKEN_REFRESH_WATCH_DELAY: i64 = 60;
 
-// pub const CREDENTIAL_REFRESH_MARGIN: i64 = 10; // at least 10 secs must be left to refresh // client::credential
-// pub const CREDENTIAL_CHECK_PERIOD_SECS: u64 = 60; // proxy
-//                                                   // every 60 secs, token is checked. then if the refresh condition is satisfied, refresh.
-//                                                   // this is to rapidly recover from the hibernation of PC on which this is working. (at most 60 secs is needed for recovery)
-// pub const ENDPOINT_RELOGIN_WAITING_SEC: u64 = 10; // proxy
-// pub const MAX_LOGIN_ATTEMPTS: usize = 5; // proxy
+pub const TOKEN_RELOGIN_WAITING_SEC: u64 = 10;
+pub const MAX_RELOGIN_ATTEMPTS: usize = 5;
 
 pub const HEALTHCHECK_TARGET_FQDN: &str = "dns.google."; // client
 pub const HEALTHCHECK_TARGET_ADDR: &str = "8.8.8.8"; // client
