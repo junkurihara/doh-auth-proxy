@@ -77,7 +77,7 @@ pub async fn entrypoint(
   }
 
   // build doh_client
-  let doh_client = Arc::new(DoHClient::new(globals.clone(), http_client.inner(), authenticator));
+  let doh_client = Arc::new(DoHClient::new(globals.clone(), http_client.inner(), authenticator)?);
 
   // spawn endpoint ip update service with bootstrap dns resolver and doh_client
   let doh_client_clone = doh_client.clone();

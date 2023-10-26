@@ -46,6 +46,9 @@ anyhow = "1.0.75"
 tracing = "0.1.40"
 thiserror = "1.0.50"
 async-trait = "0.1.74"
+serde = { version = "1.0.189", features = ["derive"] }
+itertools = "0.11.0"
+rustc-hash = "1.1.0"
 
 # network
 socket2 = "0.5.5"
@@ -65,7 +68,6 @@ trust-dns-resolver = { version = "0.23.2", default-features = false, features = 
 
 # authentication
 auth-client = { git = "https://github.com/junkurihara/rust-token-server", package = "rust-token-server-client", branch = "develop" }
-serde = { version = "1.0.189", features = ["derive"] }
 
 [dev-dependencies]
 urlencoding = "2.1.3"

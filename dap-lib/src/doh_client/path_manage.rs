@@ -1,5 +1,6 @@
 use super::DoHType;
-use crate::error::*;
+use crate::{error::*, globals::Globals};
+use itertools::Itertools;
 use std::sync::{
   atomic::{AtomicBool, Ordering},
   Arc,
@@ -16,6 +17,16 @@ impl Scheme {
     match self {
       Scheme::Http => "http",
       Scheme::Https => "https",
+    }
+  }
+}
+impl TryFrom<&str> for Scheme {
+  type Error = DapError;
+  fn try_from(s: &str) -> Result<Self> {
+    match s {
+      "http" => Ok(Self::Http),
+      "https" => Ok(Self::Https),
+      _ => Err(DapError::FailedToBuildDohUrl),
     }
   }
 }
@@ -110,9 +121,121 @@ impl IsHealthy {
   }
 }
 
+/// Manages all possible paths
 pub struct DoHPathManager {
   /// all possible paths
-  paths: Vec<Arc<DoHPath>>, // next-hop randomizationするのでVec<Vec>>のほうがいい？
+  /// first dimension: depends on doh target resolver
+  /// second dimension: depends on next-hop relays. for the standard doh, its is one dimensional.
+  /// third dimension: actual paths. for the standard doh, its is one dimensional.
+  paths: Vec<Vec<Vec<Arc<DoHPath>>>>,
+  /// target randomization
+  target_randomization: bool,
+  /// next-hop randomization
+  nexthop_randomization: bool,
+}
+impl DoHPathManager {
+  /// build all possible paths
+  pub fn new(globals: &Arc<Globals>) -> Result<Self> {
+    let targets = globals.proxy_config.target_config.doh_target_urls.iter().map(|url| {
+      Arc::new(DoHTarget {
+        authority: url.authority().to_string(),
+        path: url.path().to_string(),
+        scheme: Scheme::try_from(url.scheme()).unwrap_or(Scheme::Https),
+      })
+    });
+
+    // standard doh
+    if globals.proxy_config.nexthop_relay_config.is_none() {
+      let paths = targets
+        .map(|target| {
+          vec![vec![Arc::new(DoHPath {
+            target,
+            relays: vec![],
+            is_healthy: IsHealthy::new(),
+            doh_type: DoHType::Standard,
+          })]]
+        })
+        .collect::<Vec<_>>();
+      return Ok(Self {
+        paths,
+        target_randomization: globals.proxy_config.target_config.target_randomization,
+        nexthop_randomization: false,
+      });
+    }
+
+    // odoh and modoh
+    let nexthop_relay_config = globals.proxy_config.nexthop_relay_config.as_ref().unwrap();
+    let nexthops = nexthop_relay_config.odoh_relay_urls.iter().map(|url| {
+      Arc::new(DoHRelay {
+        authority: url.authority().to_string(),
+        path: url.path().to_string(),
+        scheme: Scheme::try_from(url.scheme()).unwrap_or(Scheme::Https),
+        can_be_next_hop: true,
+      })
+    });
+    let subseq_relay_config = globals.proxy_config.subseq_relay_config.as_ref();
+    let subseq_relay_paths = subseq_relay_config.map(|v| {
+      let subseq_relays = v.mid_relay_urls.iter().map(|url| {
+        Arc::new(DoHRelay {
+          authority: url.authority().to_string(),
+          path: url.path().to_string(),
+          scheme: Scheme::try_from(url.scheme()).unwrap_or(Scheme::Https),
+          can_be_next_hop: false,
+        })
+      });
+      let max = v.max_mid_relays.max(subseq_relays.len());
+      let mut paths_after_nexthop = vec![];
+      (0..max + 1).for_each(|num| {
+        let x: Vec<_> = subseq_relays.clone().permutations(num).collect();
+        paths_after_nexthop.extend(x);
+      });
+      paths_after_nexthop
+    });
+    let relay_paths = nexthops.clone().map(|nexthop| {
+      let relays = match &subseq_relay_paths {
+        None => vec![vec![nexthop.clone()]],
+        Some(subseq_relay_paths) => subseq_relay_paths
+          .iter()
+          .map(|subseq_relay_path| {
+            let mut relays = vec![nexthop.clone()];
+            relays.extend(subseq_relay_path.clone());
+            relays
+          })
+          .collect::<Vec<_>>(),
+      };
+      relays
+    });
+
+    // build path object
+    let maybe_looped_path = targets.map(|target| {
+      relay_paths
+        .clone()
+        .map(|relay_path| {
+          relay_path
+            .iter()
+            .map(|relays| {
+              Arc::new(DoHPath {
+                target: target.clone(),
+                relays: relays.clone(),
+                is_healthy: IsHealthy::new(),
+                doh_type: DoHType::Oblivious,
+              })
+            })
+            .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>()
+    });
+
+    let v = maybe_looped_path.clone().collect::<Vec<_>>();
+
+    // TODO: TODO: TODO: remove loop paths: add check loop function in DoHPath
+
+    Ok(Self {
+      paths: vec![],
+      target_randomization: true,
+      nexthop_randomization: true,
+    })
+  }
 }
 
 #[cfg(test)]

@@ -10,12 +10,17 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use url::Url;
 
+use super::path_manage::DoHPathManager;
+
 /// DoH, ODoH, MODoH client
 pub struct DoHClient {
+  /// http client to make doh query
   http_client: Arc<RwLock<HttpClientInner>>,
+  /// auth_client to retrieve id token
   auth_client: Option<Arc<Authenticator>>,
-  // odoh config
-  // path candidates with health flags
+  /// path candidates with health flags
+  path_manager: Arc<DoHPathManager>,
+  // TODO: odoh config
 }
 
 impl DoHClient {
@@ -24,14 +29,15 @@ impl DoHClient {
     globals: Arc<Globals>,
     http_client: Arc<RwLock<HttpClientInner>>,
     auth_client: Option<Arc<Authenticator>>,
-  ) -> Self {
+  ) -> Result<Self> {
     // TODO: 1. build all path candidates from globals
     // TODO: 2. spawn odoh config service
     // TODO: 3. spawn healthcheck for every possible path? too many?
-    Self {
+    Ok(Self {
       http_client,
       auth_client,
-    }
+      path_manager: Arc::new(DoHPathManager::new(&globals)?),
+    })
   }
 
   /// Make DoH query
