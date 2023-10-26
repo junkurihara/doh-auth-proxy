@@ -15,7 +15,7 @@ pub struct DoHClient {
   http_client: Arc<RwLock<HttpClientInner>>,
   auth_client: Option<Arc<Authenticator>>,
   // odoh config
-  // path candidates
+  // path candidates with health flags
 }
 
 impl DoHClient {
@@ -27,7 +27,7 @@ impl DoHClient {
   ) -> Self {
     // TODO: 1. build all path candidates from globals
     // TODO: 2. spawn odoh config service
-    // TODO: 3. spawn healthcheck for every path
+    // TODO: 3. spawn healthcheck for every possible path? too many?
     Self {
       http_client,
       auth_client,

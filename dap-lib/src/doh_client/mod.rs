@@ -10,3 +10,18 @@ pub enum DoHMethod {
   Get,
   Post,
 }
+
+#[derive(Debug, Clone)]
+pub(super) enum DoHType {
+  Standard,
+  Oblivious,
+}
+
+impl DoHType {
+  fn as_str(&self) -> String {
+    match self {
+      DoHType::Standard => String::from("application/dns-message"),
+      DoHType::Oblivious => String::from("application/oblivious-dns-message"),
+    }
+  }
+}

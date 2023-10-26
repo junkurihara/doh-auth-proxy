@@ -37,6 +37,8 @@ pub enum DapError {
   TooManyConnections,
   #[error("Failed to make DoH query")]
   FailedToMakeDohQuery,
+  #[error("Failed to build DoH url")]
+  FailedToBuildDohUrl,
 
   #[error(transparent)]
   Other(#[from] anyhow::Error),
