@@ -140,6 +140,11 @@ impl DoHPath {
   pub fn make_unhealthy(&self) {
     self.is_healthy.make_unhealthy();
   }
+
+  /// Get target
+  pub fn target(&self) -> &Arc<DoHTarget> {
+    &self.target
+  }
 }
 
 /// represents the health of a path

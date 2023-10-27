@@ -35,8 +35,15 @@ impl ODoHConfigStore {
     Ok(res)
   }
 
+  /// Get a ODoHConfig for DoHTarget
+  pub async fn get(&self, target: &Arc<DoHTarget>) -> Option<Arc<Option<ODoHConfig>>> {
+    let inner_lock = self.inner.read().await;
+    let inner = inner_lock.get(target)?;
+    Some(inner.clone())
+  }
+
   /// Fetch ODoHConfig from target
-  async fn update_odoh_config_from_well_known(&self) -> Result<()> {
+  pub async fn update_odoh_config_from_well_known(&self) -> Result<()> {
     // TODO: Add auth token when fetching config?
     // fetch public key from odoh target (/.well-known)
     let inner_lock = self.inner.read().await;

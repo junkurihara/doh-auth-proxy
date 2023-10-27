@@ -7,6 +7,7 @@ use super::{
 };
 use crate::{
   auth::Authenticator,
+  doh_client::odoh,
   error::*,
   globals::Globals,
   http_client::HttpClientInner,
@@ -101,6 +102,7 @@ impl DoHClient {
 
     // TODO: 3. spawn healthcheck for every possible path? too many?
     // TODO: 4. cache purge service, simultaneously with healthcheck?
+    // TODO: 5. implement query plugins
     Ok(Self {
       http_client,
       auth_client,
@@ -190,7 +192,7 @@ impl DoHClient {
           header::AUTHORIZATION,
           header::HeaderValue::from_str(&token_str).unwrap(),
         );
-        todo!()
+        Ok(headers)
       }
       None => Ok(headers),
     }
@@ -234,18 +236,66 @@ impl DoHClient {
 
   /// serve oblivious doh query
   async fn serve_oblivious_doh_query(&self, packet_buf: &[u8]) -> Result<Vec<u8>> {
-    let Some(target_url) = self.path_manager.get_path() else {
+    let Some(odoh_path) = self.path_manager.get_path() else {
       return Err(DapError::NoPathAvailable);
     };
-    let target_url = target_url.as_url()?;
+    let target_obj = odoh_path.target();
+    let path_url = odoh_path.as_url()?;
     let headers = self.build_headers().await?;
 
     // odoh config
     if self.odoh_configs.is_none() {
       return Err(DapError::ODoHNoClientConfig);
     }
+    let Some(odoh_config) = self.odoh_configs.as_ref().unwrap().get(target_obj).await else {
+      return Err(DapError::ODoHNoClientConfig);
+    };
+    let Some(odoh_config) = odoh_config.as_ref() else {
+      return Err(DapError::ODoHNoClientConfig);
+    };
 
-    todo!()
+    // encrypt query
+    let (odoh_plaintext_query, encrypted_query_body, secret) = odoh_config.encrypt_query(packet_buf)?;
+
+    let response = match &self.doh_method {
+      DoHMethod::Get => {
+        return Err(DapError::ODoHGetNotAllowed);
+      }
+      DoHMethod::Post => {
+        let lock = self.http_client.read().await;
+        lock
+          .post(path_url)
+          .headers(headers)
+          .body(encrypted_query_body)
+          .send()
+          .await?
+      }
+    };
+
+    // 401 or len=0 when 200, update doh client with renewed public key
+    let Some(content_length) = response.content_length() else {
+      return Err(DapError::ODoHInvalidContentLength);
+    };
+    if response.status() == reqwest::StatusCode::UNAUTHORIZED
+      || (response.status() == reqwest::StatusCode::OK && content_length == 0)
+    {
+      warn!("ODoH public key is expired. Refetch.");
+      self
+        .odoh_configs
+        .as_ref()
+        .unwrap()
+        .update_odoh_config_from_well_known()
+        .await?;
+    }
+    if response.status() != reqwest::StatusCode::OK {
+      error!("DoH query error!: {:?}", response.status());
+      return Err(DapError::DoHQueryError);
+    }
+
+    let body = response.bytes().await?;
+    let dec_bytes = odoh_config.decrypt_response(&odoh_plaintext_query, &body, secret)?;
+
+    Ok(dec_bytes.to_vec())
   }
 }
 

@@ -123,6 +123,7 @@ impl Proxy {
       return Err(DapError::TooManyConnections);
     }
 
+    // self.globals.runtime_handle.clone().spawn(async move {
     let res = tokio::time::timeout(
       self.globals.proxy_config.http_timeout_sec + Duration::from_secs(1),
       // serve udp dns message here
@@ -142,6 +143,7 @@ impl Proxy {
       return Err(DapError::FailedToMakeDohQuery);
     }
     counter.decrement(CounterType::Udp);
+    // });
 
     Ok(())
   }

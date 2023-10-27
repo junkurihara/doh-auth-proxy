@@ -1,6 +1,7 @@
 pub use anyhow::{anyhow, bail, ensure, Context};
 use std::net::SocketAddr;
 use thiserror::Error;
+use tokio::sync::mpsc::error::SendError;
 
 pub type Result<T> = std::result::Result<T, DapError>;
 
@@ -30,7 +31,7 @@ pub enum DapError {
   #[error("Null TCP stream")]
   NullTcpStream,
   #[error("Udp channel send error")]
-  UdpChannelSendError(#[from] tokio::sync::mpsc::error::SendError<(Vec<u8>, SocketAddr)>),
+  UdpChannelSendError(#[from] SendError<(Vec<u8>, SocketAddr)>),
   #[error("Invalid DNS response size")]
   InvalidDnsResponseSize,
   #[error("Too many connections")]
@@ -43,6 +44,10 @@ pub enum DapError {
   ODoHNoRelayUrl,
   #[error("ODoH No Client Config")]
   ODoHNoClientConfig,
+  #[error("ODoH does not allow GET method")]
+  ODoHGetNotAllowed,
+  #[error("ODoH invalid content length")]
+  ODoHInvalidContentLength,
   #[error("ODoH operation error")]
   ODoHError(#[from] odoh_rs::Error),
 
