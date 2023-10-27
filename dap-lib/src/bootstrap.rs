@@ -5,13 +5,13 @@ use crate::{
   trait_resolve_ips::{ResolveIpResponse, ResolveIps},
 };
 use async_trait::async_trait;
-use reqwest::Url;
-use std::{net::SocketAddr, sync::Arc};
-use trust_dns_resolver::{
+use hickory_resolver::{
   config::{NameServerConfigGroup, ResolverConfig, ResolverOpts},
   name_server::{GenericConnector, TokioRuntimeProvider},
   AsyncResolver, TokioAsyncResolver,
 };
+use reqwest::Url;
+use std::{net::SocketAddr, sync::Arc};
 
 #[derive(Clone)]
 /// stub resolver using bootstrap DNS resolver
