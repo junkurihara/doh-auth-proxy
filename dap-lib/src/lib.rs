@@ -79,6 +79,10 @@ pub async fn entrypoint(
   // build doh_client
   let doh_client = Arc::new(DoHClient::new(globals.clone(), http_client.inner(), authenticator).await?);
 
+  // TODO: 3. spawn healthcheck for every possible path? too many?
+  // TODO: 4. cache purge service, simultaneously with healthcheck?
+  // TODO: 5. implement query plugins
+
   // spawn endpoint ip update service with bootstrap dns resolver and doh_client
   let doh_client_clone = doh_client.clone();
   let term_notify_clone = term_notify;

@@ -99,9 +99,6 @@ impl DoHClient {
     // cache
     let cache = Arc::new(Cache::new(globals.proxy_config.max_cache_size));
 
-    // TODO: 3. spawn healthcheck for every possible path? too many?
-    // TODO: 4. cache purge service, simultaneously with healthcheck?
-    // TODO: 5. implement query plugins
     Ok(Self {
       http_client,
       auth_client,
@@ -128,6 +125,7 @@ impl DoHClient {
       DapError::InvalidDnsQuery
     })?;
 
+    //TODO:TODO:TODO:!
     // // Process query plugins, e.g., domain filtering, cloaking, etc.
     // if let Some(query_plugins) = context.query_plugins.clone() {
     //   let execution_result = query_plugins.execute(&query_msg, &req.0[0], context.min_ttl)?;
