@@ -50,9 +50,11 @@ serde = { version = "1.0.189", features = ["derive"] }
 itertools = "0.11.0"
 rustc-hash = "1.1.0"
 
-# odoh
+# doh and odoh client
 odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git" }
 bytes = "1.5.0"
+hickory-proto = { version = "0.24.0", default-features = false }
+data-encoding = "2.4.0"
 
 # network
 socket2 = "0.5.5"
@@ -72,6 +74,8 @@ hickory-resolver = { version = "0.24.0", default-features = false, features = [
 
 # authentication
 auth-client = { git = "https://github.com/junkurihara/rust-token-server", package = "rust-token-server-client", branch = "develop" }
+hashlink = "0.8.4"
 
 [dev-dependencies]
+hickory-client = "0.24.0"
 urlencoding = "2.1.3"

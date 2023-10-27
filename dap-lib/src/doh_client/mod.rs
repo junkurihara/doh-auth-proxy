@@ -1,3 +1,5 @@
+mod cache;
+mod dns_message;
 mod doh_client_healthcheck;
 mod doh_client_main;
 mod odoh;

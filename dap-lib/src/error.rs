@@ -46,6 +46,16 @@ pub enum DapError {
   #[error("ODoH operation error")]
   ODoHError(#[from] odoh_rs::Error),
 
+  #[error("Invalid DNS query")]
+  InvalidDnsQuery,
+  #[error("Invalid DNS response")]
+  InvalidDnsResponse,
+
+  #[error("No path available to send query")]
+  NoPathAvailable,
+  #[error("DoH query error")]
+  DoHQueryError,
+
   #[error(transparent)]
   Other(#[from] anyhow::Error),
 }

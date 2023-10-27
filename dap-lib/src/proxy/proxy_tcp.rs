@@ -65,7 +65,7 @@ impl Proxy {
     let res = tokio::time::timeout(
       self.globals.proxy_config.http_timeout_sec + std::time::Duration::from_secs(1),
       // serve tcp dns message here
-      self.doh_client.make_doh_query(&packet_buf, &self.globals),
+      self.doh_client.make_doh_query(&packet_buf),
     )
     .await
     .ok();

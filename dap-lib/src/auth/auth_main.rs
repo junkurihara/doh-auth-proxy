@@ -86,4 +86,9 @@ impl Authenticator {
 
     Ok(())
   }
+  /// Get id token
+  pub async fn id_token(&self) -> Result<String, DapError> {
+    let token = self.inner.token().await?;
+    Ok(token.id)
+  }
 }
