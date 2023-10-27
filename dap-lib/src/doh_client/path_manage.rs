@@ -1,6 +1,7 @@
 use super::DoHType;
 use crate::{error::*, globals::Globals};
 use itertools::Itertools;
+use rand::Rng;
 use std::sync::{
   atomic::{AtomicBool, Ordering},
   Arc,
@@ -52,7 +53,7 @@ struct DoHRelay {
 }
 
 /// struct representing a specific path to the target resolver
-struct DoHPath {
+pub struct DoHPath {
   /// target resolver
   target: Arc<DoHTarget>,
   /// ordered list of relays, the first one must be flagged as can_be_next_hop
@@ -111,6 +112,21 @@ impl DoHPath {
     }
     false
   }
+
+  /// check if the path is healthy
+  pub fn is_healthy(&self) -> bool {
+    self.is_healthy.get()
+  }
+
+  /// flag healthy on
+  pub fn make_healthy(&self) {
+    self.is_healthy.make_healthy();
+  }
+
+  /// flag healthy off
+  pub fn make_unhealthy(&self) {
+    self.is_healthy.make_unhealthy();
+  }
 }
 
 /// represents the health of a path
@@ -119,14 +135,11 @@ impl IsHealthy {
   fn new() -> Self {
     Self(AtomicBool::new(true))
   }
-  fn make_halthy(&self) {
+  fn make_healthy(&self) {
     self.0.store(true, Ordering::Relaxed);
   }
   fn make_unhealthy(&self) {
     self.0.store(false, Ordering::Relaxed);
-  }
-  fn set(&self, is_healthy: bool) {
-    self.0.store(is_healthy, Ordering::Relaxed);
   }
   fn get(&self) -> bool {
     self.0.load(Ordering::Relaxed)
@@ -146,7 +159,46 @@ pub struct DoHPathManager {
   nexthop_randomization: bool,
 }
 impl DoHPathManager {
-  /// build all possible paths
+  /// get a healthy path according to the randomization policy
+  pub fn get_path(&self) -> Option<Arc<DoHPath>> {
+    let healthy_paths = self
+      .paths
+      .iter()
+      .map(|per_target| {
+        per_target
+          .iter()
+          .map(|per_next_hop| {
+            per_next_hop
+              .iter()
+              .filter(|path| path.is_healthy())
+              .cloned()
+              .collect::<Vec<_>>()
+          })
+          .filter(|per_next_hop| !per_next_hop.is_empty())
+          .collect::<Vec<_>>()
+      })
+      .filter(|per_target| !per_target.is_empty())
+      .collect::<Vec<_>>();
+
+    if healthy_paths.is_empty() {
+      return None;
+    }
+    let mut rng = rand::thread_rng();
+    let target_idx = if self.target_randomization {
+      rng.gen_range(0..healthy_paths.len())
+    } else {
+      0
+    };
+    let nexthop_idx = if self.nexthop_randomization {
+      rng.gen_range(0..healthy_paths[target_idx].len())
+    } else {
+      0
+    };
+    let path_idx = rng.gen_range(0..healthy_paths[target_idx][nexthop_idx].len());
+    Some(healthy_paths[target_idx][nexthop_idx][path_idx].clone())
+  }
+
+  /// build all possible paths without loop
   pub fn new(globals: &Arc<Globals>) -> Result<Self> {
     let targets = globals.proxy_config.target_config.doh_target_urls.iter().map(|url| {
       Arc::new(DoHTarget {
