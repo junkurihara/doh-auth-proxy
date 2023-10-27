@@ -37,7 +37,13 @@ pub const MAX_CACHE_SIZE: usize = 16384;
 // Constant Values for Proxy //
 ///////////////////////////////
 // Cannot override below by config.toml
-pub const ODOH_CONFIG_PATH: &str = ".well-known/odohconfigs"; // client
+
+// ODoH
+
+/// ODoH config path
+pub const ODOH_CONFIG_PATH: &str = ".well-known/odohconfigs";
+/// ODoH config is retrieved every 3600 secs
+pub const ODOH_CONFIG_WATCH_DELAY: i64 = 60;
 
 // Authentication
 

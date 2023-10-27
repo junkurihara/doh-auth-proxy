@@ -21,7 +21,6 @@ fn main() {
   runtime_builder.enable_all();
   runtime_builder.thread_name("doh-auth-proxy");
   let runtime = runtime_builder.build().unwrap();
-  println!("ok");
 
   runtime.block_on(async {
     // Initially load options

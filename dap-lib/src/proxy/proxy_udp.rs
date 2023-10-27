@@ -100,7 +100,7 @@ impl Proxy {
       }
       None => {
         service.await;
-        warn!("Auth service got down");
+        warn!("Udp responder service got down");
       }
     }
   }

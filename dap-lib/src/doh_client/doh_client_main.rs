@@ -1,3 +1,7 @@
+use super::{
+  odoh_config_store::ODoHConfigStore,
+  path_manage::{self, DoHPathManager},
+};
 use crate::{
   auth::Authenticator,
   error::*,
@@ -10,8 +14,6 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use url::Url;
 
-use super::path_manage::DoHPathManager;
-
 /// DoH, ODoH, MODoH client
 pub struct DoHClient {
   /// http client to make doh query
@@ -20,23 +22,43 @@ pub struct DoHClient {
   auth_client: Option<Arc<Authenticator>>,
   /// path candidates with health flags
   path_manager: Arc<DoHPathManager>,
-  // TODO: odoh config
+  // odoh config store
+  odoh_configs: Option<Arc<ODoHConfigStore>>,
 }
 
 impl DoHClient {
   /// Create a new DoH client
-  pub fn new(
+  pub async fn new(
     globals: Arc<Globals>,
     http_client: Arc<RwLock<HttpClientInner>>,
     auth_client: Option<Arc<Authenticator>>,
   ) -> Result<Self> {
-    // TODO: 1. build all path candidates from globals
-    // TODO: 2. spawn odoh config service
+    // 1. build all path candidates from globals
+    let path_manager = Arc::new(DoHPathManager::new(&globals)?);
+
+    // spawn odoh config service if odoh or modoh are enabled
+    let odoh_configs = match &globals.proxy_config.nexthop_relay_config {
+      Some(nexthop_relay_config) => {
+        if nexthop_relay_config.odoh_relay_urls.is_empty() {
+          return Err(DapError::ODoHNoRelayUrl);
+        }
+        let odoh_configs = Arc::new(ODoHConfigStore::new(http_client.clone(), &path_manager.targets()).await?);
+        let odoh_config_clone = odoh_configs.clone();
+        let term_notify = globals.term_notify.clone();
+        globals
+          .runtime_handle
+          .spawn(async move { odoh_config_clone.start_service(term_notify).await });
+        Some(odoh_configs)
+      }
+      None => None,
+    };
+
     // TODO: 3. spawn healthcheck for every possible path? too many?
     Ok(Self {
       http_client,
       auth_client,
-      path_manager: Arc::new(DoHPathManager::new(&globals)?),
+      path_manager,
+      odoh_configs,
     })
   }
 

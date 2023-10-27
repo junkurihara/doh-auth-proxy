@@ -39,6 +39,12 @@ pub enum DapError {
   FailedToMakeDohQuery,
   #[error("Failed to build DoH url")]
   FailedToBuildDohUrl,
+  #[error("ODoH No Relay Url")]
+  ODoHNoRelayUrl,
+  #[error("ODoH No Client Config")]
+  ODoHNoClientConfig,
+  #[error("ODoH operation error")]
+  ODoHError(#[from] odoh_rs::Error),
 
   #[error(transparent)]
   Other(#[from] anyhow::Error),

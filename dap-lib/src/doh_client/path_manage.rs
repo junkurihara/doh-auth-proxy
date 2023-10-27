@@ -8,6 +8,7 @@ use std::sync::{
 };
 use url::Url;
 
+#[derive(Eq, PartialEq, Hash)]
 /// scheme
 enum Scheme {
   Http,
@@ -31,8 +32,9 @@ impl TryFrom<&str> for Scheme {
     }
   }
 }
+#[derive(Eq, PartialEq, Hash)]
 /// DoH target resolver
-struct DoHTarget {
+pub struct DoHTarget {
   /// authority like "dns.google:443"
   authority: String,
   /// path like "/dns-query" that must start from "/"
@@ -40,6 +42,17 @@ struct DoHTarget {
   /// scheme
   scheme: Scheme,
 }
+impl DoHTarget {
+  /// get authority
+  pub fn authority(&self) -> &str {
+    &self.authority
+  }
+  /// get scheme
+  pub fn scheme(&self) -> &str {
+    self.scheme.as_str()
+  }
+}
+
 /// ODoH and MODoH relay
 struct DoHRelay {
   /// authority like "dns.google:443"
@@ -159,6 +172,14 @@ pub struct DoHPathManager {
   nexthop_randomization: bool,
 }
 impl DoHPathManager {
+  /// get target list
+  pub fn targets(&self) -> Vec<Arc<DoHTarget>> {
+    self
+      .paths
+      .iter()
+      .map(|per_target| per_target[0][0].target.clone())
+      .collect::<Vec<_>>()
+  }
   /// get a healthy path according to the randomization policy
   pub fn get_path(&self) -> Option<Arc<DoHPath>> {
     let healthy_paths = self
