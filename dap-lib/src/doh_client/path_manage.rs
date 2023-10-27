@@ -99,6 +99,18 @@ impl DoHPath {
       }
     }
   }
+
+  /// check if the path is looped
+  pub fn is_looped(&self) -> bool {
+    let mut seen = vec![self.target.authority.clone()];
+    for relay in &self.relays {
+      if seen.contains(&relay.authority) {
+        return true;
+      }
+      seen.push(relay.authority.clone());
+    }
+    false
+  }
 }
 
 /// represents the health of a path
@@ -207,7 +219,7 @@ impl DoHPathManager {
     });
 
     // build path object
-    let maybe_looped_path = targets.map(|target| {
+    let maybe_looped_paths = targets.map(|target| {
       relay_paths
         .clone()
         .map(|relay_path| {
@@ -226,14 +238,27 @@ impl DoHPathManager {
         .collect::<Vec<_>>()
     });
 
-    let v = maybe_looped_path.clone().collect::<Vec<_>>();
-
-    // TODO: TODO: TODO: remove loop paths: add check loop function in DoHPath
+    // remove looped paths
+    let loop_free_paths = maybe_looped_paths
+      .map(|per_target| {
+        let loop_free = per_target.iter().map(|per_next_hop| {
+          per_next_hop
+            .iter()
+            .filter(|path| !path.is_looped())
+            .cloned()
+            .collect::<Vec<_>>()
+        });
+        loop_free
+          .filter(|per_next_hop| !per_next_hop.is_empty())
+          .collect::<Vec<_>>()
+      })
+      .filter(|per_target| !per_target.is_empty())
+      .collect::<Vec<_>>();
 
     Ok(Self {
-      paths: vec![],
-      target_randomization: true,
-      nexthop_randomization: true,
+      paths: loop_free_paths,
+      target_randomization: globals.proxy_config.target_config.target_randomization,
+      nexthop_randomization: nexthop_relay_config.odoh_relay_randomization,
     })
   }
 }
@@ -278,5 +303,49 @@ mod tests {
     let decoded = decode(url.as_str()).unwrap();
 
     assert_eq!(decoded, "https://relay1.dns.google/proxy?targethost=dns.google&targetpath=/dns-query&relayhost[1]=relay2.dns.google&relaypath[1]=/proxy&relayhost[2]=relay3.dns.google&relaypath[2]=/proxy");
+  }
+
+  #[tokio::test]
+  async fn is_looped_works() {
+    let target = Arc::new(DoHTarget {
+      authority: "dns.google".to_string(),
+      path: "/dns-query".to_string(),
+      scheme: Scheme::Https,
+    });
+    let relay1 = Arc::new(DoHRelay {
+      authority: "relay1.dns.google".to_string(),
+      path: "/proxy".to_string(),
+      scheme: Scheme::Https,
+      can_be_next_hop: true,
+    });
+    let relay2 = Arc::new(DoHRelay {
+      authority: "relay2.dns.google".to_string(),
+      path: "/proxy".to_string(),
+      scheme: Scheme::Https,
+      can_be_next_hop: false,
+    });
+    let relay3 = Arc::new(DoHRelay {
+      authority: "relay3.dns.google".to_string(),
+      path: "/proxy".to_string(),
+      scheme: Scheme::Https,
+      can_be_next_hop: false,
+    });
+    let mut path = DoHPath {
+      target,
+      relays: vec![relay1, relay2, relay3],
+      is_healthy: IsHealthy::new(),
+      doh_type: DoHType::Oblivious,
+    };
+    assert!(!path.is_looped());
+
+    let relay4 = Arc::new(DoHRelay {
+      authority: "relay1.dns.google".to_string(),
+      path: "/proxy".to_string(),
+      scheme: Scheme::Https,
+      can_be_next_hop: true,
+    });
+
+    path.relays.push(relay4);
+    assert!(path.is_looped());
   }
 }
