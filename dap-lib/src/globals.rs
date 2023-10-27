@@ -1,4 +1,4 @@
-use crate::{constants::*, doh_client::DoHMethod, http_client::HttpClient};
+use crate::{constants::*, doh_client::DoHMethod};
 use auth_client::AuthenticationConfig;
 use std::{
   net::{IpAddr, SocketAddr},
@@ -10,8 +10,6 @@ use url::Url;
 #[derive(Debug)]
 /// Global objects containing shared resources
 pub struct Globals {
-  // /// HTTP client shared by DoH client and authentication client, etc.
-  // pub http_client: Arc<HttpClient>,
   /// proxy configuration
   pub proxy_config: ProxyConfig,
 
@@ -42,20 +40,19 @@ pub struct ProxyConfig {
   /// timeout for HTTP requests (DoH, ODoH, and authentication requests)
   pub http_timeout_sec: Duration,
 
-  // doh, odoh, modoh target settings
+  /// doh, odoh, modoh target settings
   pub target_config: TargetConfig,
 
-  // odoh and modoh nexthop
+  /// odoh and modoh nexthop settings
   pub nexthop_relay_config: Option<NextHopRelayConfig>,
 
-  // modoh
+  /// modoh relay settings
   pub subseq_relay_config: Option<SubseqRelayConfig>,
 
-  // authentication
+  /// authentication settings
   pub authentication_config: Option<AuthenticationConfig>,
   // pub query_plugins: Option<QueryPluginsApplied>,
   // pub min_ttl: u32, // TTL of overridden response
-  // pub credential: Arc<RwLock<Option<Credential>>>,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]

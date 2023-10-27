@@ -301,7 +301,7 @@ impl DoHClient {
   }
 }
 
-// TODO: implement ResolveIps for DoHClient
+// ResolveIps for DoHClient
 #[async_trait]
 impl ResolveIps for Arc<DoHClient> {
   /// Resolve ip addresses of the given domain name

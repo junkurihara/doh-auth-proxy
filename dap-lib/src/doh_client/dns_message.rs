@@ -12,14 +12,16 @@ use hickory_proto::{
 };
 use std::{net::IpAddr, str::FromStr};
 
-// https://github.com/aaronriekenberg/rust-doh-proxy/blob/master/src/doh/request_key.rs
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
+/// QueryKey is a tuple of query name, query type and query class
+/// https://github.com/aaronriekenberg/rust-doh-proxy/blob/master/src/doh/request_key.rs
 pub struct QueryKey {
   pub query_name: String,
   pub query_type: RecordType,
   pub query_class: DNSClass,
 }
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
+/// Request is a sorted list of QueryKey
 pub struct Request(pub Vec<QueryKey>);
 impl TryFrom<&Message> for Request {
   type Error = anyhow::Error;
@@ -46,14 +48,17 @@ impl TryFrom<&Message> for Request {
   }
 }
 
+/// Check if the message is a DNS query
 pub fn is_query(packet_buf: &[u8]) -> anyhow::Result<Message> {
   is(packet_buf, MessageType::Query)
 }
 
+/// Check if the message is a DNS response
 pub fn is_response(packet_buf: &[u8]) -> anyhow::Result<Message> {
   is(packet_buf, MessageType::Response)
 }
 
+/// Check if the message is a DNS query or response
 fn is(packet_buf: &[u8], mtype: MessageType) -> anyhow::Result<Message> {
   let msg = decode(packet_buf)?;
   if msg.message_type() == mtype {
@@ -70,16 +75,19 @@ fn is(packet_buf: &[u8], mtype: MessageType) -> anyhow::Result<Message> {
   }
 }
 
+/// Decode a DNS message
 pub fn decode(packet_buf: &[u8]) -> anyhow::Result<Message> {
   Message::from_bytes(packet_buf).map_err(|e| anyhow!("Undecodable packet buffer as DNS message: {}", e))
 }
 
+/// Encode a DNS message
 pub fn encode(msg: &Message) -> anyhow::Result<Vec<u8>> {
   msg
     .to_bytes()
     .map_err(|e| anyhow!("Failed to encode DNS message: {}", e))
 }
 
+/// Build a DNS query message for A record
 pub fn build_query_a(fqdn: &str) -> anyhow::Result<Message> {
   let qname: Name = Name::from_ascii(fqdn).unwrap();
   let mut query = Query::query(qname, RecordType::A);
@@ -105,6 +113,7 @@ pub fn build_query_a(fqdn: &str) -> anyhow::Result<Message> {
   Ok(msg)
 }
 
+/// Build a DNS response message with NXDOMAIN
 pub fn build_response_nx(msg: &Message) -> Message {
   let mut res = msg.clone();
   res.set_message_type(hickory_proto::op::MessageType::Response);
@@ -113,6 +122,7 @@ pub fn build_response_nx(msg: &Message) -> Message {
   res
 }
 
+/// Build a DNS response message for given QueryKey and IP address
 pub fn build_response_given_ipaddr(
   msg: &Message,
   q_key: &QueryKey,
