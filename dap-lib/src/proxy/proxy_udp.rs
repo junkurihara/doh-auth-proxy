@@ -1,22 +1,20 @@
 use super::{counter::CounterType, proxy_main::Proxy, socket::bind_udp_socket};
 use crate::{error::*, log::*};
-use std::{
-  net::{SocketAddr, UdpSocket},
-  sync::Arc,
-};
+use std::{net::SocketAddr, sync::Arc};
 use tokio::{
+  net::UdpSocket,
   sync::{mpsc, Notify},
   time::Duration,
 };
 
 impl Proxy {
   /// Start UDP listener
-  pub async fn start_udp_listener(&self) -> Result<()> {
+  pub async fn start_udp_listener(self) -> Result<()> {
     // setup a channel for sending out responses
     let (channel_sender, channel_receiver) =
       mpsc::channel::<(Vec<u8>, SocketAddr)>(self.globals.proxy_config.udp_channel_capacity);
 
-    let udp_socket = bind_udp_socket(&self.listening_on)?;
+    let udp_socket = UdpSocket::from_std(bind_udp_socket(&self.listening_on)?)?;
     info!("Listening on UDP: {:?}", udp_socket.local_addr()?);
 
     let socket_sender = Arc::new(udp_socket);
@@ -35,13 +33,14 @@ impl Proxy {
     // receive from src
     let udp_socket_service = async {
       loop {
-        let (buf_size, src_addr) = match socket_receiver.recv_from(&mut udp_buf) {
+        let (buf_size, src_addr) = match socket_receiver.recv_from(&mut udp_buf).await {
           Err(e) => {
             error!("Error in UDP listener: {}", e);
             continue;
           }
           Ok(res) => res,
         };
+        // debug!("received {} bytes from {}", buf_size, src_addr);
 
         let packet_buf = udp_buf[..buf_size].to_vec();
         let self_clone = self.clone();
@@ -76,7 +75,7 @@ impl Proxy {
           }
           Some(res) => res,
         };
-        match &socket_sender.send_to(&bytes, addr) {
+        match &socket_sender.send_to(&bytes, addr).await {
           Ok(len) => {
             debug!("send_to source with response of {:?} bytes", len);
           }

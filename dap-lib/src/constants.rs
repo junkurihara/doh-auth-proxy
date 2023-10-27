@@ -43,7 +43,7 @@ pub const MAX_CACHE_SIZE: usize = 16384;
 /// ODoH config path
 pub const ODOH_CONFIG_PATH: &str = ".well-known/odohconfigs";
 /// ODoH config is retrieved every 3600 secs
-pub const ODOH_CONFIG_WATCH_DELAY: i64 = 60;
+pub const ODOH_CONFIG_WATCH_DELAY: i64 = 3600;
 
 // Authentication
 

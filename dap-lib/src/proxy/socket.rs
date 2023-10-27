@@ -28,8 +28,9 @@ pub(super) fn bind_udp_socket(listening_on: &SocketAddr) -> Result<UdpSocket> {
   } else {
     Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))
   }?;
-  socket.set_reuse_address(true)?; // This isn't necessary?
+  socket.set_reuse_address(true)?;
   socket.set_reuse_port(true)?;
+  socket.set_nonblocking(true)?; // This is important to use `recv_from` in the UDP listener
 
   if let Err(e) = socket.bind(&(*listening_on).into()) {
     error!("Failed to bind UDP socket: {}", e);

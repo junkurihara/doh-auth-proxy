@@ -1,13 +1,14 @@
 // Handle packet buffer of DNS message (encode/decode)
 use crate::error::*;
 use hickory_proto::{
-  op::{Message, MessageType},
+  op::{update_message::MAX_PAYLOAD_LEN, Edns, Message, MessageType, OpCode, Query},
   rr::{
     domain::Name,
     rdata::{A, AAAA},
     DNSClass, RData, Record, RecordType,
   },
   serialize::binary::{BinDecodable, BinEncodable},
+  xfer::DnsRequestOptions,
 };
 use std::{net::IpAddr, str::FromStr};
 
@@ -81,13 +82,26 @@ pub fn encode(msg: &Message) -> anyhow::Result<Vec<u8>> {
 
 pub fn build_query_a(fqdn: &str) -> anyhow::Result<Message> {
   let qname: Name = Name::from_ascii(fqdn).unwrap();
-  let mut query = hickory_proto::op::Query::new();
-  query.set_name(qname);
-  query.set_query_type(hickory_proto::rr::record_type::RecordType::A);
-  query.set_query_class(hickory_proto::rr::dns_class::DNSClass::IN);
+  let mut query = Query::query(qname, RecordType::A);
+  query.set_query_class(DNSClass::IN);
+
+  let options = DnsRequestOptions::default();
+  let id: u16 = rand::random();
+
   let mut msg = Message::new();
-  msg.set_message_type(MessageType::Query);
-  msg.add_query(query);
+  msg
+    .add_query(query)
+    .set_id(id)
+    .set_message_type(MessageType::Query)
+    .set_op_code(OpCode::Query)
+    .set_recursion_desired(options.recursion_desired);
+  if options.use_edns {
+    msg
+      .extensions_mut()
+      .get_or_insert_with(Edns::new)
+      .set_max_payload(MAX_PAYLOAD_LEN)
+      .set_version(0);
+  }
   Ok(msg)
 }
 

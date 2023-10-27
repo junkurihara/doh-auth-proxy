@@ -7,7 +7,6 @@ use super::{
 };
 use crate::{
   auth::Authenticator,
-  doh_client::odoh,
   error::*,
   globals::Globals,
   http_client::HttpClientInner,
@@ -17,7 +16,7 @@ use crate::{
 use async_trait::async_trait;
 use data_encoding::BASE64URL_NOPAD;
 use reqwest::header;
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::RwLock;
 use url::Url;
 
@@ -205,12 +204,13 @@ impl DoHClient {
     };
     let target_url = target_url.as_url()?;
     let headers = self.build_headers().await?;
+    debug!("[DoH] target url: {}", target_url.as_str());
 
     let response = match &self.doh_method {
       DoHMethod::Get => {
         let query_b64u = BASE64URL_NOPAD.encode(packet_buf);
         let query_url = format!("{}?dns={}", target_url.as_str(), query_b64u);
-        debug!("query url: {:?}", query_url);
+        // debug!("query url: {:?}", query_url);
         let lock = self.http_client.read().await;
         lock.get(query_url).headers(headers).send().await?
       }
@@ -242,6 +242,8 @@ impl DoHClient {
     let target_obj = odoh_path.target();
     let path_url = odoh_path.as_url()?;
     let headers = self.build_headers().await?;
+
+    debug!("[ODoH] target url: {}", path_url.as_str());
 
     // odoh config
     if self.odoh_configs.is_none() {
@@ -303,7 +305,50 @@ impl DoHClient {
 #[async_trait]
 impl ResolveIps for Arc<DoHClient> {
   /// Resolve ip addresses of the given domain name
-  async fn resolve_ips(&self, domain: &Url) -> Result<ResolveIpResponse> {
-    Err(DapError::Other(anyhow!("Not implemented")))
+  async fn resolve_ips(&self, target_url: &Url) -> Result<ResolveIpResponse> {
+    let host_str = match target_url.host() {
+      Some(url::Host::Domain(host_str)) => host_str,
+      _ => {
+        return Err(DapError::FailedToResolveIpsForHttpClient);
+      }
+    };
+    let port = target_url
+      .port()
+      .unwrap_or_else(|| if target_url.scheme() == "https" { 443 } else { 80 });
+
+    let fqdn = format!("{}.", host_str);
+    let q_msg = dns_message::build_query_a(&fqdn)?;
+    let packet_buf = dns_message::encode(&q_msg)?;
+    let res = self.make_doh_query(&packet_buf).await?;
+    if dns_message::is_response(&res).is_err() {
+      error!("Invalid response: {fqdn}");
+      return Err(DapError::InvalidDnsResponse);
+    }
+    let r_msg = dns_message::decode(&res)?;
+    if r_msg.header().response_code() != hickory_proto::op::response_code::ResponseCode::NoError {
+      error!("erroneous response: {fqdn} {}", r_msg.header().response_code());
+      println!("{:?}", r_msg.answers());
+      return Err(DapError::FailedToResolveIpsForHttpClient);
+    }
+    let answers = r_msg.answers().to_vec();
+    if answers.is_empty() {
+      error!("answer is empty: {fqdn}");
+      return Err(DapError::FailedToResolveIpsForHttpClient);
+    }
+    let rdata = answers.iter().map(|a| a.data());
+    let addrs = rdata
+      .flatten()
+      .filter_map(|r| r.as_a())
+      .filter_map(|a| format!("{}:{}", a, port).parse::<SocketAddr>().ok())
+      .collect::<Vec<_>>();
+    if addrs.is_empty() {
+      error!("addrs is empty: {fqdn}");
+      return Err(DapError::FailedToResolveIpsForHttpClient);
+    }
+    debug!("resolved endpoint ip by DoHClient for {:?}: {:?}", fqdn, addrs);
+    Ok(ResolveIpResponse {
+      hostname: host_str.to_string(),
+      addresses: addrs,
+    })
   }
 }
