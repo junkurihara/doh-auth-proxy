@@ -2,7 +2,7 @@ use super::{
   cache::Cache,
   dns_message::{self, Request},
   odoh_config_store::ODoHConfigStore,
-  path_manage::DoHPathManager,
+  path_manage::{DoHPath, DoHPathManager},
   DoHMethod, DoHType,
 };
 use crate::{
@@ -15,7 +15,8 @@ use crate::{
 };
 use async_trait::async_trait;
 use data_encoding::BASE64URL_NOPAD;
-use reqwest::header;
+use hickory_proto::op::Message;
+use reqwest::header::{self, HeaderMap};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::sync::RwLock;
 use url::Url;
@@ -129,7 +130,8 @@ impl DoHClient {
     })
   }
 
-  /// Make DoH query
+  /// Make DoH query with intended automatic path selection.
+  /// Also cache and plugins are enabled
   pub async fn make_doh_query(&self, packet_buf: &[u8]) -> Result<Vec<u8>> {
     // Check if the given packet buffer is consistent as a DNS query
     let query_msg = dns_message::is_query(packet_buf).map_err(|e| {
@@ -171,28 +173,38 @@ impl DoHClient {
       }
     }
 
-    let response_result = match self.doh_type {
-      DoHType::Standard => self.serve_doh_query(packet_buf).await,
-      DoHType::Oblivious => self.serve_oblivious_doh_query(packet_buf).await,
+    // choose path
+    let Some(path) = self.path_manager.get_path() else {
+      return Err(DapError::NoPathAvailable);
     };
 
-    match response_result {
-      Ok(response_buf) => {
-        // Check if the returned packet buffer is consistent as a DNS response
-        // TODO: If error, should we build and return a synthetic reject response message?
-        let response_message = dns_message::is_response(&response_buf).map_err(|e| {
-          error!("{e}");
-          DapError::InvalidDnsResponse
-        })?;
+    // make doh query with the given path
+    let (response_buf, response_message) = self.make_doh_query_inner(packet_buf, &path).await?;
 
-        if (self.cache.put(req, &response_message).await).is_err() {
-          error!("Failed to cache a DNS response");
-        };
-        // TODO: should rebuild buffer from decoded dns response_msg?
-        Ok(response_buf)
-      }
-      Err(e) => Err(e),
-    }
+    // put message to cache
+    if (self.cache.put(req, &response_message).await).is_err() {
+      error!("Failed to cache a DNS response");
+    };
+
+    // should rebuild buffer from decoded dns response_msg? -> no need to do that.
+    Ok(response_buf)
+  }
+
+  /// Make DoH query with a specifically given path.
+  /// Note cache and plugins are disabled to be used for health check
+  async fn make_doh_query_inner(&self, packet_buf: &[u8], path: &Arc<DoHPath>) -> Result<(Vec<u8>, Message)> {
+    let headers = self.build_headers().await?;
+    let response_buf = match self.doh_type {
+      DoHType::Standard => self.serve_doh_query(packet_buf, path, headers).await,
+      DoHType::Oblivious => self.serve_oblivious_doh_query(packet_buf, path, headers).await,
+    }?;
+    // Check if the returned packet buffer is consistent as a DNS response
+    // TODO: If error, should we build and return a synthetic reject response message?
+    let response_message = dns_message::is_response(&response_buf).map_err(|e| {
+      error!("{e}");
+      DapError::InvalidDnsResponse
+    })?;
+    Ok((response_buf, response_message))
   }
 
   //// build headers for doh and odoh query with authorization if needed
@@ -214,12 +226,8 @@ impl DoHClient {
   }
 
   /// serve doh query
-  async fn serve_doh_query(&self, packet_buf: &[u8]) -> Result<Vec<u8>> {
-    let Some(target_url) = self.path_manager.get_path() else {
-      return Err(DapError::NoPathAvailable);
-    };
+  async fn serve_doh_query(&self, packet_buf: &[u8], target_url: &Arc<DoHPath>, headers: HeaderMap) -> Result<Vec<u8>> {
     let target_url = target_url.as_url()?;
-    let headers = self.build_headers().await?;
     debug!("[DoH] target url: {}", target_url.as_str());
 
     let response = match &self.doh_method {
@@ -251,14 +259,14 @@ impl DoHClient {
   }
 
   /// serve oblivious doh query
-  async fn serve_oblivious_doh_query(&self, packet_buf: &[u8]) -> Result<Vec<u8>> {
-    let Some(odoh_path) = self.path_manager.get_path() else {
-      return Err(DapError::NoPathAvailable);
-    };
+  async fn serve_oblivious_doh_query(
+    &self,
+    packet_buf: &[u8],
+    odoh_path: &Arc<DoHPath>,
+    headers: HeaderMap,
+  ) -> Result<Vec<u8>> {
     let target_obj = odoh_path.target();
     let path_url = odoh_path.as_url()?;
-    let headers = self.build_headers().await?;
-
     debug!("[ODoH] target url: {}", path_url.as_str());
 
     // odoh config

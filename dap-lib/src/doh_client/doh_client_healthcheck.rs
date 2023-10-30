@@ -38,8 +38,8 @@ impl DoHClient {
         debug!("Purged {} expired entries from cache", purged);
       });
 
-      //　TODO: health check for every path
-      // TODO: Health checkの時はキャッシュを無効化しないとダメなのでmake doh queryをいじる
+      // TODO: health check for every path
+      // make_doh_query_innerを使う
       tokio::time::sleep(self.healthcheck_period_sec).await;
     }
 

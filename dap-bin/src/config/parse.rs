@@ -1,5 +1,5 @@
 use super::toml::ConfigToml;
-use crate::error::{anyhow, ensure};
+// use crate::error::{anyhow, ensure};
 use clap::{Arg, ArgAction};
 use doh_auth_proxy_lib::ProxyConfig;
 
