@@ -148,7 +148,7 @@ impl Cache {
     res
   }
 
-  /// Purge expired entries
+  /// Purges expired entries, returns the number of purged entries
   pub async fn purge_expired_entries(&self) -> usize {
     let lru_cache_clone = self.cache.lock().await.clone();
     let expired = lru_cache_clone.iter().filter(|(_, v)| v.expired()).clone();

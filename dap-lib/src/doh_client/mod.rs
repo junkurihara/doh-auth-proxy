@@ -9,12 +9,14 @@ mod path_manage;
 pub use doh_client_main::DoHClient;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
+/// DoH method, GET or POST
 pub enum DoHMethod {
   Get,
   Post,
 }
 
 #[derive(Debug, Clone)]
+/// DoH type, Standard or Oblivious
 pub(super) enum DoHType {
   Standard,
   Oblivious,

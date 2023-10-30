@@ -47,7 +47,7 @@ impl HttpClient {
   ) -> Result<()> {
     let mut fail_cnt = 0;
     loop {
-      sleep(self.rebootstrap_period_sec()).await;
+      sleep(self.endpoint_resolution_period_sec()).await;
       let endpoints = self.endpoints();
 
       let primary_res = resolve_ips(endpoints, primary_resolver.clone()).await;

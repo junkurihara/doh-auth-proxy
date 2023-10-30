@@ -17,10 +17,14 @@ use futures::{
 use std::sync::Arc;
 
 pub use auth_client::AuthenticationConfig;
-pub use doh_client::DoHMethod;
 pub use globals::{NextHopRelayConfig, ProxyConfig, SubseqRelayConfig, TargetConfig};
 
 /// entrypoint of DoH w/ Auth Proxy
+/// This spawns UDP and TCP listeners and spawns the following services
+/// - Authentication refresh/re-login service loop (Done)
+/// - HTTP client update service loop, changing DNS resolver to the self when it works (Done)
+/// - Health check service checking every path, flag unreachable patterns as unhealthy (as individual service inside doh_client?),
+///   which also needs ODoH config refresh.
 pub async fn entrypoint(
   proxy_config: &ProxyConfig,
   runtime_handle: &tokio::runtime::Handle,
@@ -79,13 +83,9 @@ pub async fn entrypoint(
   // build doh_client
   let doh_client = Arc::new(DoHClient::new(globals.clone(), http_client.inner(), authenticator).await?);
 
-  // TODO: 3. spawn healthcheck for every possible path? too many?
-  // TODO: 4. cache purge service, simultaneously with healthcheck?
-  // TODO: 5. implement query plugins
-
   // spawn endpoint ip update service with bootstrap dns resolver and doh_client
   let doh_client_clone = doh_client.clone();
-  let term_notify_clone = term_notify;
+  let term_notify_clone = term_notify.clone();
   let http_client_clone = http_client.clone();
   let ip_resolution_service = runtime_handle.spawn(async move {
     http_client_clone
@@ -93,6 +93,18 @@ pub async fn entrypoint(
       .await
       .with_context(|| "endpoint ip update service got down")
   });
+
+  // spawn health check service for checking every possible path and purging expired DNS cache
+  let doh_client_clone = doh_client.clone();
+  let term_notify_clone = term_notify.clone();
+  let healthcheck_service = runtime_handle.spawn(async move {
+    doh_client_clone
+      .start_healthcheck_service(term_notify_clone)
+      .await
+      .with_context(|| "health check service for path and dns cache got down")
+  });
+
+  // TODO: 5. implement query plugins
 
   // Start proxy for each listen address
   let addresses = globals.proxy_config.listen_addresses.clone();
@@ -104,14 +116,17 @@ pub async fn entrypoint(
   // wait for all future
   if let Some(auth_service) = auth_service {
     select! {
+      _ = auth_service.fuse() => {
+        warn!("Auth service is down, or term notified");
+      }
       _ = proxy_service.fuse() => {
         warn!("Proxy services are down, or term notified");
       },
-      _ = auth_service.fuse() => {
-        warn!("Auth services are down, or term notified");
-      }
       _ = ip_resolution_service.fuse() => {
-        warn!("Ip resolution service are down, or term notified");
+        warn!("Ip resolution service is down, or term notified");
+      },
+      _ = healthcheck_service.fuse() => {
+        warn!("Health check service is down, or term notified");
       }
     }
   } else {
@@ -120,16 +135,13 @@ pub async fn entrypoint(
         warn!("Proxy services are down, or term notified");
       },
       _ = ip_resolution_service.fuse() => {
-        warn!("Ip resolution service are down, or term notified");
+        warn!("Ip resolution service is down, or term notified");
+      },
+      _ = healthcheck_service.fuse() => {
+        warn!("Health check service is down, or term notified");
       }
     }
   }
-
-  // TODO: services
-  // - Authentication refresh/re-login service loop (Done)
-  // - HTTP client update service loop, changing DNS resolver to the self when it works (Done)
-  // - Health check service checking every path, flag unreachable patterns as unhealthy (as individual service inside doh_client?),
-  //   which also needs ODoH config refresh.
 
   Ok(())
 }

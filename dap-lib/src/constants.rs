@@ -7,7 +7,9 @@ pub const UDP_CHANNEL_CAPACITY: usize = 1024; // TODO: channelキャパシティ
 pub const UDP_TIMEOUT_SEC: u64 = 10;
 pub const TCP_LISTEN_BACKLOG: u32 = 1024;
 
-pub const MAX_CONNECTIONS: usize = 128; // TODO: 最大接続数(UDP+TCP)めちゃ適当
+/// Max connections via UPD and TCP (total) TODO: めちゃ適当
+pub const MAX_CONNECTIONS: usize = 128;
+/// Time out secs for HTTP requests
 pub const HTTP_TIMEOUT_SEC: u64 = 10;
 
 pub const MIN_TTL: u32 = 10; // TTL for overridden records (plugin)
@@ -28,9 +30,13 @@ pub const BOOTSTRAP_DNS_PORT: u16 = 53;
 /// Endpoint resolution period in minutes
 pub const ENDPOINT_RESOLUTION_PERIOD_MIN: u64 = 60;
 
+/// Health check: Check for health of paths and purge cache for every 600 secs
+pub const HEALTHCHECK_PERIOD_MIN: u64 = 10;
+
 /// Default DoH target server
 pub const DOH_TARGET_URL: &[&str] = &["https://dns.google/dns-query"];
 
+/// Max cache size of DNS response messages
 pub const MAX_CACHE_SIZE: usize = 16384;
 
 ///////////////////////////////
@@ -58,5 +64,9 @@ pub const TOKEN_RELOGIN_WAITING_SEC: u64 = 10;
 /// relogin at most 5 times
 pub const MAX_RELOGIN_ATTEMPTS: usize = 5;
 
-pub const HEALTHCHECK_TARGET_FQDN: &str = "dns.google."; // client
-pub const HEALTHCHECK_TARGET_ADDR: &str = "8.8.8.8"; // client
+// Health check
+
+/// Health check target FQDN
+pub const HEALTHCHECK_TARGET_FQDN: &str = "dns.google.";
+/// Health check target IP address for assertion
+pub const HEALTHCHECK_TARGET_ADDR: &str = "8.8.8.8";

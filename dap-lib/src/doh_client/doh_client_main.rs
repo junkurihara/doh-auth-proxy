@@ -31,13 +31,17 @@ pub struct DoHClient {
   /// odoh config store
   odoh_configs: Option<Arc<ODoHConfigStore>>,
   /// DNS cache
-  cache: Arc<Cache>,
+  pub(super) cache: Arc<Cache>,
   /// DoH type
   doh_type: DoHType,
   /// DoH method
   doh_method: DoHMethod,
   /// base headers
   headers: header::HeaderMap,
+  /// runtime handle
+  pub(super) runtime_handle: tokio::runtime::Handle,
+  /// health check interval
+  pub(super) healthcheck_period_sec: tokio::time::Duration,
 }
 
 impl DoHClient {
@@ -92,12 +96,24 @@ impl DoHClient {
 
     // doh method
     let doh_method = match doh_type {
-      DoHType::Standard => globals.proxy_config.target_config.doh_method.clone(),
+      DoHType::Standard => {
+        if globals.proxy_config.target_config.use_get {
+          DoHMethod::Get
+        } else {
+          DoHMethod::Post
+        }
+      }
       DoHType::Oblivious => DoHMethod::Post,
     };
 
     // cache
     let cache = Arc::new(Cache::new(globals.proxy_config.max_cache_size));
+
+    // runtime handle
+    let runtime_handle = globals.runtime_handle.clone();
+
+    // health check period
+    let healthcheck_period_sec = globals.proxy_config.healthcheck_period_sec;
 
     Ok(Self {
       http_client,
@@ -108,6 +124,8 @@ impl DoHClient {
       doh_type,
       doh_method,
       headers,
+      runtime_handle,
+      healthcheck_period_sec,
     })
   }
 

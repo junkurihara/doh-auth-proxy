@@ -1,8 +1,6 @@
 use super::utils_verifier::*;
 use crate::{constants::*, error::*, log::*};
-use doh_auth_proxy_lib::{
-  AuthenticationConfig, DoHMethod, NextHopRelayConfig, ProxyConfig, SubseqRelayConfig, TargetConfig,
-};
+use doh_auth_proxy_lib::{AuthenticationConfig, NextHopRelayConfig, ProxyConfig, SubseqRelayConfig};
 use serde::Deserialize;
 use std::{env, fs};
 use tokio::time::Duration;
@@ -11,7 +9,8 @@ use tokio::time::Duration;
 pub struct ConfigToml {
   pub listen_addresses: Option<Vec<String>>,
   pub bootstrap_dns: Option<Vec<String>>,
-  pub reboot_period: Option<usize>,
+  pub endoint_resolution_period: Option<usize>,
+  pub healthcheck_period: Option<usize>,
   pub max_cache_size: Option<usize>,
   pub target_urls: Option<Vec<String>>,
   pub target_randomization: Option<bool>,
@@ -74,13 +73,23 @@ impl TryInto<ProxyConfig> for &ConfigToml {
     info!("Bootstrap DNS: {:?}", proxy_config.bootstrap_dns.ips);
 
     /////////////////////////////
-    // reboot period
-    if let Some(val) = self.reboot_period {
+    // endpoint re-resolution period
+    if let Some(val) = self.endoint_resolution_period {
       proxy_config.endpoint_resolution_period_sec = Duration::from_secs((val as u64) * 60);
     }
     info!(
-      "Target DoH and auth server addresses are re-fetched every {:?} min via DoH itself or Bootsrap DNS",
+      "Nexthop nodes (DoH target or (MO)DoH next hop relay) and auth server addresses are re-resolved every {:?} min via DoH itself or Bootsrap DNS",
       proxy_config.endpoint_resolution_period_sec.as_secs() / 60
+    );
+
+    /////////////////////////////
+    // health check period
+    if let Some(val) = self.healthcheck_period {
+      proxy_config.healthcheck_period_sec = Duration::from_secs((val as u64) * 60);
+    }
+    info!(
+      "Check for health of all possible path candidates and purge DNS cache every {:?} min",
+      proxy_config.healthcheck_period_sec.as_secs() / 60
     );
 
     /////////////////////////////
@@ -115,7 +124,7 @@ impl TryInto<ProxyConfig> for &ConfigToml {
     }
     if let Some(val) = self.use_get_method {
       if val {
-        proxy_config.target_config.doh_method = DoHMethod::Get;
+        proxy_config.target_config.use_get = true;
         info!("Use GET method for query");
       }
     }

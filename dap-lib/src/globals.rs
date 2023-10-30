@@ -1,4 +1,4 @@
-use crate::{constants::*, doh_client::DoHMethod};
+use crate::constants::*;
 use auth_client::AuthenticationConfig;
 use std::{
   net::{IpAddr, SocketAddr},
@@ -29,7 +29,10 @@ pub struct ProxyConfig {
 
   /// bootstrap DNS
   pub bootstrap_dns: BootstrapDns,
+  /// endpoint resolution period
   pub endpoint_resolution_period_sec: Duration,
+  /// health check period
+  pub healthcheck_period_sec: Duration,
 
   // udp and tcp proxy setting
   pub udp_buffer_size: usize,
@@ -65,7 +68,7 @@ pub struct BootstrapDns {
 #[derive(PartialEq, Eq, Debug, Clone)]
 /// doh, odoh, modoh target settings
 pub struct TargetConfig {
-  pub doh_method: DoHMethod,
+  pub use_get: bool,
   pub doh_target_urls: Vec<Url>,
   pub target_randomization: bool,
 }
@@ -87,7 +90,7 @@ pub struct SubseqRelayConfig {
 impl Default for TargetConfig {
   fn default() -> Self {
     Self {
-      doh_method: DoHMethod::Post,
+      use_get: false,
       doh_target_urls: DOH_TARGET_URL.iter().map(|v| v.parse().unwrap()).collect(),
       target_randomization: true,
     }
@@ -106,6 +109,7 @@ impl Default for ProxyConfig {
         port: BOOTSTRAP_DNS_PORT,
       },
       endpoint_resolution_period_sec: Duration::from_secs(ENDPOINT_RESOLUTION_PERIOD_MIN * 60),
+      healthcheck_period_sec: Duration::from_secs(HEALTHCHECK_PERIOD_MIN * 60),
 
       udp_buffer_size: UDP_BUFFER_SIZE,
       udp_channel_capacity: UDP_CHANNEL_CAPACITY,

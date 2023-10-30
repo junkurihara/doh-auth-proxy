@@ -26,9 +26,23 @@ impl DoHClient {
     Ok(())
   }
 
-  /// Health check service periodically checks the health of the path and purge the cache
+  /// Health check service periodically executes
+  /// - health of every path;
+  /// - purge expired DNS cache
   async fn healthcheck_service(&self) -> Result<()> {
-    //TODO:
+    // purge expired DNS cache
+    loop {
+      let cache_clone = self.cache.clone();
+      self.runtime_handle.spawn(async move {
+        let purged = cache_clone.purge_expired_entries().await;
+        debug!("Purged {} expired entries from cache", purged);
+      });
+
+      //　TODO: health check for every path
+      // TODO: Health checkの時はキャッシュを無効化しないとダメなのでmake doh queryをいじる
+      tokio::time::sleep(self.healthcheck_period_sec).await;
+    }
+
     Ok(())
   }
 }

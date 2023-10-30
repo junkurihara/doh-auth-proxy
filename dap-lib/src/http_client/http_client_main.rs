@@ -22,8 +22,8 @@ pub struct HttpClient {
   /// timeout for http request
   timeout_sec: Duration,
 
-  /// rebootstrap period for endpoint ip resolution
-  rebootstrap_period_sec: Duration,
+  /// period for endpoint ip resolution, such as next hop relay
+  endpoint_resolution_period_sec: Duration,
 }
 
 impl HttpClient {
@@ -33,7 +33,7 @@ impl HttpClient {
     timeout_sec: Duration,
     default_headers: Option<&HeaderMap>,
     resolver_ips: impl ResolveIps,
-    rebootstrap_period_sec: Duration,
+    endpoint_resolution_period_sec: Duration,
   ) -> Result<Self> {
     let resolved_ips = resolve_ips(endpoints, resolver_ips).await?;
     Ok(Self {
@@ -43,7 +43,7 @@ impl HttpClient {
       default_headers: default_headers.cloned(),
       timeout_sec,
       endpoints: endpoints.to_vec(),
-      rebootstrap_period_sec,
+      endpoint_resolution_period_sec,
     })
   }
 
@@ -68,8 +68,8 @@ impl HttpClient {
   }
 
   /// Get rebootstrap period
-  pub fn rebootstrap_period_sec(&self) -> Duration {
-    self.rebootstrap_period_sec
+  pub fn endpoint_resolution_period_sec(&self) -> Duration {
+    self.endpoint_resolution_period_sec
   }
 }
 
