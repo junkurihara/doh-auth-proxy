@@ -170,7 +170,7 @@ pub struct DoHPathManager {
   /// first dimension: depends on doh target resolver
   /// second dimension: depends on next-hop relays. for the standard doh, its is one dimensional.
   /// third dimension: actual paths. for the standard doh, its is one dimensional.
-  paths: Vec<Vec<Vec<Arc<DoHPath>>>>,
+  pub(super) paths: Vec<Vec<Vec<Arc<DoHPath>>>>,
   /// target randomization
   target_randomization: bool,
   /// next-hop randomization

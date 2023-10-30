@@ -9,6 +9,7 @@ use rand::{rngs::StdRng, SeedableRng};
 #[derive(Debug, Clone)]
 /// ODoH config
 pub struct ODoHConfig {
+  #[allow(dead_code)]
   authority: String,
   inner: ObliviousDoHConfigContents,
 }

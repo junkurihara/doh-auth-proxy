@@ -20,7 +20,9 @@ keywords = [
   "doh",
   "oblivious-dns-over-https",
   "odoh",
+  "mutualized-oblivious-dns",
   "mutualized-odoh",
+  "modoh",
   "proxy",
   "authorization",
 ]

@@ -2,17 +2,22 @@
 // Constant Values for Config //
 ////////////////////////////////
 // Cannot override by config.toml
-pub const UDP_BUFFER_SIZE: usize = 2048; // TODO: バッファサイズめちゃ適当
+
+/// UDP buffer size TODO: めちゃ適当
+pub const UDP_BUFFER_SIZE: usize = 2048;
+/// UDP channel Capacity TODO: めちゃ適当
 pub const UDP_CHANNEL_CAPACITY: usize = 1024; // TODO: channelキャパシティめちゃ適当
+/// UDP timeout in secs
 pub const UDP_TIMEOUT_SEC: u64 = 10;
+/// TCP listen backlog
 pub const TCP_LISTEN_BACKLOG: u32 = 1024;
 
 /// Max connections via UPD and TCP (total) TODO: めちゃ適当
 pub const MAX_CONNECTIONS: usize = 128;
 /// Time out secs for HTTP requests
 pub const HTTP_TIMEOUT_SEC: u64 = 10;
-
-pub const MIN_TTL: u32 = 10; // TTL for overridden records (plugin)
+/// TTL for overridden records (plugin) in synthetic response
+pub const MIN_TTL: u32 = 10;
 
 ////////////////////////////////
 // Default Values for Config  //

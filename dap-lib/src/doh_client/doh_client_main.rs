@@ -28,7 +28,7 @@ pub struct DoHClient {
   /// auth_client to retrieve id token
   auth_client: Option<Arc<Authenticator>>,
   /// path candidates with health flags
-  path_manager: Arc<DoHPathManager>,
+  pub(super) path_manager: Arc<DoHPathManager>,
   /// odoh config store
   odoh_configs: Option<Arc<ODoHConfigStore>>,
   /// DNS cache
@@ -192,7 +192,11 @@ impl DoHClient {
 
   /// Make DoH query with a specifically given path.
   /// Note cache and plugins are disabled to be used for health check
-  async fn make_doh_query_inner(&self, packet_buf: &[u8], path: &Arc<DoHPath>) -> Result<(Vec<u8>, Message)> {
+  pub(super) async fn make_doh_query_inner(
+    &self,
+    packet_buf: &[u8],
+    path: &Arc<DoHPath>,
+  ) -> Result<(Vec<u8>, Message)> {
     let headers = self.build_headers().await?;
     let response_buf = match self.doh_type {
       DoHType::Standard => self.serve_doh_query(packet_buf, path, headers).await,
