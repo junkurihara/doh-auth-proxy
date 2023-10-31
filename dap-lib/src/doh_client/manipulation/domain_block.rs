@@ -1,19 +1,31 @@
-use super::{super::dns_message::QueryKey, regexp_vals::*, QueryManipulation, QueryManipulationResult};
-use crate::{error::*, log::*};
+use super::{
+  super::dns_message::{build_response_nx, QueryKey},
+  regexp_vals::*,
+  QueryManipulation, QueryManipulationResult,
+};
+use crate::{error::*, log::*, QueryManipulationConfig};
 use async_trait::async_trait;
 use cedarwood::Cedar;
-use hickory_proto::{op::Message, rr};
+use hickory_proto::op::Message;
 use regex::Regex;
 
-// #[async_trait]
-// impl QueryManipulation for DomainBlockRule {
-//   type Error = DapError;
+#[async_trait]
+impl QueryManipulation for DomainBlockRule {
+  type Error = DapError;
 
-//   /// Apply query plugin
-//   async fn apply(&self, query_message: &Message, query_key: &QueryKey) -> Result<QueryManipulationResult> {
-//     todo!()
-//   }
-// }
+  /// Apply query plugin
+  async fn apply(&self, query_message: &Message, query_key: &QueryKey) -> Result<QueryManipulationResult> {
+    if !self.in_blocklist(query_key)? {
+      return Ok(QueryManipulationResult::PassThrough);
+    }
+    debug!(
+      "[Blocked] {} {:?} {:?}",
+      query_key.query_name, query_key.query_type, query_key.query_class
+    );
+    let response_msg = build_response_nx(query_message);
+    Ok(QueryManipulationResult::SyntheticResponse(response_msg))
+  }
+}
 
 #[derive(Debug, Clone)]
 pub struct DomainBlockRule {
@@ -23,13 +35,18 @@ pub struct DomainBlockRule {
   suffix_dict: Vec<String>,
 }
 
-impl From<Vec<&str>> for DomainBlockRule {
-  fn from(vec_domain_str: Vec<&str>) -> Self {
+impl TryFrom<QueryManipulationConfig> for Option<DomainBlockRule> {
+  type Error = DapError;
+  fn try_from(config: QueryManipulationConfig) -> std::result::Result<Self, Self::Error> {
+    let Some(config_domain_block) = config.domain_block else {
+      return Ok(None);
+    };
+
     let start_with_star = Regex::new(r"^\*\..+").unwrap();
     let end_with_star = Regex::new(r".+\.\*$").unwrap();
     // TODO: currently either one of prefix or suffix match with '*' is supported
     let re = Regex::new(&format!("{}{}{}", r"^", REGEXP_DOMAIN_OR_PREFIX, r"$")).unwrap();
-    let dict: Vec<String> = vec_domain_str
+    let dict: Vec<String> = config_domain_block
       .iter()
       .map(|d| if start_with_star.is_match(d) { &d[2..] } else { d })
       .filter(|x| re.is_match(x) || (x.split('.').count() == 1))
@@ -64,12 +81,12 @@ impl From<Vec<&str>> for DomainBlockRule {
     let mut suffix_cedar = Cedar::new();
     suffix_cedar.build(&suffix_kv);
 
-    DomainBlockRule {
+    Ok(Some(DomainBlockRule {
       prefix_cedar,
       suffix_cedar,
       prefix_dict,
       suffix_dict,
-    }
+    }))
   }
 }
 
@@ -146,9 +163,18 @@ fn reverse_string(text: &str) -> String {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use hickory_proto::rr;
+
   #[test]
   fn block_works() {
-    let domain_block_rule = DomainBlockRule::from(vec!["www.google.com", "*.google.com"]);
+    let query_manipulation_config = QueryManipulationConfig {
+      domain_block: Some(vec!["www.google.com".to_string(), "*.google.com".to_string()]),
+      ..Default::default()
+    };
+
+    let domain_block_rule: Option<DomainBlockRule> = query_manipulation_config.try_into().unwrap();
+    assert!(domain_block_rule.is_some());
+    let domain_block_rule = domain_block_rule.unwrap();
 
     let mut q_key = QueryKey {
       query_name: "invalid.as.fqdn.com".to_string(),
@@ -166,7 +192,14 @@ mod tests {
 
   #[test]
   fn block_works_regardless_of_dns0x20() {
-    let domain_block_rule = DomainBlockRule::from(vec!["GOOGLE.com"]);
+    let query_manipulation_config = QueryManipulationConfig {
+      domain_block: Some(vec!["GOOGLE.com".to_string()]),
+      ..Default::default()
+    };
+
+    let domain_block_rule: Option<DomainBlockRule> = query_manipulation_config.try_into().unwrap();
+    assert!(domain_block_rule.is_some());
+    let domain_block_rule = domain_block_rule.unwrap();
 
     let mut q_key = QueryKey {
       query_name: "www.google.com.".to_string(),
