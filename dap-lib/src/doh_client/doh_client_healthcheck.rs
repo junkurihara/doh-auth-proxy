@@ -38,6 +38,7 @@ impl DoHClient {
   async fn healthcheck_service(&self) -> Result<()> {
     // purge expired DNS cache
     loop {
+      info!("Execute periodic health check");
       let cache_clone = self.cache.clone();
       self.runtime_handle.spawn(async move {
         let purged = cache_clone.purge_expired_entries().await;

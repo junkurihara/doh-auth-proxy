@@ -17,7 +17,7 @@ use futures::{
 use std::sync::Arc;
 
 pub use auth_client::AuthenticationConfig;
-pub use globals::{NextHopRelayConfig, ProxyConfig, SubseqRelayConfig, TargetConfig};
+pub use globals::{NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig, TargetConfig};
 
 /// entrypoint of DoH w/ Auth Proxy
 /// This spawns UDP and TCP listeners and spawns the following services
@@ -104,7 +104,7 @@ pub async fn entrypoint(
       .with_context(|| "health check service for path and dns cache got down")
   });
 
-  // TODO: 5. implement query plugins
+  // TODO: 5. implement query plugins 今まずいったんbinの方でreloaderをかけることにした
 
   // Start proxy for each listen address
   let addresses = globals.proxy_config.listen_addresses.clone();

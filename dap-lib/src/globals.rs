@@ -18,7 +18,6 @@ pub struct Globals {
 
   /// notifier for termination at spawned tokio tasks
   pub term_notify: Option<Arc<Notify>>,
-  // pub cache: Arc<Cache>,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -54,8 +53,9 @@ pub struct ProxyConfig {
 
   /// authentication settings
   pub authentication_config: Option<AuthenticationConfig>,
-  // pub query_plugins: Option<QueryPluginsApplied>,
-  // pub min_ttl: u32, // TTL of overridden response
+
+  /// query manipulation settings
+  pub query_manipulation_config: Option<QueryManipulationConfig>,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -87,12 +87,34 @@ pub struct SubseqRelayConfig {
   pub max_mid_relays: usize,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+/// Manipulation rules. For reloading from source, this struct is based on raw strings.
+/// After reading from source, they are converted to actual manipulator objects.
+pub struct QueryManipulationConfig {
+  /// query override plugin
+  pub domain_override: Option<Vec<String>>,
+  /// query block plugin
+  pub domain_block: Option<Vec<String>>,
+  /// minimum TTL for synthetic response
+  pub min_ttl: Duration,
+}
+
 impl Default for TargetConfig {
   fn default() -> Self {
     Self {
       use_get: false,
       doh_target_urls: DOH_TARGET_URL.iter().map(|v| v.parse().unwrap()).collect(),
       target_randomization: true,
+    }
+  }
+}
+
+impl Default for QueryManipulationConfig {
+  fn default() -> Self {
+    QueryManipulationConfig {
+      domain_override: None,
+      domain_block: None,
+      min_ttl: Duration::from_secs(MIN_TTL as u64),
     }
   }
 }
@@ -123,6 +145,8 @@ impl Default for ProxyConfig {
       subseq_relay_config: None,
 
       authentication_config: None,
+
+      query_manipulation_config: None,
     }
   }
 }
