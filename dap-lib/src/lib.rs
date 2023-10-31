@@ -104,8 +104,6 @@ pub async fn entrypoint(
       .with_context(|| "health check service for path and dns cache got down")
   });
 
-  // TODO: 5. implement query plugins 今まずいったんbinの方でreloaderをかけることにした
-
   // Start proxy for each listen address
   let addresses = globals.proxy_config.listen_addresses.clone();
   let proxy_service = select_all(addresses.into_iter().map(|addr| {

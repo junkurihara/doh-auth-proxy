@@ -37,7 +37,7 @@ pub struct Authentication {
 }
 
 impl ConfigToml {
-  pub fn new(config_file: &str) -> anyhow::Result<Self> {
+  pub(super) fn new(config_file: &str) -> anyhow::Result<Self> {
     let config_str = fs::read_to_string(config_file)?;
 
     toml::from_str(&config_str).map_err(|e| anyhow!(e))

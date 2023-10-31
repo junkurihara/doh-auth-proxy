@@ -55,7 +55,7 @@ pub struct ProxyConfig {
   pub authentication_config: Option<AuthenticationConfig>,
 
   /// query manipulation settings
-  pub query_manipulation_config: Option<QueryManipulationConfig>,
+  pub query_manipulation_config: Option<Arc<QueryManipulationConfig>>,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -96,7 +96,7 @@ pub struct QueryManipulationConfig {
   /// query block plugin
   pub domain_block: Option<Vec<String>>,
   /// minimum TTL for synthetic response
-  pub min_ttl: Duration,
+  pub min_ttl: u32,
 }
 
 impl Default for TargetConfig {
@@ -114,7 +114,7 @@ impl Default for QueryManipulationConfig {
     QueryManipulationConfig {
       domain_override: None,
       domain_block: None,
-      min_ttl: Duration::from_secs(MIN_TTL as u64),
+      min_ttl: MIN_TTL,
     }
   }
 }

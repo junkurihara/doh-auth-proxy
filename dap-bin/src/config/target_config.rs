@@ -5,7 +5,7 @@ use doh_auth_proxy_lib::{
   AuthenticationConfig, NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig,
 };
 use hot_reload::{Reload, ReloaderError};
-use std::env;
+use std::{env, sync::Arc};
 use tokio::time::Duration;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
@@ -14,7 +14,7 @@ pub struct TargetConfig {
   /// config toml
   pub config_toml: ConfigToml,
   /// manipulation plugin config
-  pub query_manipulation_config: Option<QueryManipulationConfig>,
+  pub query_manipulation_config: Option<Arc<QueryManipulationConfig>>,
 }
 
 #[derive(Clone)]
@@ -35,24 +35,25 @@ impl Reload<TargetConfig> for ConfigReloader {
   async fn reload(&self) -> Result<Option<TargetConfig>, ReloaderError<TargetConfig>> {
     let config_toml = ConfigToml::new(&self.config_path)
       .map_err(|_e| ReloaderError::<TargetConfig>::Reload("Failed to reload config toml"))?;
-    let query_manipulation_config = (&config_toml)
+    let query_manipulation_config: Option<QueryManipulationConfig> = (&config_toml)
       .try_into()
       .map_err(|_e| ReloaderError::<TargetConfig>::Reload("Failed to reload manipulation plugin config"))?;
 
     Ok(Some(TargetConfig {
       config_toml,
-      query_manipulation_config,
+      query_manipulation_config: query_manipulation_config.map(Arc::new),
     }))
   }
 }
 
 impl TargetConfig {
+  /// build new target config by loading query manipulation plugin configs
   pub async fn new(config_file: &str) -> anyhow::Result<Self> {
     let config_toml = ConfigToml::new(config_file)?;
-    let query_manipulation_config = (&config_toml).try_into()?;
+    let query_manipulation_config: Option<QueryManipulationConfig> = (&config_toml).try_into()?;
     Ok(Self {
       config_toml,
-      query_manipulation_config,
+      query_manipulation_config: query_manipulation_config.map(Arc::new),
     })
   }
 }

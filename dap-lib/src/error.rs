@@ -61,6 +61,9 @@ pub enum DapError {
   #[error("DoH query error")]
   DoHQueryError,
 
+  #[error("Regex error: {0}")]
+  RegexError(#[from] regex::Error),
+
   #[error(transparent)]
   Other(#[from] anyhow::Error),
 }
