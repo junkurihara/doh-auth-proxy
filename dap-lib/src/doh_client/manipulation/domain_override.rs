@@ -60,11 +60,11 @@ pub struct DomainOverrideRule {
   min_ttl: u32,
 }
 
-impl TryFrom<QueryManipulationConfig> for Option<DomainOverrideRule> {
+impl TryFrom<&QueryManipulationConfig> for Option<DomainOverrideRule> {
   type Error = DapError;
 
-  fn try_from(config: QueryManipulationConfig) -> std::result::Result<Self, Self::Error> {
-    let Some(config_domain_override) = config.domain_override else {
+  fn try_from(config: &QueryManipulationConfig) -> std::result::Result<Self, Self::Error> {
+    let Some(config_domain_override) = &config.domain_override else {
       return Ok(None);
     };
     let regex_domain_split_space = Regex::new(&format!("{}{}{}", r"^", REGEXP_DOMAIN, r"\s+\S+$"))?;
@@ -131,7 +131,7 @@ mod tests {
       ..Default::default()
     };
 
-    let domain_override_rule: Option<DomainOverrideRule> = query_manipulation_config.try_into().unwrap();
+    let domain_override_rule: Option<DomainOverrideRule> = (&query_manipulation_config).try_into().unwrap();
     assert!(domain_override_rule.is_some());
     let domain_override_rule = domain_override_rule.unwrap();
 
@@ -163,7 +163,7 @@ mod tests {
       ..Default::default()
     };
 
-    let domain_override_rule: Option<DomainOverrideRule> = query_manipulation_config.try_into().unwrap();
+    let domain_override_rule: Option<DomainOverrideRule> = (&query_manipulation_config).try_into().unwrap();
     assert!(domain_override_rule.is_some());
     let domain_override_rule = domain_override_rule.unwrap();
 
@@ -193,7 +193,7 @@ mod tests {
       ..Default::default()
     };
 
-    let domain_override_rule: Option<DomainOverrideRule> = query_manipulation_config.try_into().unwrap();
+    let domain_override_rule: Option<DomainOverrideRule> = (&query_manipulation_config).try_into().unwrap();
     assert!(domain_override_rule.is_some());
     let domain_override_rule = domain_override_rule.unwrap();
 

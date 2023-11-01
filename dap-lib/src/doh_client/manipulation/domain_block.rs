@@ -35,10 +35,10 @@ pub struct DomainBlockRule {
   suffix_dict: Vec<String>,
 }
 
-impl TryFrom<QueryManipulationConfig> for Option<DomainBlockRule> {
+impl TryFrom<&QueryManipulationConfig> for Option<DomainBlockRule> {
   type Error = DapError;
-  fn try_from(config: QueryManipulationConfig) -> std::result::Result<Self, Self::Error> {
-    let Some(config_domain_block) = config.domain_block else {
+  fn try_from(config: &QueryManipulationConfig) -> std::result::Result<Self, Self::Error> {
+    let Some(config_domain_block) = &config.domain_block else {
       return Ok(None);
     };
 
@@ -172,7 +172,7 @@ mod tests {
       ..Default::default()
     };
 
-    let domain_block_rule: Option<DomainBlockRule> = query_manipulation_config.try_into().unwrap();
+    let domain_block_rule: Option<DomainBlockRule> = (&query_manipulation_config).try_into().unwrap();
     assert!(domain_block_rule.is_some());
     let domain_block_rule = domain_block_rule.unwrap();
 
@@ -197,7 +197,7 @@ mod tests {
       ..Default::default()
     };
 
-    let domain_block_rule: Option<DomainBlockRule> = query_manipulation_config.try_into().unwrap();
+    let domain_block_rule: Option<DomainBlockRule> = (&query_manipulation_config).try_into().unwrap();
     assert!(domain_block_rule.is_some());
     let domain_block_rule = domain_block_rule.unwrap();
 
