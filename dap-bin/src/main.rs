@@ -7,11 +7,11 @@ mod error;
 mod log;
 
 use crate::{
-  config::{build_settings, parse_opts, ConfigToml, ConfigTomlReloader},
+  config::{parse_opts, ConfigReloader, TargetConfig},
   constants::CONFIG_WATCH_DELAY_SECS,
   log::*,
 };
-use doh_auth_proxy_lib::entrypoint;
+use doh_auth_proxy_lib::{entrypoint, ProxyConfig};
 use hot_reload::{ReloaderReceiver, ReloaderService};
 
 fn main() {
@@ -35,7 +35,7 @@ fn main() {
         std::process::exit(1);
       }
     } else {
-      let (config_service, config_rx) = ReloaderService::<ConfigTomlReloader, ConfigToml>::new(
+      let (config_service, config_rx) = ReloaderService::<ConfigReloader, TargetConfig>::new(
         &parsed_opts.config_file_path,
         CONFIG_WATCH_DELAY_SECS,
         false,
@@ -62,7 +62,7 @@ async fn proxy_service_without_watcher(
   runtime_handle: tokio::runtime::Handle,
 ) -> Result<(), anyhow::Error> {
   info!("Start DNS proxy service");
-  let config_toml = match ConfigToml::new(config_file_path) {
+  let config = match TargetConfig::new(config_file_path).await {
     Ok(v) => v,
     Err(e) => {
       error!("Invalid toml file: {e}");
@@ -70,7 +70,7 @@ async fn proxy_service_without_watcher(
     }
   };
 
-  let proxy_conf = match build_settings(&config_toml) {
+  let proxy_conf = match (&config).try_into() as Result<ProxyConfig, anyhow::Error> {
     Ok(v) => v,
     Err(e) => {
       error!("Invalid configuration: {e}");
@@ -84,14 +84,14 @@ async fn proxy_service_without_watcher(
 }
 
 async fn proxy_service_with_watcher(
-  mut config_rx: ReloaderReceiver<ConfigToml>,
+  mut config_rx: ReloaderReceiver<TargetConfig>,
   runtime_handle: tokio::runtime::Handle,
 ) -> Result<(), anyhow::Error> {
   info!("Start proxy service with dynamic config reloader");
   // Initial loading
   config_rx.changed().await?;
-  let config_toml = config_rx.borrow().clone().unwrap();
-  let mut proxy_conf = match build_settings(&config_toml) {
+  let reloaded = config_rx.borrow().clone().unwrap();
+  let mut proxy_conf = match (&reloaded).try_into() as Result<ProxyConfig, anyhow::Error> {
     Ok(v) => v,
     Err(e) => {
       error!("Invalid configuration: {e}");
@@ -115,7 +115,7 @@ async fn proxy_service_with_watcher(
           break;
         }
         let config_toml = config_rx.borrow().clone().unwrap();
-        match build_settings(&config_toml) {
+        match (&config_toml).try_into() as Result<ProxyConfig, anyhow::Error> {
           Ok(p) => {
             proxy_conf = p
           },

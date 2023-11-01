@@ -1,10 +1,10 @@
 mod parse;
-mod service;
+mod plugins;
+mod target_config;
 mod toml;
 mod utils_verifier;
 
 pub use {
-  self::toml::ConfigToml,
-  parse::{build_settings, parse_opts},
-  service::ConfigTomlReloader,
+  parse::parse_opts,
+  target_config::{ConfigReloader, TargetConfig},
 };

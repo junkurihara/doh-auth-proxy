@@ -1,6 +1,7 @@
 use super::{
   cache::Cache,
   dns_message::{self, Request},
+  manipulation::{QueryManipulationResult, QueryManipulators},
   odoh_config_store::ODoHConfigStore,
   path_manage::{DoHPath, DoHPathManager},
   DoHMethod, DoHType,
@@ -43,6 +44,8 @@ pub struct DoHClient {
   pub(super) runtime_handle: tokio::runtime::Handle,
   /// health check interval
   pub(super) healthcheck_period_sec: tokio::time::Duration,
+  /// Query manipulation pulugins
+  query_manipulators: Option<QueryManipulators>,
 }
 
 impl DoHClient {
@@ -116,6 +119,14 @@ impl DoHClient {
     // health check period
     let healthcheck_period_sec = globals.proxy_config.healthcheck_period_sec;
 
+    // query manipulators
+    let query_manipulators: Option<QueryManipulators> = if let Some(q) = &globals.proxy_config.query_manipulation_config
+    {
+      q.as_ref().try_into().ok()
+    } else {
+      None
+    };
+
     Ok(Self {
       http_client,
       auth_client,
@@ -127,6 +138,7 @@ impl DoHClient {
       headers,
       runtime_handle,
       healthcheck_period_sec,
+      query_manipulators,
     })
   }
 
@@ -145,23 +157,17 @@ impl DoHClient {
       DapError::InvalidDnsQuery
     })?;
 
-    //TODO:TODO:TODO:!
-    // // Process query plugins, e.g., domain filtering, cloaking, etc.
-    // if let Some(query_plugins) = context.query_plugins.clone() {
-    //   let execution_result = query_plugins.execute(&query_msg, &req.0[0], context.min_ttl)?;
-    //   match execution_result.action {
-    //     plugins::QueryPluginAction::Pass => (),
-    //     _ => {
-    //       // plugins::QueryPluginsAction::Blocked or Overridden
-    //       if let Some(r_msg) = execution_result.response_msg {
-    //         let res = dns_message::encode(&r_msg)?;
-    //         return Ok(res);
-    //       } else {
-    //         bail!("Invalid response message by query plugins");
-    //       }
-    //     }
-    //   }
-    // }
+    // Process query plugins from the beginning of vec, e.g., domain filtering, cloaking, etc.
+    if let Some(manipulators) = &self.query_manipulators {
+      let execution_result = manipulators.apply(&query_msg, &req.0[0]).await?;
+      match execution_result {
+        QueryManipulationResult::PassThrough => (),
+        QueryManipulationResult::SyntheticResponse(response_msg) => {
+          let res = dns_message::encode(&response_msg)?;
+          return Ok(res);
+        }
+      }
+    }
 
     // Check cache and return if hit
     if let Some(res) = self.cache.get(&req).await {
