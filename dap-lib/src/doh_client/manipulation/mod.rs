@@ -27,13 +27,32 @@ pub trait QueryManipulation {
 }
 
 /// Query manipulators
-pub struct QueryManipulator {
+pub struct QueryManipulators {
   /// vector of query manipulators
   /// TODO: consider that dynamic dispatch might be slower than enum
   manipulators: Vec<Box<dyn QueryManipulation<Error = DapError> + Send + Sync>>,
 }
 
-impl TryFrom<&QueryManipulationConfig> for QueryManipulator {
+impl QueryManipulators {
+  /// Apply query manipulators
+  pub async fn apply(
+    &self,
+    query_message: &Message,
+    query_key: &QueryKey,
+  ) -> Result<QueryManipulationResult, DapError> {
+    for manipulator in &self.manipulators {
+      match manipulator.apply(query_message, query_key).await? {
+        QueryManipulationResult::PassThrough => continue,
+        QueryManipulationResult::SyntheticResponse(response_msg) => {
+          return Ok(QueryManipulationResult::SyntheticResponse(response_msg))
+        }
+      }
+    }
+    Ok(QueryManipulationResult::PassThrough)
+  }
+}
+
+impl TryFrom<&QueryManipulationConfig> for QueryManipulators {
   type Error = anyhow::Error;
   fn try_from(config: &QueryManipulationConfig) -> std::result::Result<Self, Self::Error> {
     let mut manipulators: Vec<Box<dyn QueryManipulation<Error = DapError> + Send + Sync>> = Vec::new();
@@ -48,19 +67,15 @@ impl TryFrom<&QueryManipulationConfig> for QueryManipulator {
       manipulators.push(Box::new(domain_block) as Box<dyn QueryManipulation<Error = DapError> + Send + Sync>);
     }
 
-    Ok(QueryManipulator { manipulators })
+    Ok(QueryManipulators { manipulators })
   }
 }
 
-impl QueryManipulator {
+#[allow(dead_code)]
+impl QueryManipulators {
   /// get manipulator num
   pub fn len(&self) -> usize {
     self.manipulators.len()
-  }
-  /// check if domain_block_rule is enabled
-  pub fn is_domain_block_enabled(&self) -> bool {
-    // self.manipulators.iter().any(|m| m<DomainBlockRule>());
-    todo!()
   }
 }
 
@@ -79,7 +94,7 @@ mod tests {
       ..Default::default()
     };
 
-    let manipulators: Result<QueryManipulator, _> = (&query_manipulation_config).try_into();
+    let manipulators: Result<QueryManipulators, _> = (&query_manipulation_config).try_into();
 
     assert!(manipulators.is_ok());
     let manipulators = manipulators.unwrap();
