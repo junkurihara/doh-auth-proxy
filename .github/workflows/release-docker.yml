@@ -1,0 +1,113 @@
+name: Nightly and release build
+
+on:
+  push:
+    branches:
+      - "develop"
+  pull_request:
+    types: [closed]
+    branches:
+      - main
+
+env:
+  GHCR: ghcr.io
+  GHCR_IMAGE_NAME: ${{ github.repository }}
+  DH_REGISTRY_NAME: jqtype/doh-auth-proxy
+
+jobs:
+  docker_build_and_push:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' }} || ${{ github.event_name == 'pull_request' && github.event.pull_request.merged == true }}
+    strategy:
+      fail-fast: false
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.GHCR }}/${{ env.GHCR_IMAGE_NAME }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GHCR }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release Build and push x86_64
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'develop' && github.event.pull_request.base.ref == 'main' && github.event.pull_request.merged == true }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.GHCR }}/${{ env.GHCR_IMAGE_NAME }}:latest
+            ${{ env.DH_REGISTRY_NAME }}:latest
+          file: ./docker/Dockerfile
+          cache-from: type=gha,scope=doh-auth-proxy-latest
+          cache-to: type=gha,mode=max,scope=doh-auth-proxy-latest
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Nightly build and push x86_64
+        if: ${{ (github.ref_name == 'develop') && (github.event_name == 'push') }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.GHCR }}/${{ env.GHCR_IMAGE_NAME }}:nightly
+            ${{ env.DH_REGISTRY_NAME }}:nightly
+          file: ./docker/Dockerfile
+          cache-from: type=gha,scope=doh-auth-proxy-nightly
+          cache-to: type=gha,mode=max,scope=doh-auth-proxy-nightly
+          labels: ${{ steps.meta.outputs.labels }}
+
+  dispatch_release:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'develop' && github.event.pull_request.base.ref == 'main' && github.event.pull_request.merged == true }}
+    needs: docker_build_and_push
+    steps:
+      - name: check pull_request title
+        uses: kaisugi/action-regex-match@v1.0.0
+        id: regex-match
+        with:
+          text: ${{ github.event.pull_request.title }}
+          regex: "^(\\d+\\.\\d+\\.\\d+)$"
+
+      - name: checkout
+        if: ${{ steps.regex-match.outputs.match != '' }}
+        uses: actions/checkout@v4
+
+      - name: build release binary
+        if: ${{ steps.regex-match.outputs.match != '' }}
+        id: "build"
+        run: |
+          cargo build --release --package doh-auth-proxy
+          cp ./target/release/doh-auth-proxy /tmp/doh-auth-proxy
+          cd /tmp
+          tar zcvf doh-auth-proxy-x86_64-unknown-linux-gnu.tar.gz doh-auth-proxy
+
+      - name: release
+        if: ${{ steps.regex-match.outputs.match != ''}}
+        uses: softprops/action-gh-release@v1
+        with:
+          files: /tmp/assets/*.tar.gz
+          name: ${{ github.event.pull_request.title }}
+          tag_name: ${{ github.event.pull_request.title }}
+          body: ${{ github.event.pull_request.body }}
+          draft: true
+          prerelease: false
+          generate_release_notes: true

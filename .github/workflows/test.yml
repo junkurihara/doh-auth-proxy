@@ -1,21 +1,20 @@
-name: Unit test for some mods in doh-auth-proxy
+name: Unit tests
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   test:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Run unit tests
-      run: |
-        cargo test --verbose
+      - uses: actions/checkout@v4
+      - name: Run unit tests
+        run: |
+          cargo test --verbose
