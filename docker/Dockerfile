@@ -21,7 +21,7 @@ RUN apt-get update && apt-get install -qy --no-install-recommends $BUILD_DEPS &&
     curl -sSf https://sh.rustup.rs | bash -s -- -y --default-toolchain stable && \
     export PATH="$HOME/.cargo/bin:$PATH" && \
     echo "Building DoH Auth Proxy from source" && \
-    cargo build --release --no-default-features && \
+    cargo build --release --no-default-features --package doh-auth-proxy && \
     mkdir -p /opt/doh-auth-proxy/sbin && \
     strip --strip-all /tmp/target/release/doh-auth-proxy
 

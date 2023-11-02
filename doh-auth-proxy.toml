@@ -11,11 +11,17 @@
 ## Address to listen to.
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
 
-## DNS (Do53) resolver address for bootstrap
-bootstrap_dns = "8.8.8.8:53"
+## DNS (Do53) resolver addresses for bootstrap
+bootstrap_dns = ["8.8.8.8", "1.1.1.1"]
 
-## Minutes to re-fetch the IP addr of the target url host via the bootstrap DNS
-reboot_period = 3
+## Minutes to re-resolve the IP addr of the nexthop and authentication endpoint url
+## Ip addresses are first resolved by bootstrap DNS, after that, they will be resolved by (MO)DoH resolver itself.
+## default is 60 minutes
+# endpoint_resolution_period = 60
+
+## Health check period in minitus. Check health of all path candidates and purge DNS cache.
+## Default is 10 minutes.
+# healthcheck_period = 10
 
 ## Cache entry size (Default 16384)
 # max_cache_size = 16384
@@ -68,6 +74,7 @@ odoh_relay_urls = ["https://odoh-nl.alekberg.net:443/proxy"]
 
 ## (optional)
 ## Choose ODoH relay in a randomized fashion from `odoh_relay_urls`.
+## Default is true
 odoh_relay_randomization = true
 
 ## (optional)
@@ -77,6 +84,7 @@ odoh_relay_randomization = true
 
 ## (optional)
 ## Maximum number of intermediate relays between nexthop and target.
+## Default is 1
 # max_mid_relays = 2
 
 ##################################
