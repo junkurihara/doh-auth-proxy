@@ -40,7 +40,7 @@ tokio = { version = "1.33.0", features = [
   "sync",
   "macros",
 ] }
-futures = { version = "0.3.28", default-features = false, features = [
+futures = { version = "0.3.29", default-features = false, features = [
   "std",
   "async-await",
 ] }
@@ -48,7 +48,7 @@ anyhow = "1.0.75"
 tracing = "0.1.40"
 thiserror = "1.0.50"
 async-trait = "0.1.74"
-serde = { version = "1.0.189", features = ["derive"] }
+serde = { version = "1.0.190", features = ["derive"] }
 itertools = "0.11.0"
 rustc-hash = "1.1.0"
 
