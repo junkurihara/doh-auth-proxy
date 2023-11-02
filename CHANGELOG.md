@@ -13,7 +13,18 @@
 You should also include the user name that made the change.
 -->
 
-## 0.1.6 (unreleased)
+## 0.3.0 (Unreleased)
+
+### Improvements
+
+- Totally restructured and reimplemented all components
+- Support multiple bootstrap resolvers.
+- Periodic health check of all path candidates.
+- Periodic nexthop IP address resolution via the proxy itself, bootstrap resolver is only used at the first time and fall-back.
+- Periodic fetching of access token with refresh token.
+- Hot reloading of configuration files, including block and override files.
+
+## 0.2.0
 
 ### Improvements
 
@@ -22,6 +33,7 @@ You should also include the user name that made the change.
 - Change inner structure of proxy's supplemental services other than UDP/TCP acceptors.
 
 ## 0.1.5 (Jun. 6, 2022)
+
 ### Improvements
 
 - Update override-list format to use individual lines for representing multiple matching for a name, i.e., (name, IPv4) and (name, IPv6).

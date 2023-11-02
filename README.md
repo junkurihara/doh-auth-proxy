@@ -57,8 +57,9 @@ If you run without `--config` option, i.e., simply hit `$ ./doh-auth-proxy`, the
 
 ```:toml:config.toml
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
-bootstrap_dns = "1.1.1.1:53"
-reboot_period = 3 # mins
+bootstrap_dns = ["1.1.1.1"]
+endpoint_resolution_period = 60 # mins
+healthcheck_period = 10 # mins
 max_cache_size = 16384
 target_urls = ["https://dns.google/dns-query"]
 ```
@@ -77,7 +78,7 @@ where we assume that `config.toml` is configured as follows.
 
 ```toml:config.toml
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
-bootstrap_dns = "8.8.8.8:53"
+bootstrap_dns = ["8.8.8.8"]
 
 target_urls = ["https://odoh.cloudflare-dns.com/dns-query"]
 
@@ -159,10 +160,14 @@ OPTIONS:
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
 
 ## DNS (Do53) resolver address for bootstrap
-bootstrap_dns = "8.8.8.8:53"
+bootstrap_dns = ['8.8.8.8']
 
-## Minutes to re-fetch the IP addr of the target url host via the bootstrap DNS
-reboot_period = 3
+## Minutes to re-resolve the IP addr of the nexthop and authentication endpoint url
+## Ip addresses are first resolved by bootstrap DNS, after that, they will be resolved by (MO)DoH resolver itself.
+# endpoint_resolution_period = 60
+
+## Health check period in minitus. Check health of all path candidates and purge DNS cache.
+# healthcheck_period = 10
 
 ## Cache entry size (Default 16384)
 max_cache_size = 16384
@@ -240,7 +245,7 @@ odoh_relay_randomization = true
 
 You can run this proxy as a docker container, where the docker image is hosted at [Docker Hub](https://hub.docker.com/r/jqtype/doh-auth-proxy). You can run the docker container by appropriately configure env vers or an env file imported by the container.
 
-See the [`./docker/](./docker) directory and [`./docker/README.md`](./docker/README.md) for the detailed configuration for the docker container.
+See the [`./docker`](./docker) directory and [`./docker/README.md`](./docker/README.md) for the detailed configuration for the docker container.
 
 ## Authentication at the next hop node (DoH target or ODoH relay)
 

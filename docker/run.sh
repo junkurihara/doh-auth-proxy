@@ -2,11 +2,10 @@
 CONFIG_FILE=/modoh/doh-auth-proxy.toml
 DEFAULT_LOG_LEVEL="info"
 DEFAULT_TARGET_URLS="https://dns.google/dns-query"
-DEFAULT_BOOTSTRAP_DNS_ADDR="8.8.8.8"
-DEFAULT_BOOTSTRAP_DNS_PORT="53"
+DEFAULT_BOOTSTRAP_DNS="8.8.8.8"
 
 # bootstrap DNS
-echo "Bootstrap DNS: ${BOOTSTRAP_DNS_ADDR:-${DEFAULT_BOOTSTRAP_DNS_ADDR}}:${BOOTSTRAP_DNS_PORT:-${DEFAULT_BOOTSTRAP_DNS_PORT}}"
+echo "Bootstrap DNS: ${BOOTSTRAP_DNS:-${DEFAULT_BOOTSTRAP_DNS}}"
 
 ##########################
 # authentication and authorization
@@ -89,7 +88,7 @@ fi
 # export as a config toml file
 cat > ${CONFIG_FILE} << EOF
 listen_addresses = ["0.0.0.0:53"]
-bootstrap_dns = "${BOOTSTRAP_DNS_ADDR:-${DEFAULT_BOOTSTRAP_DNS_ADDR}}:${BOOTSTRAP_DNS_PORT:-${DEFAULT_BOOTSTRAP_DNS_PORT}}"
+bootstrap_dns = ["${BOOTSTRAP_DNS:-${DEFAULT_BOOTSTRAP_DNS}}"]
 ${TARGET_URL_STRING}
 ${TARGET_RAND_STRING}
 

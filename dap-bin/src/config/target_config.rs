@@ -85,7 +85,7 @@ impl TryInto<ProxyConfig> for &TargetConfig {
 
     /////////////////////////////
     // endpoint re-resolution period
-    if let Some(val) = self.config_toml.endoint_resolution_period {
+    if let Some(val) = self.config_toml.endpoint_resolution_period {
       proxy_config.endpoint_resolution_period_sec = Duration::from_secs((val as u64) * 60);
     }
     info!(

@@ -6,7 +6,7 @@ use std::fs;
 pub struct ConfigToml {
   pub listen_addresses: Option<Vec<String>>,
   pub bootstrap_dns: Option<Vec<String>>,
-  pub endoint_resolution_period: Option<usize>,
+  pub endpoint_resolution_period: Option<usize>,
   pub healthcheck_period: Option<usize>,
   pub max_cache_size: Option<usize>,
   pub target_urls: Option<Vec<String>>,
