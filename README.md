@@ -36,7 +36,7 @@ where we assume that `config.toml` is configured like follows.
 
 ```toml:config.toml
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
-bootstrap_dns = "1.1.1.1:53"
+bootstrap_dns = ["1.1.1.1"]
 
 target_urls = ["https://dns.google/dns-query"]
 ```
