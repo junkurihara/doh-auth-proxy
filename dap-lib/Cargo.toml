@@ -33,7 +33,7 @@ publish = false
 
 [dependencies]
 rand = "0.8.5"
-tokio = { version = "1.33.0", features = [
+tokio = { version = "1.34.0", features = [
   "net",
   "rt-multi-thread",
   "time",
@@ -48,7 +48,7 @@ anyhow = "1.0.75"
 tracing = "0.1.40"
 thiserror = "1.0.50"
 async-trait = "0.1.74"
-serde = { version = "1.0.190", features = ["derive"] }
+serde = { version = "1.0.192", features = ["derive"] }
 itertools = "0.11.0"
 rustc-hash = "1.1.0"
 

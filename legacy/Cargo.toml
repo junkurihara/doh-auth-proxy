@@ -31,12 +31,12 @@ publish = false
 
 [dependencies]
 data-encoding = "2.4.0"
-clap = { version = "4.4.7", default-features = false, features = [
+clap = { version = "4.4.8", default-features = false, features = [
   "std",
   "cargo",
   "wrap_help",
 ] }
-tokio = { version = "1.33.0", features = [
+tokio = { version = "1.34.0", features = [
   "net",
   "rt-multi-thread",
   "time",
@@ -57,15 +57,15 @@ trust-dns-resolver = { version = "0.23.2", default-features = false, features = 
 anyhow = "1.0.75"
 dotenv = "0.15.0"
 serde_json = "1.0.108"
-jwt-simple = "0.11.7"
+jwt-simple = "0.11.9"
 p256 = { version = "0.13.2", features = ["jwk", "pem"] }
 chrono = "0.4.31"
 odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git" }
 rand = "0.8.5"
 bytes = "1.5.0"
 urlencoding = "2.1.3"
-toml = { version = "0.8.6", default-features = false, features = ["parse"] }
-serde = "1.0.190"
+toml = { version = "0.8.8", default-features = false, features = ["parse"] }
+serde = "1.0.192"
 hashlink = "0.8.4"
 cedarwood = "0.4.6"
 regex = "1.10.2"
