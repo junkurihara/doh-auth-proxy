@@ -49,6 +49,9 @@ pub const MAX_CACHE_SIZE: usize = 16384;
 ///////////////////////////////
 // Cannot override below by config.toml
 
+/// HTTP User-Agent
+pub const HTTP_USER_AGENT: &str = "doh-auth-proxy";
+
 // ODoH
 
 /// ODoH config path

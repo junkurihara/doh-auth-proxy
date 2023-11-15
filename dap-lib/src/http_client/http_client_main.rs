@@ -1,4 +1,5 @@
 use crate::{
+  constants::HTTP_USER_AGENT,
   error::*,
   trait_resolve_ips::{resolve_ips, ResolveIpResponse, ResolveIps},
 };
@@ -87,7 +88,7 @@ impl HttpClientInner {
     resolved_ips: &[ResolveIpResponse],
   ) -> Result<Self> {
     let mut client = Client::builder()
-      .user_agent(format!("{}/{}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION")))
+      .user_agent(format!("{}/{}", HTTP_USER_AGENT, env!("CARGO_PKG_VERSION")))
       .timeout(timeout_sec)
       .trust_dns(true);
 
