@@ -5,7 +5,7 @@ LOG_SIZE=10M
 LOG_NUM=10
 
 LOGGING=${LOG_TO_FILE:-false}
-USER=${HOST_USER:-rpxy}
+USER=${HOST_USER:-doh-auth-proxy}
 USER_ID=${HOST_UID:-900}
 GROUP_ID=${HOST_GID:-900}
 
@@ -39,7 +39,7 @@ include /etc/logrotate.d
 # system-specific logs may be also be configured here.
 EOF
 
-  cat > /etc/logrotate.d/rpxy.conf << EOF
+  cat > /etc/logrotate.d/doh-auth-proxy.conf << EOF
 ${LOG_FILE} {
     dateext
     daily
@@ -60,7 +60,7 @@ EOF
 function setup_ubuntu () {
   # Check the existence of the user, if not exist, create it.
   if [ ! $(id ${USER}) ]; then
-    echo "rpxy: Create user ${USER} with ${USER_ID}:${GROUP_ID}"
+    echo "doh-auth-proxy: Create user ${USER} with ${USER_ID}:${GROUP_ID}"
     groupadd -g ${GROUP_ID} ${USER}
     useradd -u ${USER_ID} -g ${GROUP_ID} ${USER}
   fi
