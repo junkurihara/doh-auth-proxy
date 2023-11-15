@@ -32,7 +32,7 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-doh-auth-proxy-lib = { path = "../dap-lib/" }
+doh-auth-proxy-lib = { path = "../proxy-lib/" }
 
 anyhow = "1.0.75"
 mimalloc = { version = "*", default-features = false }

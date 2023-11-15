@@ -9,11 +9,11 @@ updates:
     schedule:
       interval: "daily"
   - package-ecosystem: "cargo"
-    directory: "/dap-bin"
+    directory: "/proxy-bin"
     schedule:
       interval: "daily"
   - package-ecosystem: "cargo"
-    directory: "/dap-lib"
+    directory: "/proxy-lib"
     schedule:
       interval: "daily"
   - package-ecosystem: "cargo"

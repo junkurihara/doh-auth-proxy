@@ -1,6 +1,6 @@
 [workspace]
 
-members = ["dap-bin", "dap-lib", "legacy"]
+members = ["proxy-bin", "proxy-lib", "legacy"]
 exclude = ["legacy"]
 resolver = "2"
 
