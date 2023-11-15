@@ -12,6 +12,7 @@ pub struct ConfigToml {
   pub target_urls: Option<Vec<String>>,
   pub target_randomization: Option<bool>,
   pub use_get_method: Option<bool>,
+  pub user_agent: Option<String>,
   pub authentication: Option<Authentication>,
   pub anonymization: Option<Anonymization>,
   pub plugins: Option<Plugins>,

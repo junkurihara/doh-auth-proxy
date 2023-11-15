@@ -56,6 +56,7 @@ pub async fn entrypoint(
   let http_client = HttpClient::new(
     &endpoint_candidates,
     proxy_config.http_timeout_sec,
+    &proxy_config.http_user_agent,
     None,
     bootstrap_dns_resolver.clone(),
     proxy_config.endpoint_resolution_period_sec,

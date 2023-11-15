@@ -22,8 +22,11 @@ pub struct Globals {
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct ProxyConfig {
+  /// listen addresses
   pub listen_addresses: Vec<SocketAddr>,
+  /// maximum number of connections
   pub max_connections: usize,
+  /// maximum cache size
   pub max_cache_size: usize,
 
   /// bootstrap DNS
@@ -34,13 +37,20 @@ pub struct ProxyConfig {
   pub healthcheck_period_sec: Duration,
 
   // udp and tcp proxy setting
+  /// UDP buffer size
   pub udp_buffer_size: usize,
+  /// UDP channel capacity
   pub udp_channel_capacity: usize,
+  /// UDP timeout
   pub udp_timeout_sec: Duration,
+  /// TCP listen backlog
   pub tcp_listen_backlog: u32,
 
   /// timeout for HTTP requests (DoH, ODoH, and authentication requests)
   pub http_timeout_sec: Duration,
+
+  /// http user agent
+  pub http_user_agent: String,
 
   /// doh, odoh, modoh target settings
   pub target_config: TargetConfig,
@@ -139,6 +149,7 @@ impl Default for ProxyConfig {
       tcp_listen_backlog: TCP_LISTEN_BACKLOG,
 
       http_timeout_sec: Duration::from_secs(HTTP_TIMEOUT_SEC),
+      http_user_agent: format!("{}/{}", HTTP_USER_AGENT, env!("CARGO_PKG_VERSION")),
 
       target_config: TargetConfig::default(),
       nexthop_relay_config: None,

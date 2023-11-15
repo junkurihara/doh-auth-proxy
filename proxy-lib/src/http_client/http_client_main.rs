@@ -1,5 +1,4 @@
 use crate::{
-  constants::HTTP_USER_AGENT,
   error::*,
   trait_resolve_ips::{resolve_ips, ResolveIpResponse, ResolveIps},
 };
@@ -23,6 +22,9 @@ pub struct HttpClient {
   /// timeout for http request
   timeout_sec: Duration,
 
+  /// http user agent
+  user_agent: String,
+
   /// period for endpoint ip resolution, such as next hop relay
   endpoint_resolution_period_sec: Duration,
 }
@@ -32,6 +34,7 @@ impl HttpClient {
   pub async fn new(
     endpoints: &[Url],
     timeout_sec: Duration,
+    user_agent: &str,
     default_headers: Option<&HeaderMap>,
     resolver_ips: impl ResolveIps,
     endpoint_resolution_period_sec: Duration,
@@ -39,10 +42,11 @@ impl HttpClient {
     let resolved_ips = resolve_ips(endpoints, resolver_ips).await?;
     Ok(Self {
       inner: Arc::new(RwLock::new(
-        HttpClientInner::new(timeout_sec, default_headers, &resolved_ips).await?,
+        HttpClientInner::new(timeout_sec, user_agent, default_headers, &resolved_ips).await?,
       )),
       default_headers: default_headers.cloned(),
       timeout_sec,
+      user_agent: user_agent.to_string(),
       endpoints: endpoints.to_vec(),
       endpoint_resolution_period_sec,
     })
@@ -72,23 +76,28 @@ impl HttpClient {
   pub fn endpoint_resolution_period_sec(&self) -> Duration {
     self.endpoint_resolution_period_sec
   }
+
+  /// Get user agent
+  pub fn user_agent(&self) -> &str {
+    &self.user_agent
+  }
 }
 
 #[derive(Debug)]
 /// Simple wrapper of reqwest::Client
 pub struct HttpClientInner {
-  /// client: reqwest::Client,
   pub client: Client,
 }
 impl HttpClientInner {
   /// Build HttpClientInner
   pub(super) async fn new(
     timeout_sec: Duration,
+    user_agent: &str,
     default_headers: Option<&HeaderMap>,
     resolved_ips: &[ResolveIpResponse],
   ) -> Result<Self> {
     let mut client = Client::builder()
-      .user_agent(format!("{}/{}", HTTP_USER_AGENT, env!("CARGO_PKG_VERSION")))
+      .user_agent(user_agent)
       .timeout(timeout_sec)
       .trust_dns(true);
 
