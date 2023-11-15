@@ -82,7 +82,13 @@ impl HttpClient {
   async fn update_inner(&self, resolved_ips: &[ResolveIpResponse]) -> Result<()> {
     let inner = self.inner();
     let mut inner_lock = inner.write().await;
-    *inner_lock = HttpClientInner::new(self.timeout_sec(), self.default_headers(), resolved_ips).await?;
+    *inner_lock = HttpClientInner::new(
+      self.timeout_sec(),
+      self.user_agent(),
+      self.default_headers(),
+      resolved_ips,
+    )
+    .await?;
     drop(inner_lock);
     Ok(())
   }

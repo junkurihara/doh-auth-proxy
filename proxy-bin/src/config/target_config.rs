@@ -139,6 +139,11 @@ impl TryInto<ProxyConfig> for &TargetConfig {
         info!("Use GET method for query");
       }
     }
+    /////////////////////////////
+    // User agent
+    if let Some(val) = &self.config_toml.user_agent {
+      proxy_config.http_user_agent = val.clone();
+    }
 
     /////////////////////////////
     // Anonymization
