@@ -23,6 +23,7 @@ You should also include the user name that made the change.
 - Periodic nexthop IP address resolution via the proxy itself, bootstrap resolver is only used at the first time and fall-back.
 - Periodic fetching of access token with refresh token.
 - Hot reloading of configuration files, including block and override files.
+- Configurable "user-agent" as whatever you like.
 
 ## 0.2.0
 
