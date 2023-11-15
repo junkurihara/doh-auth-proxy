@@ -29,12 +29,9 @@ bootstrap_dns = ["8.8.8.8", "1.1.1.1"]
 ## URL of (O)DoH target server like "https://dns.google/dns-query".
 ## You can specify multiple servers by repeatedly set this option, then one of given
 ## servers is chosen (if target_randomization = true, randomly every time).
+## Note that we do not choose looped paths, so you need at least one diffrent relay host when (M)ODoH.
 target_urls = ["https://odoh.cloudflare-dns.com/dns-query"]
 
-## Currently, we cannot detect loop of path, and it sometimes stops
-## (responds nothing) when a relaying host forward a request to itself.
-## So, for safety, target_urls, odoh_relay_urls, and mid_relay_urls
-## should be DISJOINT one another.
 
 ## According to the suggestion in "Designing for Tussle in Encrypted DNS" (HotNets'21),
 ## multiple (O)DoH servers should be specified and used in randomized fashion in this
@@ -46,6 +43,8 @@ target_randomization = true
 ## Use Get method to query if true. Default is false
 # use_get_method = false
 
+## User agent string to be sent to target server. Default is "doh-auth-proxy".
+# user_agent = "doh-auth-proxy"
 
 ##################################
 #         Auth settings          #
