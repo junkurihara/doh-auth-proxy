@@ -75,7 +75,7 @@ mimalloc = { version = "*", default-features = false }
 
 # logging
 tracing = { version = "0.1.40" }
-tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 
 [dev-dependencies]
 trust-dns-client = "0.23.2"

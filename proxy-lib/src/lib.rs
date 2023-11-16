@@ -53,15 +53,7 @@ pub async fn entrypoint(
   if let Some(auth) = &proxy_config.authentication_config {
     endpoint_candidates.push(auth.token_api.clone());
   }
-  let http_client = HttpClient::new(
-    &endpoint_candidates,
-    proxy_config.http_timeout_sec,
-    &proxy_config.http_user_agent,
-    None,
-    bootstrap_dns_resolver.clone(),
-    proxy_config.endpoint_resolution_period_sec,
-  )
-  .await?;
+  let http_client = HttpClient::new(proxy_config, &endpoint_candidates, None, bootstrap_dns_resolver.clone()).await?;
   let http_client = Arc::new(http_client);
 
   // spawn authentication service

@@ -1,6 +1,7 @@
 use crate::{
   error::*,
   trait_resolve_ips::{resolve_ips, ResolveIpResponse, ResolveIps},
+  ProxyConfig,
 };
 use reqwest::{header::HeaderMap, Client, IntoUrl, RequestBuilder, Url};
 use std::sync::Arc;
@@ -32,13 +33,14 @@ pub struct HttpClient {
 impl HttpClient {
   /// Build HttpClient
   pub async fn new(
+    proxy_config: &ProxyConfig,
     endpoints: &[Url],
-    timeout_sec: Duration,
-    user_agent: &str,
     default_headers: Option<&HeaderMap>,
     resolver_ips: impl ResolveIps,
-    endpoint_resolution_period_sec: Duration,
   ) -> Result<Self> {
+    let timeout_sec = proxy_config.http_timeout_sec;
+    let user_agent = &proxy_config.http_user_agent;
+    let endpoint_resolution_period_sec = proxy_config.endpoint_resolution_period_sec;
     let resolved_ips = resolve_ips(endpoints, resolver_ips).await?;
     Ok(Self {
       inner: Arc::new(RwLock::new(
