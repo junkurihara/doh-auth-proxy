@@ -55,7 +55,11 @@ impl ODoHConfigStore {
       destination.set_path(ODOH_CONFIG_PATH);
       let lock = self.http_client.read().await;
       debug!("Fetching ODoH config from {}", destination);
-      lock.get(destination).send().await
+      lock
+        .get(destination)
+        .header(reqwest::header::ACCEPT, "application/binary")
+        .send()
+        .await
     });
     let joined = futures::future::join_all(futures);
     let update_futures = joined.await.into_iter().zip(inner).map(|(res, current)| async move {
