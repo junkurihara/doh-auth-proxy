@@ -19,7 +19,19 @@ pub struct ResolveIpResponse {
 
 /// Resolve ip addresses for given endpoints
 pub async fn resolve_ips(endpoints: &[Url], resolver_ips: impl ResolveIps) -> Result<Vec<ResolveIpResponse>> {
-  let resolve_ips_fut = endpoints.iter().map(|endpoint| resolver_ips.resolve_ips(endpoint));
+  let resolve_ips_fut = endpoints.iter().map(|endpoint| async {
+    let host_is_ipaddr = endpoint
+      .host_str()
+      .map_or(false, |host| host.parse::<std::net::IpAddr>().is_ok());
+    if host_is_ipaddr {
+      Ok(ResolveIpResponse {
+        hostname: endpoint.host_str().unwrap().to_string(),
+        addresses: vec![endpoint.socket_addrs(|| None).unwrap()[0]],
+      })
+    } else {
+      resolver_ips.resolve_ips(endpoint).await
+    }
+  });
   let resolve_ips = futures::future::join_all(resolve_ips_fut).await;
   if resolve_ips.iter().any(|resolve_ip| resolve_ip.is_err()) {
     return Err(DapError::FailedToResolveIpsForHttpClient);
