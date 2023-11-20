@@ -85,8 +85,7 @@ impl DoHPath {
         if !self.relays.is_empty() {
           return Err(DapError::FailedToBuildDohUrl);
         }
-        let mut url = Url::parse(&self.target.authority)?;
-        url.set_scheme(self.target.scheme.as_str()).unwrap();
+        let mut url = Url::parse(format!("{}://{}", self.target.scheme.as_str(), &self.target.authority).as_str())?;
         url.set_path(&self.target.path);
         Ok(url)
       }
