@@ -272,7 +272,7 @@ impl DoHPathManager {
           can_be_next_hop: false,
         })
       });
-      let max = v.max_mid_relays.max(subseq_relays.len());
+      let max = v.max_mid_relays.min(subseq_relays.len());
       let mut paths_after_nexthop = vec![];
       (0..max + 1).for_each(|num| {
         let x: Vec<_> = subseq_relays.clone().permutations(num).collect();
