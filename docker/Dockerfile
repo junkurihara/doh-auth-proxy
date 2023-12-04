@@ -7,7 +7,7 @@ ENV SERIAL 2
 FROM base as builder
 
 ENV CFLAGS=-Ofast
-ENV BUILD_DEPS curl make ca-certificates build-essential pkg-config libssl-dev
+ENV BUILD_DEPS curl make ca-certificates build-essential pkg-config libssl-dev libclang-dev cmake
 
 WORKDIR /tmp
 

@@ -56,7 +56,7 @@ rustc-hash = "1.1.0"
 odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git" }
 bytes = "1.5.0"
 hickory-proto = { version = "0.24.0", default-features = false }
-data-encoding = "2.4.0"
+data-encoding = "2.5.0"
 hashlink = "0.8.4"
 cedarwood = "0.4.6"
 regex = "1.10.2"
@@ -68,9 +68,9 @@ socket2 = "0.5.5"
 reqwest = { version = "0.11.22", default-features = false, features = [
   "json",
   "trust-dns",
-  "default",
+  "rustls-tls",
 ] }
-url = "2.4.1"
+url = "2.5.0"
 
 # for bootstrap dns resolver
 hickory-resolver = { version = "0.24.0", default-features = false, features = [

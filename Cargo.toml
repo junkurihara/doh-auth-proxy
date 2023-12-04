@@ -1,6 +1,6 @@
 [workspace]
 
-members = ["proxy-bin", "proxy-lib", "legacy"]
+members = ["proxy-bin", "proxy-lib"]
 exclude = ["legacy"]
 resolver = "2"
 
