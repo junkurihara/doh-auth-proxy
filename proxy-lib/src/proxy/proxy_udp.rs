@@ -133,16 +133,15 @@ impl Proxy {
     // debug!("response from DoH server: {:?}", res);
 
     // send response via channel to the dispatch socket
-    if let Some(Ok(r)) = res {
-      if let Err(e) = res_sender.send((r, src_addr)).await {
-        error!("res_sender on channel fail: {:?}", e);
-        return Err(DapError::UdpChannelSendError(e));
-      }
-    } else {
-      return Err(DapError::FailedToMakeDohQuery);
-    }
     counter.decrement(CounterType::Udp);
-    // });
+
+    let Some(Ok(r)) = res else {
+      return Err(DapError::FailedToMakeDohQuery);
+    };
+    if let Err(e) = res_sender.send((r, src_addr)).await {
+      error!("res_sender on channel fail: {:?}", e);
+      return Err(DapError::UdpChannelSendError(e));
+    }
 
     Ok(())
   }
