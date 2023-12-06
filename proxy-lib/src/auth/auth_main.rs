@@ -5,7 +5,7 @@ use crate::{
   log::*,
 };
 use async_trait::async_trait;
-use auth_client::{AuthenticationConfig, TokenClient, TokenHttpClient};
+use auth_client::{token::token_fields::Field, AuthenticationConfig, TokenClient, TokenHttpClient};
 use serde::{de::DeserializeOwned, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -89,6 +89,6 @@ impl Authenticator {
   /// Get id token
   pub async fn id_token(&self) -> Result<String, DapError> {
     let token = self.inner.token().await?;
-    Ok(token.id)
+    Ok(token.id.as_str().to_owned())
   }
 }
