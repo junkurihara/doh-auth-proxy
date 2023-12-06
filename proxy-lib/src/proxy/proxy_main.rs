@@ -7,7 +7,7 @@ use std::{net::SocketAddr, sync::Arc};
 #[derive(Clone)]
 pub struct Proxy {
   pub(super) globals: Arc<Globals>,
-  pub(super) counter: ConnCounter,
+  pub(super) counter: Arc<ConnCounter>,
   pub(super) doh_client: Arc<DoHClient>,
   pub(super) listening_on: SocketAddr,
 }
@@ -17,7 +17,7 @@ impl Proxy {
   pub fn new(globals: Arc<Globals>, listening_on: &SocketAddr, doh_client: &Arc<DoHClient>) -> Self {
     Self {
       globals,
-      counter: ConnCounter::default(),
+      counter: Arc::new(ConnCounter::default()),
       doh_client: doh_client.clone(),
       listening_on: *listening_on,
     }

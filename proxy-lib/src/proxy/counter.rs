@@ -1,6 +1,5 @@
 use crate::log::*;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub enum CounterType {
@@ -16,31 +15,55 @@ impl CounterType {
   }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
+/// Connection counter inner that is an increment-only counter
+pub struct CounterInner {
+  /// total number of incoming connections
+  cnt_in: AtomicUsize,
+  /// total number of served connections
+  cnt_out: AtomicUsize,
+}
+
+impl CounterInner {
+  /// output difference between cnt_in and cnt_out as current in-flight connection count
+  pub fn get_current(&self) -> isize {
+    self.cnt_in.load(Ordering::Relaxed) as isize - self.cnt_out.load(Ordering::Relaxed) as isize
+  }
+  /// increment cnt_in and output current in-flight connection count
+  pub fn increment(&self) -> isize {
+    let total_in = self.cnt_in.fetch_add(1, Ordering::Relaxed) as isize;
+    total_in + 1 - self.cnt_out.load(Ordering::Relaxed) as isize
+  }
+  /// increment cnt_out and output current in-flight connection count
+  pub fn decrement(&self) -> isize {
+    let total_out = self.cnt_out.fetch_add(1, Ordering::Relaxed) as isize;
+    self.cnt_in.load(Ordering::Relaxed) as isize - total_out - 1
+  }
+}
+
+#[derive(Debug, Default)]
 /// Connection counter
 pub struct ConnCounter {
-  pub cnt_total: Arc<AtomicUsize>,
-  pub cnt_udp: Arc<AtomicUsize>,
-  pub cnt_tcp: Arc<AtomicUsize>,
+  pub cnt_udp: CounterInner,
+  pub cnt_tcp: CounterInner,
 }
 
 impl ConnCounter {
-  pub fn get_current_total(&self) -> usize {
-    self.cnt_total.load(Ordering::Relaxed)
+  pub fn get_current_total(&self) -> isize {
+    self.cnt_tcp.get_current() + self.cnt_udp.get_current()
   }
 
-  pub fn get_current(&self, ctype: CounterType) -> usize {
+  pub fn get_current(&self, ctype: CounterType) -> isize {
     match ctype {
-      CounterType::Tcp => self.cnt_tcp.load(Ordering::Relaxed),
-      CounterType::Udp => self.cnt_udp.load(Ordering::Relaxed),
+      CounterType::Tcp => self.cnt_tcp.get_current(),
+      CounterType::Udp => self.cnt_udp.get_current(),
     }
   }
 
-  pub fn increment(&self, ctype: CounterType) -> usize {
-    self.cnt_total.fetch_add(1, Ordering::Relaxed);
+  pub fn increment(&self, ctype: CounterType) -> isize {
     let c = match ctype {
-      CounterType::Tcp => self.cnt_tcp.fetch_add(1, Ordering::Relaxed),
-      CounterType::Udp => self.cnt_udp.fetch_add(1, Ordering::Relaxed),
+      CounterType::Tcp => self.cnt_tcp.increment(),
+      CounterType::Udp => self.cnt_udp.increment(),
     };
 
     debug!(
@@ -52,36 +75,11 @@ impl ConnCounter {
     c
   }
 
-  pub fn decrement(&self, ctype: CounterType) {
-    let cnt;
-    match ctype {
-      CounterType::Tcp => {
-        let res = {
-          cnt = self.cnt_tcp.load(Ordering::Relaxed);
-          cnt > 0
-            && self
-              .cnt_tcp
-              .compare_exchange(cnt, cnt - 1, Ordering::Relaxed, Ordering::Relaxed)
-              != Ok(cnt)
-        };
-        if res {}
-      }
-      CounterType::Udp => {
-        let res = {
-          cnt = self.cnt_udp.load(Ordering::Relaxed);
-          cnt > 0
-            && self
-              .cnt_udp
-              .compare_exchange(cnt, cnt - 1, Ordering::Relaxed, Ordering::Relaxed)
-              != Ok(cnt)
-        };
-        if res {}
-      }
+  pub fn decrement(&self, ctype: CounterType) -> isize {
+    let c = match ctype {
+      CounterType::Tcp => self.cnt_tcp.decrement(),
+      CounterType::Udp => self.cnt_udp.decrement(),
     };
-    self.cnt_total.store(
-      self.cnt_udp.load(Ordering::Relaxed) + self.cnt_tcp.load(Ordering::Relaxed),
-      Ordering::Relaxed,
-    );
 
     debug!(
       "{} connection count--: {} (total = {})",
@@ -89,5 +87,57 @@ impl ConnCounter {
       self.get_current(ctype),
       self.get_current_total()
     );
+    c
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_counter_inner() {
+    let counter = CounterInner::default();
+    assert_eq!(counter.get_current(), 0);
+    assert_eq!(counter.increment(), 1);
+    assert_eq!(counter.get_current(), 1);
+    assert_eq!(counter.increment(), 2);
+    assert_eq!(counter.get_current(), 2);
+    assert_eq!(counter.decrement(), 1);
+    assert_eq!(counter.get_current(), 1);
+    assert_eq!(counter.decrement(), 0);
+    assert_eq!(counter.get_current(), 0);
+  }
+
+  #[test]
+  fn test_conn_counter() {
+    let counter = ConnCounter::default();
+    assert_eq!(counter.get_current_total(), 0);
+    assert_eq!(counter.get_current(CounterType::Tcp), 0);
+    assert_eq!(counter.get_current(CounterType::Udp), 0);
+    assert_eq!(counter.increment(CounterType::Tcp), 1);
+    assert_eq!(counter.get_current_total(), 1);
+    assert_eq!(counter.get_current(CounterType::Tcp), 1);
+    assert_eq!(counter.get_current(CounterType::Udp), 0);
+    assert_eq!(counter.increment(CounterType::Tcp), 2);
+    assert_eq!(counter.get_current_total(), 2);
+    assert_eq!(counter.get_current(CounterType::Tcp), 2);
+    assert_eq!(counter.get_current(CounterType::Udp), 0);
+    assert_eq!(counter.increment(CounterType::Udp), 1);
+    assert_eq!(counter.get_current_total(), 3);
+    assert_eq!(counter.get_current(CounterType::Tcp), 2);
+    assert_eq!(counter.get_current(CounterType::Udp), 1);
+    assert_eq!(counter.decrement(CounterType::Tcp), 1);
+    assert_eq!(counter.get_current_total(), 2);
+    assert_eq!(counter.get_current(CounterType::Tcp), 1);
+    assert_eq!(counter.get_current(CounterType::Udp), 1);
+    assert_eq!(counter.decrement(CounterType::Tcp), 0);
+    assert_eq!(counter.get_current_total(), 1);
+    assert_eq!(counter.get_current(CounterType::Tcp), 0);
+    assert_eq!(counter.get_current(CounterType::Udp), 1);
+    assert_eq!(counter.decrement(CounterType::Udp), 0);
+    assert_eq!(counter.get_current_total(), 0);
+    assert_eq!(counter.get_current(CounterType::Tcp), 0);
+    assert_eq!(counter.get_current(CounterType::Udp), 0);
   }
 }

@@ -40,7 +40,7 @@ impl Proxy {
   pub async fn serve_tcp_query(self, mut stream: TcpStream, src_addr: SocketAddr) -> Result<()> {
     debug!("handle tcp query from {:?}", src_addr);
     let counter = self.counter.clone();
-    if counter.increment(CounterType::Tcp) >= self.globals.proxy_config.max_connections {
+    if counter.increment(CounterType::Tcp) >= self.globals.proxy_config.max_connections as isize {
       error!(
         "Too many connections: max = {} (udp+tcp)",
         self.globals.proxy_config.max_connections
