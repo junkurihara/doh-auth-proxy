@@ -30,6 +30,8 @@ pub enum DapError {
   Io(#[from] std::io::Error),
   #[error("Null TCP stream")]
   NullTcpStream,
+  #[error("Udp channel send timeout")]
+  UdpChannelSendTimeout,
   #[error("Udp channel send error")]
   UdpChannelSendError(#[from] SendError<(Vec<u8>, SocketAddr)>),
   #[error("Invalid DNS response size")]

@@ -138,11 +138,21 @@ impl Proxy {
     let Some(Ok(r)) = res else {
       return Err(DapError::FailedToMakeDohQuery);
     };
-    if let Err(e) = res_sender.send((r, src_addr)).await {
-      error!("res_sender on channel fail: {:?}", e);
-      return Err(DapError::UdpChannelSendError(e));
+    let res = tokio::time::timeout(
+      self.globals.proxy_config.udp_timeout_sec,
+      res_sender.send((r, src_addr)),
+    )
+    .await;
+    match res {
+      Err(e) => {
+        error!("res_sender on channel timeout: {:?}", e);
+        Err(DapError::UdpChannelSendTimeout)
+      }
+      Ok(Err(e)) => {
+        error!("res_sender on channel fail: {:?}", e);
+        Err(DapError::UdpChannelSendError(e))
+      }
+      Ok(Ok(_)) => Ok(()),
     }
-
-    Ok(())
   }
 }
