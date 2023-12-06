@@ -17,7 +17,8 @@ impl CounterType {
 
 #[derive(Debug, Default)]
 /// Connection counter inner that is an increment-only counter
-pub struct CounterInner {
+/// For performance, we do not care about the memory ordering, which means values are sometimes inconsistent (like being negative value).
+struct CounterInner {
   /// total number of incoming connections
   cnt_in: AtomicUsize,
   /// total number of served connections
@@ -26,16 +27,16 @@ pub struct CounterInner {
 
 impl CounterInner {
   /// output difference between cnt_in and cnt_out as current in-flight connection count
-  pub fn get_current(&self) -> isize {
+  fn get_current(&self) -> isize {
     self.cnt_in.load(Ordering::Relaxed) as isize - self.cnt_out.load(Ordering::Relaxed) as isize
   }
   /// increment cnt_in and output current in-flight connection count
-  pub fn increment(&self) -> isize {
+  fn increment(&self) -> isize {
     let total_in = self.cnt_in.fetch_add(1, Ordering::Relaxed) as isize;
     total_in + 1 - self.cnt_out.load(Ordering::Relaxed) as isize
   }
   /// increment cnt_out and output current in-flight connection count
-  pub fn decrement(&self) -> isize {
+  fn decrement(&self) -> isize {
     let total_out = self.cnt_out.fetch_add(1, Ordering::Relaxed) as isize;
     self.cnt_in.load(Ordering::Relaxed) as isize - total_out - 1
   }
@@ -44,8 +45,8 @@ impl CounterInner {
 #[derive(Debug, Default)]
 /// Connection counter
 pub struct ConnCounter {
-  pub cnt_udp: CounterInner,
-  pub cnt_tcp: CounterInner,
+  cnt_udp: CounterInner,
+  cnt_tcp: CounterInner,
 }
 
 impl ConnCounter {
