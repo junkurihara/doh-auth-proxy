@@ -113,7 +113,7 @@ impl Proxy {
   ) -> Result<()> {
     debug!("handle udp query from {:?}", src_addr);
     let counter = self.counter.clone();
-    if counter.increment(CounterType::Udp) >= self.globals.proxy_config.max_connections {
+    if counter.increment(CounterType::Udp) >= self.globals.proxy_config.max_connections as isize {
       error!(
         "Too many connections: max = {} (udp+tcp)",
         self.globals.proxy_config.max_connections
@@ -122,7 +122,6 @@ impl Proxy {
       return Err(DapError::TooManyConnections);
     }
 
-    // self.globals.runtime_handle.clone().spawn(async move {
     let res = tokio::time::timeout(
       self.globals.proxy_config.http_timeout_sec + Duration::from_secs(1),
       // serve udp dns message here
@@ -130,10 +129,9 @@ impl Proxy {
     )
     .await
     .ok();
-    // debug!("response from DoH server: {:?}", res);
 
     // send response via channel to the dispatch socket
-    counter.decrement(CounterType::Udp);
+    counter.decrement(CounterType::Udp); // decrement counter anyways
 
     let Some(Ok(r)) = res else {
       return Err(DapError::FailedToMakeDohQuery);
