@@ -33,21 +33,21 @@ publish = false
 
 [dependencies]
 rand = "0.8.5"
-tokio = { version = "1.35.0", features = [
+tokio = { version = "1.35.1", features = [
   "net",
   "rt-multi-thread",
   "time",
   "sync",
   "macros",
 ] }
-futures = { version = "0.3.29", default-features = false, features = [
+futures = { version = "0.3.30", default-features = false, features = [
   "std",
   "async-await",
 ] }
-anyhow = "1.0.75"
+anyhow = "1.0.76"
 tracing = "0.1.40"
-thiserror = "1.0.51"
-async-trait = "0.1.74"
+thiserror = "1.0.52"
+async-trait = "0.1.75"
 serde = { version = "1.0.193", features = ["derive"] }
 itertools = "0.12.0"
 rustc-hash = "1.1.0"
@@ -65,7 +65,8 @@ regex = "1.10.2"
 socket2 = "0.5.5"
 
 # http client
-reqwest = { version = "0.11.22", default-features = false, features = [
+# TODO: change this to hyper-1.0
+reqwest = { version = "0.11.23", default-features = false, features = [
   "json",
   "trust-dns",
   "rustls-tls",
