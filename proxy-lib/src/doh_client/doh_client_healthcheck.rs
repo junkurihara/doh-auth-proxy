@@ -1,6 +1,8 @@
 use super::{dns_message, path_manage::DoHPath, DoHClient};
 use crate::{
-  constants::{HEALTHCHECK_TARGET_ADDR, HEALTHCHECK_TARGET_FQDN},
+  constants::{
+    HEALTHCHECK_RETRY_WAITING_SEC, HEALTHCHECK_TARGET_ADDR, HEALTHCHECK_TARGET_FQDN, MAX_ALL_UNHEALTHY_RETRY,
+  },
   error::*,
   log::*,
 };
@@ -36,6 +38,7 @@ impl DoHClient {
   /// - health of every path;
   /// - purge expired DNS cache
   async fn healthcheck_service(&self) -> Result<()> {
+    let mut all_unhealthy_cnt = 0;
     // purge expired DNS cache
     loop {
       info!("Execute periodic health check");
@@ -68,7 +71,13 @@ impl DoHClient {
         .flatten()
         .any(|v| v.is_healthy())
       {
+        all_unhealthy_cnt += 1;
         error!("All possible paths are unhealthy. Should check the Internet connection");
+        if all_unhealthy_cnt > MAX_ALL_UNHEALTHY_RETRY {
+          return Err(DapError::AllPathsUnhealthy);
+        }
+        tokio::time::sleep(tokio::time::Duration::from_secs(HEALTHCHECK_RETRY_WAITING_SEC)).await;
+        continue;
       }
       tokio::time::sleep(self.healthcheck_period_sec).await;
     }

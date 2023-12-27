@@ -106,7 +106,7 @@ async fn proxy_service_with_watcher(
   loop {
     tokio::select! {
       res = entrypoint(&proxy_conf, &runtime_handle, Some(term_notify.clone())) => {
-        error!("proxy entrypoint exited: {:?}", if res.is_err() { res.unwrap_err().to_string() } else { "".to_string() });
+        error!("proxy entrypoint exited: {}", if res.is_err() { res.unwrap_err().to_string() } else { "".to_string() });
         break;
       }
       _ = config_rx.changed() => {

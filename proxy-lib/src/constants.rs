@@ -38,6 +38,12 @@ pub const ENDPOINT_RESOLUTION_PERIOD_MIN: u64 = 60;
 /// Health check: Check for health of paths and purge cache for every 600 secs
 pub const HEALTHCHECK_PERIOD_MIN: u64 = 10;
 
+/// Health check: Waiting time for health check retry when all possible paths are unhealthy
+pub const HEALTHCHECK_RETRY_WAITING_SEC: u64 = 10;
+
+/// Max retry for health check when all possible paths are unhealthy
+pub const MAX_ALL_UNHEALTHY_RETRY: usize = 5;
+
 /// Default DoH target server
 pub const DOH_TARGET_URL: &[&str] = &["https://dns.google/dns-query"];
 

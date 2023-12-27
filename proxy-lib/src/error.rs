@@ -58,6 +58,9 @@ pub enum DapError {
   #[error("Invalid DNS response")]
   InvalidDnsResponse,
 
+  #[error("All paths are unhealthy even after some retry")]
+  AllPathsUnhealthy,
+
   #[error("No path available to send query")]
   NoPathAvailable,
   #[error("DoH query error")]
