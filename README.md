@@ -1,5 +1,11 @@
 # doh-auth-proxy
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Unit Test](https://github.com/junkurihara/doh-auth-proxy/actions/workflows/test.yml/badge.svg)
+![Build and Publish Docker](https://github.com/junkurihara/doh-auth-proxy/actions/workflows/release-docker.yml/badge.svg)
+![ShiftLeft Scan](https://github.com/junkurihara/doh-auth-proxy/actions/workflows/shiftleft-analysis.yml/badge.svg)
+[![Docker Image Size (latest by date)](https://img.shields.io/docker/image-size/jqtype/doh-auth-proxy)](https://hub.docker.com/r/jqtype/doh-auth-proxy)
+
 Local proxy for DoH, Oblivious DoH and ODoH-based Mutualized Oblivious DNS (ODoH-based &mu;ODNS; &mu;ODoH) supporting super-fast domain-based blocking and authenticated connection, written in Rust.
 
 > **NOTE: For &mu;ODNS, please see also [https://junkurihara.github.io/dns/](https://junkurihara.github.io/dns/) and other repositories listed there.**
@@ -30,7 +36,7 @@ where we assume that `config.toml` is configured like follows.
 
 ```toml:config.toml
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
-bootstrap_dns = "1.1.1.1:53"
+bootstrap_dns = ["1.1.1.1"]
 
 target_urls = ["https://dns.google/dns-query"]
 ```
@@ -51,15 +57,16 @@ If you run without `--config` option, i.e., simply hit `$ ./doh-auth-proxy`, the
 
 ```:toml:config.toml
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
-bootstrap_dns = "1.1.1.1:53"
-reboot_period = 3 # mins
+bootstrap_dns = ["1.1.1.1"]
+endpoint_resolution_period = 60 # mins
+healthcheck_period = 10 # mins
 max_cache_size = 16384
 target_urls = ["https://dns.google/dns-query"]
 ```
 
 All the options are referred to below. Using your specific config file is recommended for better setting in your environment.
 
-### Connecting to Cloudflare ODoH server via `surfdomeinen.nl` ODoH relay
+### Connecting to Cloudflare ODoH server via `odohrelay-ams` ODoH relay
 
 Start `doh-auth-proxy` as
 
@@ -71,15 +78,15 @@ where we assume that `config.toml` is configured as follows.
 
 ```toml:config.toml
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
-bootstrap_dns = "8.8.8.8:53"
+bootstrap_dns = ["8.8.8.8"]
 
 target_urls = ["https://odoh.cloudflare-dns.com/dns-query"]
 
 [anonymization]
-odoh_relay_urls = ["https://odoh1.surfdomeinen.nl/proxy"]
+odoh_relay_urls = ["https://odoh-nl.alekberg.net:443/proxy"]
 ```
 
-This example issues ODoH encrypted queries by an URL `https://odoh1.surfdomeinen.nl/proxy?targethost=odoh.cloudflare-dns.com&targetpath=/dns-query`.
+This example issues ODoH encrypted queries by an URL `https://odoh-nl.alekberg.net:443/proxy?targethost=odoh.cloudflare-dns.com&targetpath=/dns-query`.
 
 Now you can query through `127.0.0.1:50053` as
 
@@ -153,10 +160,14 @@ OPTIONS:
 listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
 
 ## DNS (Do53) resolver address for bootstrap
-bootstrap_dns = "8.8.8.8:53"
+bootstrap_dns = ['8.8.8.8']
 
-## Minutes to re-fetch the IP addr of the target url host via the bootstrap DNS
-reboot_period = 3
+## Minutes to re-resolve the IP addr of the nexthop and authentication endpoint url
+## Ip addresses are first resolved by bootstrap DNS, after that, they will be resolved by (MO)DoH resolver itself.
+# endpoint_resolution_period = 60
+
+## Health check period in minitus. Check health of all path candidates and purge DNS cache.
+# healthcheck_period = 10
 
 ## Cache entry size (Default 16384)
 max_cache_size = 16384
@@ -199,7 +210,7 @@ target_randomization = true
 [anonymization]
 
 ## (optional) URL of ODoH nexthop relay server like "https://relay.example.com/relay"
-odoh_relay_urls = ["https://odoh1.surfdomeinen.nl/proxy"]
+odoh_relay_urls = ["https://odoh-nl.alekberg.net:443/proxy"]
 
 
 ## (optional)
@@ -234,7 +245,7 @@ odoh_relay_randomization = true
 
 You can run this proxy as a docker container, where the docker image is hosted at [Docker Hub](https://hub.docker.com/r/jqtype/doh-auth-proxy). You can run the docker container by appropriately configure env vers or an env file imported by the container.
 
-See the [`./docker/](./docker) directory and [`./docker/README.md`](./docker/README.md) for the detailed configuration for the docker container.
+See the [`./docker`](./docker) directory and [`./docker/README.md`](./docker/README.md) for the detailed configuration for the docker container.
 
 ## Authentication at the next hop node (DoH target or ODoH relay)
 

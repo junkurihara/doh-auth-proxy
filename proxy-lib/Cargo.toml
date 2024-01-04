@@ -1,0 +1,86 @@
+[package]
+name = "doh-auth-proxy-lib"
+description = "DNS Proxy Library for DoH, ODoH and Mutualized ODoH with Authorization"
+version = "0.3.0"
+authors = ["Jun Kurihara"]
+homepage = "https://github.com/junkurihara/doh-auth-proxy"
+repository = "https://github.com/junkurihara/doh-auth-proxy"
+license = "MIT"
+readme = "../README.md"
+categories = [
+  "asynchronous",
+  "network-programming",
+  "command-line-utilities",
+  "web-programming::http-client",
+]
+keywords = [
+  "dns",
+  "https",
+  "dns-over-https",
+  "doh",
+  "oblivious-dns-over-https",
+  "odoh",
+  "mutualized-oblivious-dns",
+  "mutualized-odoh",
+  "modoh",
+  "proxy",
+  "authorization",
+]
+edition = "2021"
+publish = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "0.8.5"
+tokio = { version = "1.35.1", features = [
+  "net",
+  "rt-multi-thread",
+  "time",
+  "sync",
+  "macros",
+] }
+futures = { version = "0.3.30", default-features = false, features = [
+  "std",
+  "async-await",
+] }
+anyhow = "1.0.79"
+tracing = "0.1.40"
+thiserror = "1.0.56"
+async-trait = "0.1.77"
+serde = { version = "1.0.194", features = ["derive"] }
+itertools = "0.12.0"
+rustc-hash = "1.1.0"
+
+# doh and odoh client with cache and query manipulation plugins
+odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git" }
+bytes = "1.5.0"
+hickory-proto = { version = "0.24.0", default-features = false }
+data-encoding = "2.5.0"
+hashlink = "0.8.4"
+cedarwood = "0.4.6"
+regex = "1.10.2"
+
+# network
+socket2 = "0.5.5"
+
+# http client
+# TODO: change this to hyper-1.0
+reqwest = { version = "0.11.23", default-features = false, features = [
+  "json",
+  "trust-dns",
+  "rustls-tls",
+] }
+url = "2.5.0"
+
+# for bootstrap dns resolver
+hickory-resolver = { version = "0.24.0", default-features = false, features = [
+  "tokio-runtime",
+] }
+
+# authentication
+auth-client = { git = "https://github.com/junkurihara/rust-token-server", package = "rust-token-server-client", branch = "develop" }
+
+[dev-dependencies]
+hickory-client = "0.24.0"
+urlencoding = "2.1.3"

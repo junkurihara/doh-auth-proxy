@@ -7,10 +7,8 @@
     <https://datatracker.ietf.org/doc/html/rfc7830>
     <https://datatracker.ietf.org/doc/html/rfc8467>
 - `crates.io`
-- Sophistication of mu-ODNS based on ODoH, such as loop detection
 - Docker container packaged with token server (server-side)
 - Override with command line options over TOML configuration
 - Tweaks for anonymization
   - Override user-agent for DoH/ODoH/MODoH by specifying one in `config.toml`
 - Refactor
-- More sophisticated url building for query. Currently there exist cases of 'loop'.

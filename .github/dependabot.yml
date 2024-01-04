@@ -5,17 +5,25 @@ version: 2
 updates:
   # Enable version updates for cargo
   - package-ecosystem: "cargo"
-    # Look for `Cargo.toml` and `lock` files in the `root` directory
     directory: "/"
-    # Check the crates.io for updates every day (weekdays)
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "cargo"
+    directory: "/proxy-bin"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "cargo"
+    directory: "/proxy-lib"
+    schedule:
+      interval: "daily"
+  - package-ecosystem: "cargo"
+    directory: "/legacy"
     schedule:
       interval: "daily"
 
   # Enable version updates for Docker
   - package-ecosystem: "docker"
-    # Look for a `Dockerfile` in the `root` directory
-    directory: "/"
-    # Check for updates everyday
+    directory: "/docker"
     schedule:
       interval: "daily"
 
@@ -23,5 +31,4 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      # Check for updates everyday
       interval: "daily"
