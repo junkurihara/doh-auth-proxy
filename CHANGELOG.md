@@ -18,7 +18,7 @@ You should also include the user name that made the change.
 ### Improvements
 
 - Totally restructured and reimplemented all components
-- Support multiple bootstrap resolvers.
+- [Breaking] Support multiple bootstrap resolvers, which requires to modify the config file.
 - Periodic health check of all path candidates.
 - Periodic nexthop IP address resolution via the proxy itself, bootstrap resolver is only used at the first time and fall-back.
 - Periodic fetching of access token with refresh token.

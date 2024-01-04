@@ -1,4 +1,4 @@
-pub use anyhow::{anyhow, bail, ensure, Context};
+pub use anyhow::{anyhow, bail, Context};
 use std::net::SocketAddr;
 use thiserror::Error;
 use tokio::sync::mpsc::error::SendError;
