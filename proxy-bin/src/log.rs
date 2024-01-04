@@ -1,4 +1,4 @@
-pub use tracing::{debug, error, info, warn};
+pub use tracing::{error, info, warn};
 
 pub fn init_logger() {
   use tracing_subscriber::{fmt, prelude::*, EnvFilter};
