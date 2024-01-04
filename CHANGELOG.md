@@ -13,7 +13,7 @@
 You should also include the user name that made the change.
 -->
 
-## 0.3.0 (Unreleased)
+## 0.3.0
 
 ### Improvements
 
