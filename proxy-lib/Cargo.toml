@@ -57,7 +57,7 @@ odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git" }
 bytes = "1.5.0"
 hickory-proto = { version = "0.24.0", default-features = false }
 data-encoding = "2.5.0"
-hashlink = "0.8.4"
+hashlink = "0.9.0"
 cedarwood = "0.4.6"
 regex = "1.10.2"
 
