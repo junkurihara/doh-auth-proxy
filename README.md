@@ -22,7 +22,7 @@ Here is an example of the network architecture of &mu;ODoH.
 
 ![&mu;ODoH Network Structure](./assets/modoh-structure.jpg)
 
-The &mu;ODoH network consists of &mu;ODoH client ([`doh-auth-proxy`](https://github.com/junkurihara/doh-auth-proxy)), &mu;ODoH relay and target servers(`modoh-server`), and supplementary authentication server ([`rust-token-server`](https://github.com/junkurihara/rust-token-server)). Note that when there exist two `modoh-server`, i.e., single relay and single target available, it exactly coincides with ODoH.
+The &mu;ODoH network consists of &mu;ODoH client ([`doh-auth-proxy`](https://github.com/junkurihara/doh-auth-proxy)), &mu;ODoH relay and target servers([`modoh-server`](https://github.com/junkurihara/modoh-server)), and supplementary authentication server ([`rust-token-server`](https://github.com/junkurihara/rust-token-server)). Note that when there exist two `modoh-server`, i.e., single relay and single target available, it exactly coincides with ODoH.
 
 `doh-auth-proxy` and `modoh-server` supplementary provide access control function for queries, i.e., client authentication. In this mechanism, client queries are authenticated by Bearer token in their HTTP header. Note that to enable this client authentication, the `rust-token-server` must be configured and deployed on the Internet.
 
