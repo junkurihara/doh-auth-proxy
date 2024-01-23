@@ -19,7 +19,7 @@ Other than them, we have the following environment variables as `doh-auth-proxy`
 # TARGET_URLS=https://dns.google/dns-query
 TARGET_URLS=https://odoh.cloudflare-dns.com/dns-query
 TARGET_RANDOMIZATION=true
-BOOTSTRAP_DNS_ADDR=1.1.1.1
+BOOTSTRAP_DNS=1.1.1.1
 # URL-like specification is also supported.
 # BOOTSTRAP_DNS=tcp://1.1.1.1:53
 
