@@ -1,7 +1,6 @@
 [workspace]
 
 members = ["proxy-bin", "proxy-lib"]
-exclude = ["legacy"]
 resolver = "2"
 
 [profile.release]
