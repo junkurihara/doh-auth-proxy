@@ -1,4 +1,4 @@
-use super::{toml::ConfigToml, utils_verifier::*};
+use super::{toml::ConfigToml, utils_dns_proto::parse_proto_sockaddr_str, utils_verifier::*};
 use crate::{constants::*, error::*, log::*};
 use async_trait::async_trait;
 use doh_auth_proxy_lib::{
@@ -76,12 +76,17 @@ impl TryInto<ProxyConfig> for &TargetConfig {
     /////////////////////////////
     // bootstrap dns
     if let Some(val) = &self.config_toml.bootstrap_dns {
-      if !val.iter().all(|v| verify_ip_addr(v).is_ok()) {
+      let vec_proto_sockaddr = val.iter().map(parse_proto_sockaddr_str).collect::<Vec<_>>();
+      if vec_proto_sockaddr.iter().any(|x| x.is_err()) {
         bail!("Invalid bootstrap DNS address");
       }
-      proxy_config.bootstrap_dns.ips = val.iter().map(|x| x.parse().unwrap()).collect()
+      proxy_config.bootstrap_dns = vec_proto_sockaddr
+        .iter()
+        .map(|x| x.as_ref().unwrap().clone())
+        .collect::<Vec<_>>()
+        .try_into()?;
     };
-    info!("Bootstrap DNS: {:?}", proxy_config.bootstrap_dns.ips);
+    info!("Bootstrap DNS: {}", proxy_config.bootstrap_dns);
 
     /////////////////////////////
     // endpoint re-resolution period

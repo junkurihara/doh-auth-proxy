@@ -13,6 +13,44 @@ use hickory_resolver::{
 use reqwest::Url;
 use std::{net::SocketAddr, sync::Arc};
 
+/* ---------------------------------------- */
+#[derive(PartialEq, Eq, Debug, Clone)]
+/// Bootstrap DNS Protocol
+pub enum BootstrapDnsProto {
+  /// UDP
+  Udp,
+  /// TCP
+  Tcp,
+}
+impl std::str::FromStr for BootstrapDnsProto {
+  type Err = DapError;
+
+  fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+    match s {
+      "udp" => Ok(Self::Udp),
+      "tcp" => Ok(Self::Tcp),
+      _ => Err(DapError::Other(anyhow!("Invalid bootstrap dns protocol"))),
+    }
+  }
+}
+impl std::fmt::Display for BootstrapDnsProto {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      Self::Udp => write!(f, "udp"),
+      Self::Tcp => write!(f, "tcp"),
+    }
+  }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+/// Bootstrap DNS Address with port and protocol
+pub struct BootstrapDnsInner {
+  /// protocol
+  pub proto: BootstrapDnsProto,
+  /// socket address
+  pub addr: SocketAddr,
+}
+
 #[derive(Clone)]
 /// stub resolver using bootstrap DNS resolver
 pub struct BootstrapDnsResolver {
@@ -23,8 +61,8 @@ pub struct BootstrapDnsResolver {
 impl BootstrapDnsResolver {
   /// Build stub resolver using bootstrap dns resolver
   pub async fn try_new(bootstrap_dns: &BootstrapDns, runtime_handle: tokio::runtime::Handle) -> Result<Self> {
-    let ips = &bootstrap_dns.ips;
-    let port = &bootstrap_dns.port;
+    let ips = &bootstrap_dns.inner.iter().map(|x| x.addr.ip()).collect::<Vec<_>>();
+    let port = &bootstrap_dns.inner.iter().map(|x| x.addr.port()).collect::<Vec<_>>()[0];
     let name_servers = NameServerConfigGroup::from_ips_clear(ips, *port, true);
     let resolver_config = ResolverConfig::from_parts(None, vec![], name_servers);
 
@@ -87,8 +125,16 @@ mod tests {
   #[tokio::test]
   async fn test_bootstrap_dns_resolver() {
     let bootstrap_dns = BootstrapDns {
-      ips: vec![IpAddr::from([8, 8, 8, 8])],
-      port: 53,
+      inner: vec![
+        BootstrapDnsInner {
+          proto: BootstrapDnsProto::Udp,
+          addr: SocketAddr::new(IpAddr::from([8, 8, 8, 8]), 53),
+        },
+        BootstrapDnsInner {
+          proto: BootstrapDnsProto::Tcp,
+          addr: SocketAddr::new(IpAddr::from([8, 8, 4, 4]), 53),
+        },
+      ],
     };
     let resolver = BootstrapDnsResolver::try_new(&bootstrap_dns, tokio::runtime::Handle::current())
       .await
