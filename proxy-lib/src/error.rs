@@ -10,6 +10,12 @@ pub type Result<T> = std::result::Result<T, DapError>;
 pub enum DapError {
   #[error("Bootstrap resolver error: {0}")]
   BootstrapResolverError(#[from] hickory_resolver::error::ResolveError),
+  #[error("Bootstrap dns client error: {0}")]
+  BootstrapDnsClientError(#[from] hickory_client::error::ClientError),
+  #[error("Invalid Fqdn is given to bootstrap dns: {0}")]
+  InvalidFqdn(String),
+  #[error("Invalid bootstrap dns response")]
+  InvalidBootstrapDnsResponse,
 
   #[error("Url error: {0}")]
   UrlError(#[from] url::ParseError),

@@ -31,6 +31,8 @@ pub const LISTEN_ADDRESSES: &[&str] = &["127.0.0.1:50053", "[::1]:50053"];
 pub const BOOTSTRAP_DNS_ADDRS: &[&str] = &["1.1.1.1:53"];
 /// Bootstrap DNS proto
 pub const BOOTSTRAP_DNS_PROTO: &str = "udp";
+/// Bootstrap DNS timeout
+pub const BOOTSTRAP_DNS_TIMEOUT_MSEC: usize = 500;
 
 /// Endpoint resolution period in minutes
 pub const ENDPOINT_RESOLUTION_PERIOD_MIN: u64 = 60;

@@ -1,17 +1,79 @@
 use crate::{
+  constants::{BOOTSTRAP_DNS_ADDRS, BOOTSTRAP_DNS_PROTO, BOOTSTRAP_DNS_TIMEOUT_MSEC},
   error::*,
-  globals::BootstrapDns,
   log::*,
   trait_resolve_ips::{ResolveIpResponse, ResolveIps},
 };
 use async_trait::async_trait;
+use hickory_client::{
+  client::{Client, ClientConnection, SyncClient},
+  rr::{DNSClass, Name, RecordType},
+  tcp::{TcpClientConnection, TcpClientStream},
+  udp::{UdpClientConnection, UdpClientStream},
+};
+use tokio::net::{TcpStream as TokioTcpStream, UdpSocket as TokioUdpSocket};
+
 use hickory_resolver::{
   config::{NameServerConfigGroup, ResolverConfig, ResolverOpts},
   name_server::{GenericConnector, TokioRuntimeProvider},
   AsyncResolver, TokioAsyncResolver,
 };
 use reqwest::Url;
-use std::{net::SocketAddr, sync::Arc};
+use std::{
+  net::{IpAddr, SocketAddr},
+  str::FromStr,
+  sync::Arc,
+};
+
+/* ---------------------------------------- */
+#[derive(PartialEq, Eq, Debug, Clone)]
+/// Bootstrap DNS Addresses
+pub struct BootstrapDns {
+  pub inner: Vec<BootstrapDnsInner>,
+}
+
+impl Default for BootstrapDns {
+  fn default() -> Self {
+    Self {
+      inner: BOOTSTRAP_DNS_ADDRS
+        .iter()
+        .map(|v| BootstrapDnsInner {
+          proto: <BootstrapDnsProto as std::str::FromStr>::from_str(BOOTSTRAP_DNS_PROTO).unwrap(),
+          addr: v.parse().unwrap(),
+        })
+        .collect(),
+    }
+  }
+}
+
+impl std::fmt::Display for BootstrapDns {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let mut first = true;
+    for v in &self.inner {
+      if !first {
+        write!(f, ", ")?;
+      }
+      write!(f, "{}://{}", v.proto, v.addr)?;
+      first = false;
+    }
+    Ok(())
+  }
+}
+
+impl TryFrom<Vec<(String, SocketAddr)>> for BootstrapDns {
+  type Error = anyhow::Error;
+
+  fn try_from(value: Vec<(String, SocketAddr)>) -> anyhow::Result<Self, Self::Error> {
+    let inner = value
+      .into_iter()
+      .map(|(proto, addr)| BootstrapDnsInner {
+        proto: <BootstrapDnsProto as std::str::FromStr>::from_str(&proto).unwrap(),
+        addr,
+      })
+      .collect();
+    Ok(Self { inner })
+  }
+}
 
 /* ---------------------------------------- */
 #[derive(PartialEq, Eq, Debug, Clone)]
@@ -42,6 +104,7 @@ impl std::fmt::Display for BootstrapDnsProto {
   }
 }
 
+/* ---------------------------------------- */
 #[derive(PartialEq, Eq, Debug, Clone)]
 /// Bootstrap DNS Address with port and protocol
 pub struct BootstrapDnsInner {
@@ -51,6 +114,60 @@ pub struct BootstrapDnsInner {
   pub addr: SocketAddr,
 }
 
+impl BootstrapDnsInner {
+  /// Lookup the IP addresses associated with a name using the bootstrap resolver connection
+  pub(crate) fn lookup_ips(&self, target_url: &Url) -> Result<Vec<SocketAddr>> {
+    // The final dot forces this to be an FQDN, otherwise the search rules as specified
+    // in `ResolverOpts` will take effect. FQDN's are generally cheaper queries.
+    let host = target_url
+      .host_str()
+      .ok_or_else(|| DapError::Other(anyhow!("Unable to parse target host name")))?;
+    let host = format!("{host}.");
+    let result_ips = match self.proto {
+      BootstrapDnsProto::Udp => self.lookup_ips_inner(&host, UdpClientConnection::new(self.addr)?),
+      BootstrapDnsProto::Tcp => self.lookup_ips_inner(&host, TcpClientConnection::new(self.addr)?),
+    }?;
+
+    let port = target_url
+      .port()
+      .unwrap_or_else(|| if target_url.scheme() == "https" { 443 } else { 80 });
+
+    Ok(
+      result_ips
+        .iter()
+        .filter_map(|addr| format!("{}:{}", addr, port).parse::<SocketAddr>().ok())
+        .collect::<Vec<_>>(),
+    )
+  }
+
+  /// Inner: Lookup the IP addresses associated with a name using the bootstrap resolver connection
+  fn lookup_ips_inner<C: ClientConnection>(&self, fqdn: &str, conn: C) -> Result<Vec<IpAddr>> {
+    let client = SyncClient::new(conn);
+    let name = Name::from_str(fqdn).map_err(|e| DapError::InvalidFqdn(e.to_string()))?;
+    // First try to lookup an A record, if failed, try AAAA.
+    let response = client.query(&name, DNSClass::IN, RecordType::A)?;
+    let ips = response
+      .answers()
+      .iter()
+      .filter_map(|a| a.data().and_then(|v| v.as_a()).map(|v| IpAddr::V4(v.0)))
+      .collect::<Vec<_>>();
+    if !ips.is_empty() {
+      return Ok(ips);
+    }
+    let response = client.query(&name, DNSClass::IN, RecordType::AAAA)?;
+    let ipv6s = response
+      .answers()
+      .iter()
+      .filter_map(|aaaa| aaaa.data().and_then(|v| v.as_aaaa()).map(|v| IpAddr::V6(v.0)))
+      .collect::<Vec<_>>();
+    if ipv6s.is_empty() {
+      return Err(DapError::InvalidBootstrapDnsResponse);
+    }
+    Ok(ipv6s)
+  }
+}
+
+/* ---------------------------------------- */
 #[derive(Clone)]
 /// stub resolver using bootstrap DNS resolver
 pub struct BootstrapDnsResolver {
@@ -146,5 +263,18 @@ mod tests {
     assert_eq!(response.hostname.as_str(), "dns.google");
     assert!(response.addresses.contains(&SocketAddr::from(([8, 8, 8, 8], 443))));
     assert!(response.addresses.contains(&SocketAddr::from(([8, 8, 4, 4], 443))));
+  }
+
+  #[test]
+  fn test_bootstrap_dns_client_inner() {
+    let inner = BootstrapDnsInner {
+      proto: BootstrapDnsProto::Udp,
+      addr: SocketAddr::new(IpAddr::from([8, 8, 8, 8]), 53),
+    };
+    let target_url = Url::parse("https://dns.google").unwrap();
+    let ips = inner.lookup_ips(&target_url).unwrap();
+
+    assert!(ips.contains(&SocketAddr::from(([8, 8, 8, 8], 443))));
+    assert!(ips.contains(&SocketAddr::from(([8, 8, 4, 4], 443))));
   }
 }
