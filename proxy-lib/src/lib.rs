@@ -17,8 +17,9 @@ use futures::{
 use std::sync::Arc;
 
 pub use auth_client::AuthenticationConfig;
-pub use bootstrap::BootstrapDns;
-pub use globals::{NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig, TargetConfig};
+pub use globals::{
+  BootstrapDns, NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig, TargetConfig,
+};
 
 /// entrypoint of DoH w/ Auth Proxy
 /// This spawns UDP and TCP listeners and spawns the following services

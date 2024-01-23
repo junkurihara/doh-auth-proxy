@@ -69,7 +69,7 @@ github.com.             60      IN      A       52.69.186.44
 ~~~~~~~
 ```
 
-The parameter `bootstrap-dns` is used to resolve the IP address of the host of `target-url` (i.e., target DoH server).
+The parameter `bootstrap_dns` is used to resolve the IP address of the host of `target_urls` (i.e., target DoH server). The `bootstrap_dns` allows non-standard DNS ports other than `53` and TCP queries, which can be specified as an url-like format, e.g., `tcp://1.1.1.1`, `tcp://127.0.0.1:12345`, `127.0.0.1:50053`, where UDP and port `53` are used if omitted.
 
 If you run without `--config` option, i.e., simply hit `$ ./doh-auth-proxy`, the followings are applied as default parameters:
 

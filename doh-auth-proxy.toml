@@ -13,6 +13,7 @@ listen_addresses = ['127.0.0.1:50053', '[::1]:50053']
 
 ## DNS (Do53) resolver addresses for bootstrap.
 ## You can omit protocol name and port number, default is udp over port 53.
+## The first one is used for bootstrap, and the rest are used for fallback as ordered.
 bootstrap_dns = ["udp://8.8.8.8:53", "1.1.1.1:53", "8.8.4.4", "tcp://1.0.0.1"]
 
 ## Minutes to re-resolve the IP addr of the nexthop and authentication endpoint url

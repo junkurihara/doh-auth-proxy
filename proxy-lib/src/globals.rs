@@ -1,4 +1,4 @@
-use crate::{bootstrap::BootstrapDns, constants::*};
+use crate::{bootstrap::BootstrapDnsInner, constants::*};
 use auth_client::AuthenticationConfig;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{sync::Notify, time::Duration};
@@ -116,6 +116,57 @@ impl Default for QueryManipulationConfig {
       domain_block: None,
       min_ttl: MIN_TTL,
     }
+  }
+}
+
+/* ---------------------------------------- */
+#[derive(PartialEq, Eq, Debug, Clone)]
+/// Bootstrap DNS Addresses
+pub struct BootstrapDns {
+  inner: Vec<BootstrapDnsInner>,
+}
+
+impl BootstrapDns {
+  /// Get bootstrap DNS addresses
+  pub(crate) fn inner(&self) -> &[BootstrapDnsInner] {
+    &self.inner
+  }
+}
+
+impl Default for BootstrapDns {
+  fn default() -> Self {
+    Self {
+      inner: BOOTSTRAP_DNS_ADDRS
+        .iter()
+        .map(|v| BootstrapDnsInner::try_new(BOOTSTRAP_DNS_PROTO, v).unwrap())
+        .collect(),
+    }
+  }
+}
+
+impl std::fmt::Display for BootstrapDns {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let mut first = true;
+    for v in &self.inner {
+      if !first {
+        write!(f, ", ")?;
+      }
+      write!(f, "{v}")?;
+      first = false;
+    }
+    Ok(())
+  }
+}
+
+impl TryFrom<Vec<(String, SocketAddr)>> for BootstrapDns {
+  type Error = anyhow::Error;
+
+  fn try_from(value: Vec<(String, SocketAddr)>) -> anyhow::Result<Self, Self::Error> {
+    let inner = value
+      .into_iter()
+      .map(|(proto, addr)| BootstrapDnsInner::try_new(&proto, &addr.to_string()).unwrap())
+      .collect();
+    Ok(Self { inner })
   }
 }
 
