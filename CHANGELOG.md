@@ -13,6 +13,8 @@
 You should also include the user name that made the change.
 -->
 
+## 0.4 (Unreleased)
+
 ## 0.3.2
 
 ### Improvements

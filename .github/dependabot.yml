@@ -16,10 +16,6 @@ updates:
     directory: "/proxy-lib"
     schedule:
       interval: "daily"
-  - package-ecosystem: "cargo"
-    directory: "/legacy"
-    schedule:
-      interval: "daily"
 
   # Enable version updates for Docker
   - package-ecosystem: "docker"
