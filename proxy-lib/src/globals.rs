@@ -1,9 +1,6 @@
-use crate::constants::*;
+use crate::{bootstrap::BootstrapDnsInner, constants::*};
 use auth_client::AuthenticationConfig;
-use std::{
-  net::{IpAddr, SocketAddr},
-  sync::Arc,
-};
+use std::{net::SocketAddr, sync::Arc};
 use tokio::{sync::Notify, time::Duration};
 use url::Url;
 
@@ -69,13 +66,6 @@ pub struct ProxyConfig {
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
-/// Bootstrap DNS Addresses
-pub struct BootstrapDns {
-  pub ips: Vec<IpAddr>,
-  pub port: u16,
-}
-
-#[derive(PartialEq, Eq, Debug, Clone)]
 /// doh, odoh, modoh target settings
 pub struct TargetConfig {
   pub use_get: bool,
@@ -129,6 +119,57 @@ impl Default for QueryManipulationConfig {
   }
 }
 
+/* ---------------------------------------- */
+#[derive(PartialEq, Eq, Debug, Clone)]
+/// Bootstrap DNS Addresses
+pub struct BootstrapDns {
+  inner: Vec<BootstrapDnsInner>,
+}
+
+impl BootstrapDns {
+  /// Get bootstrap DNS addresses
+  pub(crate) fn inner(&self) -> &[BootstrapDnsInner] {
+    &self.inner
+  }
+}
+
+impl Default for BootstrapDns {
+  fn default() -> Self {
+    Self {
+      inner: BOOTSTRAP_DNS_ADDRS
+        .iter()
+        .map(|v| BootstrapDnsInner::try_new(BOOTSTRAP_DNS_PROTO, v).unwrap())
+        .collect(),
+    }
+  }
+}
+
+impl std::fmt::Display for BootstrapDns {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    let mut first = true;
+    for v in &self.inner {
+      if !first {
+        write!(f, ", ")?;
+      }
+      write!(f, "{v}")?;
+      first = false;
+    }
+    Ok(())
+  }
+}
+
+impl TryFrom<Vec<(String, SocketAddr)>> for BootstrapDns {
+  type Error = anyhow::Error;
+
+  fn try_from(value: Vec<(String, SocketAddr)>) -> anyhow::Result<Self, Self::Error> {
+    let inner = value
+      .into_iter()
+      .map(|(proto, addr)| BootstrapDnsInner::try_new(&proto, &addr.to_string()).unwrap())
+      .collect();
+    Ok(Self { inner })
+  }
+}
+
 impl Default for ProxyConfig {
   fn default() -> Self {
     Self {
@@ -136,10 +177,7 @@ impl Default for ProxyConfig {
       max_connections: MAX_CONNECTIONS,
       max_cache_size: MAX_CACHE_SIZE,
 
-      bootstrap_dns: BootstrapDns {
-        ips: BOOTSTRAP_DNS_IPS.iter().map(|v| v.parse().unwrap()).collect(),
-        port: BOOTSTRAP_DNS_PORT,
-      },
+      bootstrap_dns: BootstrapDns::default(),
       endpoint_resolution_period_sec: Duration::from_secs(ENDPOINT_RESOLUTION_PERIOD_MIN * 60),
       healthcheck_period_sec: Duration::from_secs(HEALTHCHECK_PERIOD_MIN * 60),
 

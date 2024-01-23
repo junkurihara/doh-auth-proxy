@@ -8,8 +8,14 @@ pub type Result<T> = std::result::Result<T, DapError>;
 /// Describes things that can go wrong in the Rpxy
 #[derive(Debug, Error)]
 pub enum DapError {
-  #[error("Bootstrap resolver error: {0}")]
-  BootstrapResolverError(#[from] hickory_resolver::error::ResolveError),
+  #[error("Bootstrap dns client error: {0}")]
+  BootstrapDnsClientError(#[from] hickory_client::error::ClientError),
+  #[error("Bootstrap dns proto error: {0}")]
+  BootstrapDnsProtoError(#[from] hickory_client::proto::error::ProtoError),
+  #[error("Invalid Fqdn is given to bootstrap dns: {0}")]
+  InvalidFqdn(String),
+  #[error("Invalid bootstrap dns response")]
+  InvalidBootstrapDnsResponse,
 
   #[error("Url error: {0}")]
   UrlError(#[from] url::ParseError),
