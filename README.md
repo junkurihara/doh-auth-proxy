@@ -8,9 +8,27 @@
 
 Local proxy for DoH, Oblivious DoH and ODoH-based Mutualized Oblivious DNS (ODoH-based &mu;ODNS; &mu;ODoH) supporting super-fast domain-based blocking and authenticated connection, written in Rust.
 
-> **NOTE: For &mu;ODNS, please see also [https://junkurihara.github.io/dns/](https://junkurihara.github.io/dns/) and other repositories listed there.**
+> **For the detailed information on &mu;ODNS, please also refer to [https://junkurihara.github.io/dns/](https://junkurihara.github.io/dns/).**
 
-## Build
+## Introduction
+
+*DNS over HTTPS* (DoH) is an encrypted DNS protocol in which DNS queries and responses are exchanged with the target full-service resolver via HTTPS, i.e., over an encrypted-secure channel ([RFC8484](https://datatracker.ietf.org/doc/rfc8484)). To enhance the privacy of DoH, *Oblivious DNS over HTTPS* (ODoH) has been developed  ([RFC9230](https://datatracker.ietf.org/doc/rfc9230/)). ODoH leverages an intermediate *relay* (or *proxy*) and an end-to-end encryption ([HPKE](https://datatracker.ietf.org/doc/rfc9180/)) in order to decouple the client's IP address and content of his queries. *Mutualized Oblivious DNS over HTTPS* (&mu;ODoH) is an extension of ODoH, which has been (is still being) developed from the concern of the collusion between the relay and the target resolver and corruption of the client's privacy ([Resource](https://junkurihara.github.io/dns/)). To this end, &mu;ODNS leverages multiple relays towards the target resolver, where relays are selected in a random fashion and employed in a distributed manner.
+
+`doh-auth-proxy` is client software that translates the standard DNS over port 53 (Do53) protocol to these three encrypted and privacy-enhanced DNS protocols. In other words, `doh-auth-proxy` protects the plaintext Do53 queries from being eavesdropped by encryption.
+
+### Network structure of &mu;ODoH
+
+Here is an example of the network architecture of &mu;ODoH.
+
+![&mu;ODoH Network Structure](./assets/modoh-structure.jpg)
+
+The &mu;ODoH network consists of &mu;ODoH client ([`doh-auth-proxy`](https://github.com/junkurihara/doh-auth-proxy)), &mu;ODoH relay and target servers([`modoh-server`](https://github.com/junkurihara/modoh-server)), and supplementary authentication server ([`rust-token-server`](https://github.com/junkurihara/rust-token-server)). Note that when there exist two `modoh-server`, i.e., single relay and single target available, it exactly coincides with ODoH.
+
+`doh-auth-proxy` and `modoh-server` supplementary provide access control function for queries, i.e., client authentication. In this mechanism, client queries are authenticated by Bearer token in their HTTP header. Note that to enable this client authentication, the `rust-token-server` must be configured and deployed on the Internet.
+
+## Installing/building an executable binary
+
+You can build an executable binary yourself by checking out this Git repository.
 
 ```shell
 # debug mode
@@ -22,9 +40,9 @@ Local proxy for DoH, Oblivious DoH and ODoH-based Mutualized Oblivious DNS (ODoH
 
 Now you have a compiled executable binary `doh-auth-proxy` in `./target/debug/` or `./target/release/`.
 
-## Basic example
+## Basic Usage
 
-### Connecting to Google public DoH server
+### First step: Connecting to Google public DoH server
 
 Start `doh-auth-proxy` as
 
@@ -51,7 +69,7 @@ github.com.             60      IN      A       52.69.186.44
 ~~~~~~~
 ```
 
-The parameter `bootstrap-dns` is used to resolve the IP address of the host of `target-url` (i.e., target DoH server).
+The parameter `bootstrap_dns` is used to resolve the IP address of the host of `target_urls` (i.e., target DoH server). The `bootstrap_dns` allows non-standard DNS ports other than `53` and TCP queries, which can be specified as an url-like format, e.g., `tcp://1.1.1.1`, `tcp://127.0.0.1:12345`, `127.0.0.1:50053`, where UDP and port `53` are used if omitted.
 
 If you run without `--config` option, i.e., simply hit `$ ./doh-auth-proxy`, the followings are applied as default parameters:
 
@@ -66,7 +84,7 @@ target_urls = ["https://dns.google/dns-query"]
 
 All the options are referred to below. Using your specific config file is recommended for better setting in your environment.
 
-### Connecting to Cloudflare ODoH server via `odohrelay-ams` ODoH relay
+### Second step: Connecting to Cloudflare ODoH server via `odohrelay-ams` ODoH relay
 
 Start `doh-auth-proxy` as
 
@@ -100,7 +118,9 @@ github.com.             11      IN      A       140.82.121.4
 
 where this takes more round-trip time than the above ordinary DoH example due to the intermediate relay (especially when it is far from your location).
 
-## Query plugins for name-based/domain-based blocking and overriding IP addresses
+## Advanced usage
+
+### Query plugins for name-based/domain-based blocking and overriding IP addresses
 
 Optionally, `doh-auth-proxy` has functions of domain-based blocking and overriding (cloaking) IP Addresses. Former means that queries for domain names of specific patterns would be blocked and reject messages would be obtained. This can be done **super-fast** by enabling a trie-based data structure thanks to `Cedarwood` crate. Latter means that IP addresses you specified are always obtained for specific domain names.
 
@@ -115,15 +135,15 @@ domains_overridden_file = "./overridelist.txt"
 
 Refer to their example files for detailed format.
 
-## Mutualized Oblivious DNS (&mu;ODNS) based on ODoH (&mu;ODoH)
+### Mutualized Oblivious DNS (&mu;ODNS) based on ODoH (&mu;ODoH)
 
 `doh-auth-proxy` extends the ODoH protocol to the multiple-relay-based anonymization protocol, where its concept is called *Mutualized Oblivious DNS* (&mu;ODNS). We call by *&mu;ODoH* the ODoH-based &mu;ODNS.
 
-To leverage the protocol, you need to run or find relay servers running &mu;ODoH. The experimental implementation of the &mu;ODoH relay server is
+To leverage the protocol, you need to run or find relay servers running &mu;ODoH. The implementation of the &mu;ODoH relay and target server is
 
-- [`doh-server` (`multiple_relay` branch)](https://github.com/junkurihara/doh-server/tree/jwt-auth)
+- [`modoh-server`](https://github.com/junkurihara/modoh-server)
 
-that is a fork of [`DNSCrypt/doh-server`](https://github.com/DNSCrypt/doh-server) enabling the ODoH relay function and Mutualized ODoH function. Note that the target resolver in &mu;ODoH is exactly same as that in the standard ODoH, and hence you can specify existing ODoH targets, e.g., Cloudflare's one `https://odoh.cloudflare-dns.com/dns-query`.
+Note that the target resolver in &mu;ODoH is exactly same as that in the standard ODoH, and hence you can specify existing ODoH targets, e.g., Cloudflare's one `https://odoh.cloudflare-dns.com/dns-query`.
 
 **When you run your relay servers, please make sure their security settings and fully understand the risk.** Everything must be done at your own risk.
 
@@ -255,7 +275,7 @@ This function allows the nexthop node (DoH target/ODoH relay) to be private to u
 
 To leverage the function, an authentication server issuing Authorization Bearer tokens and an authentication-enabled DoH target/ODoH relay, given in the following.
 
-- [`doh-server` (`multiple_relay` branch)](https://github.com/junkurihara/doh-server/tree/jwt-auth): A fork of [`DNSCrypt/doh-server`](https://github.com/DNSCrypt/doh-server) enabling the ODoH relay function, Mutualized ODoH function, and authenticated connection with Authorization Bearer token.
+- [`modoh-server`](https://github.com/junkurihara/modoh-server): Relay and target implementation for Oblivious DoH (ODoH) and ODoH-based Mutualized Oblivious DNS (ODoH-based &mu;ODNS; &mu;ODoH) supporting authenticated connection, written in Rust. Standard DoH target server is also supported.
 
 - [`rust-token-server`](https://github.com/junkurihara/rust-token-server): An implementation of authentication server issueing `id_token` in the context of OIDC.
 

@@ -13,6 +13,19 @@
 You should also include the user name that made the change.
 -->
 
+## 0.3.2
+
+### Improvements
+
+- Feat: Support TCP and UDP bootstrap DNS protocols. In addition to the existing format like "1.1.1.1" that means "udp://1.1.1.1:53", formats like "tcp://1.1.1.1:53" (TCP support) "udp://1.2.3.4:50053" (Non standard port) works. See "README.md" and "doh-auth-proxy.toml" for configuration for the detail.
+- Refactor: Lots of minor improvements
+
+## 0.3.1
+
+### Bugfix
+
+- Fix several error handlers
+
 ## 0.3.0
 
 ### Improvements

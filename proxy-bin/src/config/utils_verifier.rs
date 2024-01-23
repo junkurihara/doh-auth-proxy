@@ -12,6 +12,7 @@ pub(crate) fn verify_sock_addr(arg_val: &str) -> Result<(), String> {
   }
 }
 
+#[allow(dead_code)]
 pub(crate) fn verify_ip_addr(arg_val: &str) -> Result<(), String> {
   match arg_val.parse::<IpAddr>() {
     Ok(_addr) => Ok(()),

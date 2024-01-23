@@ -1,7 +1,7 @@
 [package]
 name = "doh-auth-proxy"
 description = "DNS Proxy for DoH, ODoH and Mutualized ODoH with Authorization"
-version = "0.3.0"
+version = "0.3.2"
 authors = ["Jun Kurihara"]
 homepage = "https://github.com/junkurihara/doh-auth-proxy"
 repository = "https://github.com/junkurihara/doh-auth-proxy"
@@ -36,8 +36,8 @@ doh-auth-proxy-lib = { path = "../proxy-lib/" }
 
 anyhow = "1.0.79"
 mimalloc = { version = "*", default-features = false }
-serde = { version = "1.0.194", default-features = false, features = ["derive"] }
-derive_builder = "0.12.0"
+serde = { version = "1.0.195", default-features = false, features = ["derive"] }
+derive_builder = "0.13.0"
 tokio = { version = "1.35.1", default-features = false, features = [
   "net",
   "rt-multi-thread",
@@ -48,7 +48,7 @@ tokio = { version = "1.35.1", default-features = false, features = [
 async-trait = "0.1.77"
 
 # config
-clap = { version = "4.4.12", features = ["std", "cargo", "wrap_help"] }
+clap = { version = "4.4.18", features = ["std", "cargo", "wrap_help"] }
 toml = { version = "0.8.8", default-features = false, features = ["parse"] }
 hot_reload = "0.1.4"
 
