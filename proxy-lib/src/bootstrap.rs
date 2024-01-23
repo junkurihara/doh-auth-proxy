@@ -6,12 +6,20 @@ use crate::{
 };
 use async_trait::async_trait;
 use hickory_client::{
-  client::{Client, ClientConnection, SyncClient},
+  client::{AsyncClient, ClientHandle},
+  proto::iocompat::AsyncIoTokioAsStd,
   rr::{DNSClass, Name, RecordType},
-  tcp::{TcpClientConnection, TcpClientStream},
-  udp::{UdpClientConnection, UdpClientStream},
+  tcp::TcpClientStream,
+  udp::UdpClientStream,
 };
-use tokio::net::{TcpStream as TokioTcpStream, UdpSocket as TokioUdpSocket};
+use hickory_proto::{
+  xfer::{DnsExchangeBackground, DnsRequestSender},
+  Time,
+};
+use tokio::{
+  net::{TcpStream as TokioTcpStream, UdpSocket as TokioUdpSocket},
+  sync::Notify,
+};
 
 use hickory_resolver::{
   config::{NameServerConfigGroup, ResolverConfig, ResolverOpts},
@@ -23,6 +31,7 @@ use std::{
   net::{IpAddr, SocketAddr},
   str::FromStr,
   sync::Arc,
+  time::Duration,
 };
 
 /* ---------------------------------------- */
@@ -116,17 +125,34 @@ pub struct BootstrapDnsInner {
 
 impl BootstrapDnsInner {
   /// Lookup the IP addresses associated with a name using the bootstrap resolver connection
-  pub(crate) fn lookup_ips(&self, target_url: &Url) -> Result<Vec<SocketAddr>> {
+  pub(crate) async fn lookup_ips(&self, target_url: &Url) -> Result<Vec<SocketAddr>> {
     // The final dot forces this to be an FQDN, otherwise the search rules as specified
     // in `ResolverOpts` will take effect. FQDN's are generally cheaper queries.
     let host = target_url
       .host_str()
       .ok_or_else(|| DapError::Other(anyhow!("Unable to parse target host name")))?;
-    let host = format!("{host}.");
+    let fqdn = format!("{host}.");
+    let timeout = Duration::from_millis(BOOTSTRAP_DNS_TIMEOUT_MSEC);
+    let bg_close_notify = Arc::new(Notify::new());
+
     let result_ips = match self.proto {
-      BootstrapDnsProto::Udp => self.lookup_ips_inner(&host, UdpClientConnection::new(self.addr)?),
-      BootstrapDnsProto::Tcp => self.lookup_ips_inner(&host, TcpClientConnection::new(self.addr)?),
-    }?;
+      BootstrapDnsProto::Udp => {
+        let stream = UdpClientStream::<TokioUdpSocket>::with_timeout(self.addr, timeout);
+        let (mut client, bg) = AsyncClient::connect(stream).await?;
+        self
+          .lookup_ips_inner(&fqdn, &mut client, bg, bg_close_notify.clone())
+          .await
+      }
+      BootstrapDnsProto::Tcp => {
+        let (stream, sender) = TcpClientStream::<AsyncIoTokioAsStd<TokioTcpStream>>::with_timeout(self.addr, timeout);
+        let (mut client, bg) = AsyncClient::with_timeout(stream, sender, timeout, None).await?;
+        self
+          .lookup_ips_inner(&fqdn, &mut client, bg, bg_close_notify.clone())
+          .await
+      }
+    };
+    bg_close_notify.notify_one();
+    let result_ips = result_ips?;
 
     let port = target_url
       .port()
@@ -141,11 +167,27 @@ impl BootstrapDnsInner {
   }
 
   /// Inner: Lookup the IP addresses associated with a name using the bootstrap resolver connection
-  fn lookup_ips_inner<C: ClientConnection>(&self, fqdn: &str, conn: C) -> Result<Vec<IpAddr>> {
-    let client = SyncClient::new(conn);
+  async fn lookup_ips_inner<S, TE>(
+    &self,
+    fqdn: &str,
+    client: &mut AsyncClient,
+    bg: DnsExchangeBackground<S, TE>,
+    bg_close_notify: Arc<Notify>,
+  ) -> Result<Vec<IpAddr>>
+  where
+    S: DnsRequestSender + 'static + Send + Unpin,
+    TE: Time + Unpin + 'static + Send,
+  {
+    tokio::spawn(async move {
+      tokio::select! {
+        _ = bg_close_notify.notified() => debug!("Close bootstrap dns client background task"),
+        _ = bg => debug!("Bootstrap dns client background task finished")
+      }
+    });
     let name = Name::from_str(fqdn).map_err(|e| DapError::InvalidFqdn(e.to_string()))?;
+
     // First try to lookup an A record, if failed, try AAAA.
-    let response = client.query(&name, DNSClass::IN, RecordType::A)?;
+    let response = client.query(name.clone(), DNSClass::IN, RecordType::A).await?;
     let ips = response
       .answers()
       .iter()
@@ -154,7 +196,7 @@ impl BootstrapDnsInner {
     if !ips.is_empty() {
       return Ok(ips);
     }
-    let response = client.query(&name, DNSClass::IN, RecordType::AAAA)?;
+    let response = client.query(name, DNSClass::IN, RecordType::AAAA).await?;
     let ipv6s = response
       .answers()
       .iter()
@@ -265,14 +307,24 @@ mod tests {
     assert!(response.addresses.contains(&SocketAddr::from(([8, 8, 4, 4], 443))));
   }
 
-  #[test]
-  fn test_bootstrap_dns_client_inner() {
+  #[tokio::test]
+  async fn test_bootstrap_dns_client_inner() {
     let inner = BootstrapDnsInner {
       proto: BootstrapDnsProto::Udp,
       addr: SocketAddr::new(IpAddr::from([8, 8, 8, 8]), 53),
     };
     let target_url = Url::parse("https://dns.google").unwrap();
-    let ips = inner.lookup_ips(&target_url).unwrap();
+    let ips = inner.lookup_ips(&target_url).await.unwrap();
+
+    assert!(ips.contains(&SocketAddr::from(([8, 8, 8, 8], 443))));
+    assert!(ips.contains(&SocketAddr::from(([8, 8, 4, 4], 443))));
+
+    let inner = BootstrapDnsInner {
+      proto: BootstrapDnsProto::Tcp,
+      addr: SocketAddr::new(IpAddr::from([8, 8, 8, 8]), 53),
+    };
+    let target_url = Url::parse("https://dns.google").unwrap();
+    let ips = inner.lookup_ips(&target_url).await.unwrap();
 
     assert!(ips.contains(&SocketAddr::from(([8, 8, 8, 8], 443))));
     assert!(ips.contains(&SocketAddr::from(([8, 8, 4, 4], 443))));

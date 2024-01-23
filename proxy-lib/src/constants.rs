@@ -32,7 +32,7 @@ pub const BOOTSTRAP_DNS_ADDRS: &[&str] = &["1.1.1.1:53"];
 /// Bootstrap DNS proto
 pub const BOOTSTRAP_DNS_PROTO: &str = "udp";
 /// Bootstrap DNS timeout
-pub const BOOTSTRAP_DNS_TIMEOUT_MSEC: usize = 500;
+pub const BOOTSTRAP_DNS_TIMEOUT_MSEC: u64 = 1000;
 
 /// Endpoint resolution period in minutes
 pub const ENDPOINT_RESOLUTION_PERIOD_MIN: u64 = 60;
