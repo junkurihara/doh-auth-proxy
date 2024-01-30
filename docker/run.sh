@@ -87,7 +87,7 @@ fi
 ##########################
 # export as a config toml file
 cat > ${CONFIG_FILE} << EOF
-listen_addresses = ["0.0.0.0:53"]
+listen_addresses = ["0.0.0.0:53", "[::]:53"]
 bootstrap_dns = ["${BOOTSTRAP_DNS:-${DEFAULT_BOOTSTRAP_DNS}}"]
 ${TARGET_URL_STRING}
 ${TARGET_RAND_STRING}
