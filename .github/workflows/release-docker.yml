@@ -81,7 +81,7 @@ jobs:
     needs: docker_build_and_push
     steps:
       - name: check pull_request title
-        uses: kaisugi/action-regex-match@v1.0.0
+        uses: kaisugi/action-regex-match@v1.0.1
         id: regex-match
         with:
           text: ${{ github.event.pull_request.title }}
