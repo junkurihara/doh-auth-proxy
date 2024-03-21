@@ -66,7 +66,7 @@ socket2 = "0.5.6"
 
 # http client
 # TODO: change this to hyper-1.0
-reqwest = { version = "0.11.24", default-features = false, features = [
+reqwest = { version = "0.12.0", default-features = false, features = [
   "json",
   "trust-dns",
   "rustls-tls",
