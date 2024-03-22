@@ -92,10 +92,7 @@ impl DoHClient {
     headers.insert("Accept", header::HeaderValue::from_str(&ct).unwrap());
     headers.insert("Content-Type", header::HeaderValue::from_str(&ct).unwrap());
     if let DoHType::Oblivious = doh_type {
-      headers.insert(
-        "Cache-Control",
-        header::HeaderValue::from_str("no-cache, no-store").unwrap(),
-      );
+      headers.insert("Cache-Control", header::HeaderValue::from_str("no-cache, no-store").unwrap());
     }
 
     // doh method
@@ -120,8 +117,7 @@ impl DoHClient {
     let healthcheck_period_sec = globals.proxy_config.healthcheck_period_sec;
 
     // query manipulators
-    let query_manipulators: Option<QueryManipulators> = if let Some(q) = &globals.proxy_config.query_manipulation_config
-    {
+    let query_manipulators: Option<QueryManipulators> = if let Some(q) = &globals.proxy_config.query_manipulation_config {
       q.as_ref().try_into().ok()
     } else {
       None
@@ -198,11 +194,7 @@ impl DoHClient {
 
   /// Make DoH query with a specifically given path.
   /// Note cache and plugins are disabled to be used for health check
-  pub(super) async fn make_doh_query_inner(
-    &self,
-    packet_buf: &[u8],
-    path: &Arc<DoHPath>,
-  ) -> Result<(Vec<u8>, Message)> {
+  pub(super) async fn make_doh_query_inner(&self, packet_buf: &[u8], path: &Arc<DoHPath>) -> Result<(Vec<u8>, Message)> {
     let headers = self.build_headers().await?;
     let response_buf = match self.doh_type {
       DoHType::Standard => self.serve_doh_query(packet_buf, path, headers).await,
@@ -225,10 +217,7 @@ impl DoHClient {
         debug!("build headers with http authorization header");
         let token = auth.id_token().await?;
         let token_str = format!("Bearer {}", &token);
-        headers.insert(
-          header::AUTHORIZATION,
-          header::HeaderValue::from_str(&token_str).unwrap(),
-        );
+        headers.insert(header::AUTHORIZATION, header::HeaderValue::from_str(&token_str).unwrap());
         Ok(headers)
       }
       None => Ok(headers),
@@ -269,12 +258,7 @@ impl DoHClient {
   }
 
   /// serve oblivious doh query
-  async fn serve_oblivious_doh_query(
-    &self,
-    packet_buf: &[u8],
-    odoh_path: &Arc<DoHPath>,
-    headers: HeaderMap,
-  ) -> Result<Vec<u8>> {
+  async fn serve_oblivious_doh_query(&self, packet_buf: &[u8], odoh_path: &Arc<DoHPath>, headers: HeaderMap) -> Result<Vec<u8>> {
     let target_obj = odoh_path.target();
     let path_url = odoh_path.as_url()?;
     debug!("[ODoH] target url: {}", path_url.as_str());
@@ -299,23 +283,23 @@ impl DoHClient {
       }
       DoHMethod::Post => {
         let lock = self.http_client.read().await;
-        lock
-          .post(path_url)
-          .headers(headers)
-          .body(encrypted_query_body)
-          .send()
-          .await?
+        lock.post(path_url).headers(headers).body(encrypted_query_body).send().await?
       }
     };
 
     // 401 or len=0 when 200, update doh client with renewed public key
-    let Some(content_length) = response.content_length() else {
+    // workaround related to reqwest-0.12, which returns always None with response.content_length()
+    let Some(content_length) = response
+      .headers()
+      .get("content-length")
+      .and_then(|v| v.to_str().map(|s| s.parse::<u16>().ok()).ok().flatten())
+    else {
       return Err(DapError::ODoHInvalidContentLength);
     };
     if response.status() == reqwest::StatusCode::UNAUTHORIZED
       || (response.status() == reqwest::StatusCode::OK && content_length == 0)
     {
-      warn!("ODoH public key is expired. Refetch.");
+      warn!("ODoH public key might be expired. Refetch.");
       self
         .odoh_configs
         .as_ref()
