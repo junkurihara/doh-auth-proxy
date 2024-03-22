@@ -1,8 +1,6 @@
 use super::{dns_message, path_manage::DoHPath, DoHClient};
 use crate::{
-  constants::{
-    HEALTHCHECK_RETRY_WAITING_SEC, HEALTHCHECK_TARGET_ADDR, HEALTHCHECK_TARGET_FQDN, MAX_ALL_UNHEALTHY_RETRY,
-  },
+  constants::{HEALTHCHECK_RETRY_WAITING_SEC, HEALTHCHECK_TARGET_ADDR, HEALTHCHECK_TARGET_FQDN, MAX_ALL_UNHEALTHY_RETRY},
   error::*,
   log::*,
 };
@@ -49,28 +47,15 @@ impl DoHClient {
       });
 
       // health check for every path
-      let futures = self
-        .path_manager
-        .paths
-        .iter()
-        .flatten()
-        .flatten()
-        .map(|path| async move {
-          if let Err(e) = self.healthcheck(path).await {
-            warn!("Healthcheck fails for {}: {e}", path.as_url()?)
-          }
-          Ok(()) as Result<()>
-        });
+      let futures = self.path_manager.paths.iter().flatten().flatten().map(|path| async move {
+        if let Err(e) = self.healthcheck(path).await {
+          warn!("Healthcheck fails for {}: {e}", path.as_url()?)
+        }
+        Ok(()) as Result<()>
+      });
       let _ = join_all(futures).await;
 
-      if !self
-        .path_manager
-        .paths
-        .iter()
-        .flatten()
-        .flatten()
-        .any(|v| v.is_healthy())
-      {
+      if !self.path_manager.paths.iter().flatten().flatten().any(|v| v.is_healthy()) {
         all_unhealthy_cnt += 1;
         error!("All possible paths are unhealthy. Should check the Internet connection");
         if all_unhealthy_cnt > MAX_ALL_UNHEALTHY_RETRY {
@@ -88,13 +73,17 @@ impl DoHClient {
     let q_msg = dns_message::build_query_a(HEALTHCHECK_TARGET_FQDN)?;
     let packet_buf = dns_message::encode(&q_msg)?;
 
-    let Ok((_, res_msg)) = self.make_doh_query_inner(&packet_buf, path).await else {
-      path.make_unhealthy();
-      warn!(
-        "Failed to query or invalid response. Path {} is unhealthy",
-        path.as_url()?
-      );
-      return Ok(());
+    let res_msg = match self.make_doh_query_inner(&packet_buf, path).await {
+      Ok((_, res_msg)) => res_msg,
+      Err(e) => {
+        path.make_unhealthy();
+        warn!(
+          "Failed to query or invalid response. Path {} is unhealthy: {}",
+          path.as_url()?,
+          e
+        );
+        return Ok(());
+      }
     };
 
     if res_msg.header().response_code() != ResponseCode::NoError {

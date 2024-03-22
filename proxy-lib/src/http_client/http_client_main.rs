@@ -101,7 +101,7 @@ impl HttpClientInner {
     let mut client = Client::builder()
       .user_agent(user_agent)
       .timeout(timeout_sec)
-      .trust_dns(true);
+      .hickory_dns(true);
 
     // Override pre-resolved ip addresses
     client = resolved_ips.iter().fold(client, |client, resolve_ip| {

@@ -168,7 +168,11 @@ mod tests {
   #[test]
   fn block_works() {
     let query_manipulation_config = QueryManipulationConfig {
-      domain_block: Some(vec!["www.google.com".to_string(), "*.google.com".to_string()]),
+      domain_block: Some(vec![
+        "www.google.com".to_string(),
+        "*.google.com".to_string(),
+        "yahoo.co.*".to_string(),
+      ]),
       ..Default::default()
     };
 
@@ -188,6 +192,9 @@ mod tests {
 
     q_key.query_name = "www.yahoo.com.".to_string();
     assert!(!domain_block_rule.in_blocklist(&q_key).unwrap());
+
+    q_key.query_name = "yahoo.co.jp.".to_string();
+    assert!(domain_block_rule.in_blocklist(&q_key).unwrap());
   }
 
   #[test]

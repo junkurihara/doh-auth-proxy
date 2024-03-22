@@ -3,6 +3,35 @@
 members = ["proxy-bin", "proxy-lib"]
 resolver = "2"
 
+[workspace.package]
+version = "0.3.4"
+authors = ["Jun Kurihara"]
+homepage = "https://github.com/junkurihara/doh-auth-proxy"
+repository = "https://github.com/junkurihara/doh-auth-proxy"
+license = "MIT"
+readme = "./README.md"
+categories = [
+  "asynchronous",
+  "network-programming",
+  "command-line-utilities",
+  "web-programming::http-client",
+]
+keywords = [
+  "dns",
+  "https",
+  "dns-over-https",
+  "doh",
+  "oblivious-dns-over-https",
+  "odoh",
+  "mutualized-oblivious-dns",
+  "mutualized-odoh",
+  "modoh",
+  "proxy",
+  "authorization",
+]
+edition = "2021"
+publish = false
+
 [profile.release]
 codegen-units = 1
 incremental = false

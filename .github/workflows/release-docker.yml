@@ -81,7 +81,7 @@ jobs:
     needs: docker_build_and_push
     steps:
       - name: check pull_request title
-        uses: kaisugi/action-regex-match@v1.0.0
+        uses: kaisugi/action-regex-match@v1.0.1
         id: regex-match
         with:
           text: ${{ github.event.pull_request.title }}
@@ -102,7 +102,7 @@ jobs:
 
       - name: release
         if: ${{ steps.regex-match.outputs.match != ''}}
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: /tmp/doh-auth-proxy-x86_64-unknown-linux-gnu.tar.gz
           name: ${{ github.event.pull_request.title }}

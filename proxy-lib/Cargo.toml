@@ -1,39 +1,23 @@
 [package]
 name = "doh-auth-proxy-lib"
 description = "DNS Proxy Library for DoH, ODoH and Mutualized ODoH with Authorization"
-version = "0.3.3"
-authors = ["Jun Kurihara"]
-homepage = "https://github.com/junkurihara/doh-auth-proxy"
-repository = "https://github.com/junkurihara/doh-auth-proxy"
-license = "MIT"
-readme = "../README.md"
-categories = [
-  "asynchronous",
-  "network-programming",
-  "command-line-utilities",
-  "web-programming::http-client",
-]
-keywords = [
-  "dns",
-  "https",
-  "dns-over-https",
-  "doh",
-  "oblivious-dns-over-https",
-  "odoh",
-  "mutualized-oblivious-dns",
-  "mutualized-odoh",
-  "modoh",
-  "proxy",
-  "authorization",
-]
-edition = "2021"
-publish = false
+version.workspace = true
+authors.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+readme.workspace = true
+categories.workspace = true
+keywords.workspace = true
+edition.workspace = true
+publish.workspace = true
+
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 rand = "0.8.5"
-tokio = { version = "1.35.1", features = [
+tokio = { version = "1.36.0", features = [
   "net",
   "rt-multi-thread",
   "time",
@@ -44,11 +28,11 @@ futures = { version = "0.3.30", default-features = false, features = [
   "std",
   "async-await",
 ] }
-anyhow = "1.0.79"
+anyhow = "1.0.81"
 tracing = "0.1.40"
-thiserror = "1.0.56"
-async-trait = "0.1.77"
-serde = { version = "1.0.196", features = ["derive"] }
+thiserror = "1.0.58"
+async-trait = "0.1.78"
+serde = { version = "1.0.197", features = ["derive"] }
 itertools = "0.12.1"
 rustc-hash = "1.1.0"
 
@@ -62,13 +46,13 @@ cedarwood = "0.4.6"
 regex = "1.10.3"
 
 # network
-socket2 = "0.5.5"
+socket2 = "0.5.6"
 
 # http client
-# TODO: change this to hyper-1.0
-reqwest = { version = "0.11.23", default-features = false, features = [
+reqwest = { version = "0.12.0", default-features = false, features = [
   "json",
-  "trust-dns",
+  "http2",
+  "hickory-dns",
   "rustls-tls",
 ] }
 url = "2.5.0"

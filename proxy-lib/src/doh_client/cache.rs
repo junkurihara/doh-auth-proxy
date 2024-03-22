@@ -182,7 +182,7 @@ mod tests {
 
   #[tokio::test]
   async fn test_cache() {
-    let (stream, sender) = TcpClientStream::<AsyncIoTokioAsStd<TokioTcpStream>>::new(([8, 8, 8, 8], 53).into());
+    let (stream, sender) = TcpClientStream::<AsyncIoTokioAsStd<TokioTcpStream>>::new(([1, 1, 1, 1], 53).into());
     let client = AsyncClient::new(stream, sender, None);
     // await the connection to be established
     let (mut client, bg) = client.await.expect("connection failed");
