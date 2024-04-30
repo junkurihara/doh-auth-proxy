@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 AS base
+FROM ubuntu:24.04 AS base
 
 SHELL ["/bin/sh", "-x", "-c"]
 ENV SERIAL 2
