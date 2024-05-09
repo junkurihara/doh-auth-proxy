@@ -1,9 +1,7 @@
 use super::{toml::ConfigToml, utils_dns_proto::parse_proto_sockaddr_str, utils_verifier::*};
 use crate::{constants::*, error::*, log::*};
 use async_trait::async_trait;
-use doh_auth_proxy_lib::{
-  AuthenticationConfig, NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig,
-};
+use doh_auth_proxy_lib::{AuthenticationConfig, NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig};
 use hot_reload::{Reload, ReloaderError};
 use std::{env, sync::Arc};
 use tokio::time::Duration;
@@ -33,8 +31,8 @@ impl Reload<TargetConfig> for ConfigReloader {
   }
 
   async fn reload(&self) -> Result<Option<TargetConfig>, ReloaderError<TargetConfig>> {
-    let config_toml = ConfigToml::new(&self.config_path)
-      .map_err(|_e| ReloaderError::<TargetConfig>::Reload("Failed to reload config toml"))?;
+    let config_toml =
+      ConfigToml::new(&self.config_path).map_err(|_e| ReloaderError::<TargetConfig>::Reload("Failed to reload config toml"))?;
     let query_manipulation_config: Option<QueryManipulationConfig> = (&config_toml)
       .try_into()
       .map_err(|_e| ReloaderError::<TargetConfig>::Reload("Failed to reload manipulation plugin config"))?;
@@ -147,7 +145,7 @@ impl TryInto<ProxyConfig> for &TargetConfig {
     /////////////////////////////
     // User agent
     if let Some(val) = &self.config_toml.user_agent {
-      proxy_config.http_user_agent = val.clone();
+      proxy_config.http_user_agent.clone_from(val);
     }
 
     /////////////////////////////
@@ -268,7 +266,9 @@ impl TryInto<ProxyConfig> for &TargetConfig {
     // Plugins
     if self.config_toml.plugins.is_some() {
       info!("Query manipulation plugins are enabled");
-      proxy_config.query_manipulation_config = self.query_manipulation_config.clone();
+      proxy_config
+        .query_manipulation_config
+        .clone_from(&self.query_manipulation_config);
     }
     ////////////////////////
 

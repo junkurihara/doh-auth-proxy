@@ -28,11 +28,11 @@ futures = { version = "0.3.30", default-features = false, features = [
   "std",
   "async-await",
 ] }
-anyhow = "1.0.82"
+anyhow = "1.0.83"
 tracing = "0.1.40"
-thiserror = "1.0.59"
+thiserror = "1.0.60"
 async-trait = "0.1.80"
-serde = { version = "1.0.199", features = ["derive"] }
+serde = { version = "1.0.201", features = ["derive"] }
 itertools = "0.12.1"
 rustc-hash = "1.1.0"
 
@@ -46,7 +46,7 @@ cedarwood = "0.4.6"
 regex = "1.10.4"
 
 # network
-socket2 = "0.5.6"
+socket2 = "0.5.7"
 
 # http client
 reqwest = { version = "0.12.4", default-features = false, features = [
