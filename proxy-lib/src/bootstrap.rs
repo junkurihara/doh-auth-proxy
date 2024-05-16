@@ -76,7 +76,7 @@ impl std::fmt::Display for BootstrapDnsInner {
 }
 
 impl BootstrapDnsInner {
-  ///
+  /// Generate a new BootstrapDnsInner
   pub(crate) fn try_new(proto: &str, addr: &str) -> Result<Self> {
     Ok(Self {
       proto: <BootstrapDnsProto as std::str::FromStr>::from_str(proto)?,
