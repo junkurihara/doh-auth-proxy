@@ -33,7 +33,7 @@ tracing = "0.1.40"
 thiserror = "1.0.60"
 async-trait = "0.1.80"
 serde = { version = "1.0.201", features = ["derive"] }
-itertools = "0.12.1"
+itertools = "0.13.0"
 rustc-hash = "1.1.0"
 
 # doh and odoh client with cache and query manipulation plugins
