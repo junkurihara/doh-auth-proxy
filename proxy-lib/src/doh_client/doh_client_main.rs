@@ -150,7 +150,9 @@ impl DoHClient {
     src_addr: &SocketAddr,
     res_type: DoHResponseType,
     dst_path: Option<Arc<DoHPath>>,
+    start: std::time::Instant,
   ) {
+    let elapsed = start.elapsed();
     let Ok(dst_url) = dst_path.map(|p| p.as_url()).transpose() else {
       error!("Failed to get destination url from path");
       return;
@@ -161,6 +163,7 @@ impl DoHClient {
       src_addr.ip(),
       res_type,
       dst_url,
+      elapsed,
     ))) {
       error!("Failed to send qeery log message: {e}")
     }
@@ -169,6 +172,8 @@ impl DoHClient {
   /// Make DoH query with intended automatic path selection.
   /// Also cache and plugins are enabled
   pub async fn make_doh_query(&self, packet_buf: &[u8], proto: ProxyProtocol, src: &SocketAddr) -> Result<Vec<u8>> {
+    let start = std::time::Instant::now();
+
     // Check if the given packet buffer is consistent as a DNS query
     let query_msg = dns_message::is_query(packet_buf).map_err(|e| {
       error!("{e}");
@@ -188,12 +193,12 @@ impl DoHClient {
         QueryManipulationResult::PassThrough => (),
         QueryManipulationResult::SyntheticResponseBlocked(response_msg) => {
           let res = dns_message::encode(&response_msg)?;
-          self.log_dns_message(&res, proto, src, DoHResponseType::Blocked, None);
+          self.log_dns_message(&res, proto, src, DoHResponseType::Blocked, None, start);
           return Ok(res);
         }
         QueryManipulationResult::SyntheticResponseOverridden(response_msg) => {
           let res = dns_message::encode(&response_msg)?;
-          self.log_dns_message(&res, proto, src, DoHResponseType::Overridden, None);
+          self.log_dns_message(&res, proto, src, DoHResponseType::Overridden, None, start);
           return Ok(res);
         }
       }
@@ -203,7 +208,7 @@ impl DoHClient {
     if let Some(res) = self.cache.get(&req).await {
       debug!("Cache hit!: {:?}", res.message().queries());
       if let Ok(response_buf) = res.build_response(query_id) {
-        self.log_dns_message(&response_buf, proto, src, DoHResponseType::Cached, None);
+        self.log_dns_message(&response_buf, proto, src, DoHResponseType::Cached, None, start);
         return Ok(response_buf);
       } else {
         error!("Cached object is somewhat invalid");
@@ -218,7 +223,7 @@ impl DoHClient {
     // make doh query with the given path
     let (response_buf, response_message) = self.make_doh_query_inner(packet_buf, &path).await?;
 
-    self.log_dns_message(&response_buf, proto, src, DoHResponseType::Normal, Some(path));
+    self.log_dns_message(&response_buf, proto, src, DoHResponseType::Normal, Some(path), start);
 
     // put message to cache
     if (self.cache.put(req, &response_message).await).is_err() {

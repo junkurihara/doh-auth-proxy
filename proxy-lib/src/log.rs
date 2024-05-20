@@ -7,7 +7,7 @@ use crate::{
 };
 use crossbeam_channel::{Receiver, Sender};
 use hickory_proto::op::Message;
-use std::{net::IpAddr, sync::Arc};
+use std::{net::IpAddr, sync::Arc, time::Duration};
 use tokio::sync::Notify;
 
 #[derive(Debug)]
@@ -23,11 +23,20 @@ pub(crate) struct QueryLoggingBase {
   res_type: DoHResponseType,
   /// Destination url
   dst_url: Option<url::Url>,
+  /// Resolving time
+  elapsed: std::time::Duration,
 }
 
-impl From<(Vec<u8>, ProxyProtocol, IpAddr, DoHResponseType, Option<url::Url>)> for QueryLoggingBase {
+impl From<(Vec<u8>, ProxyProtocol, IpAddr, DoHResponseType, Option<url::Url>, Duration)> for QueryLoggingBase {
   fn from(
-    (raw_packet, proto, src_addr, res_type, dst_url): (Vec<u8>, ProxyProtocol, IpAddr, DoHResponseType, Option<url::Url>),
+    (raw_packet, proto, src_addr, res_type, dst_url, elapsed): (
+      Vec<u8>,
+      ProxyProtocol,
+      IpAddr,
+      DoHResponseType,
+      Option<url::Url>,
+      Duration,
+    ),
   ) -> Self {
     Self {
       raw_packet,
@@ -35,6 +44,7 @@ impl From<(Vec<u8>, ProxyProtocol, IpAddr, DoHResponseType, Option<url::Url>)> f
       src_addr,
       res_type,
       dst_url,
+      elapsed,
     }
   }
 }
@@ -69,6 +79,7 @@ impl QueryLoggingBase {
         }
       }
     };
+    let elapsed_micros = self.elapsed.as_micros();
 
     tracing::event!(
       name: QUERY_LOG_EVENT_NAME,
@@ -81,6 +92,7 @@ impl QueryLoggingBase {
       proto,
       id,
       dst,
+      elapsed_micros
     );
   }
 }
