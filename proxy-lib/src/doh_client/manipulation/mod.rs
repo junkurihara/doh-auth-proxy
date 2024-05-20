@@ -14,7 +14,11 @@ pub enum QueryManipulationResult {
   /// Pass the query with no manipulator application
   PassThrough,
   /// By the query manipulation, synthetic response is generated
-  SyntheticResponse(Message),
+  /// Blocked response message
+  SyntheticResponseBlocked(Message),
+  /// By the query manipulation, synthetic response is generated
+  /// Overridden response message
+  SyntheticResponseOverridden(Message),
 }
 
 #[async_trait]
@@ -35,17 +39,11 @@ pub struct QueryManipulators {
 
 impl QueryManipulators {
   /// Apply query manipulators
-  pub async fn apply(
-    &self,
-    query_message: &Message,
-    query_key: &QueryKey,
-  ) -> Result<QueryManipulationResult, DapError> {
+  pub async fn apply(&self, query_message: &Message, query_key: &QueryKey) -> Result<QueryManipulationResult, DapError> {
     for manipulator in &self.manipulators {
       match manipulator.apply(query_message, query_key).await? {
         QueryManipulationResult::PassThrough => continue,
-        QueryManipulationResult::SyntheticResponse(response_msg) => {
-          return Ok(QueryManipulationResult::SyntheticResponse(response_msg))
-        }
+        any_other => return Ok(any_other),
       }
     }
     Ok(QueryManipulationResult::PassThrough)

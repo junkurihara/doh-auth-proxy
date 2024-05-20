@@ -15,8 +15,6 @@ use doh_auth_proxy_lib::{entrypoint, ProxyConfig};
 use hot_reload::{ReloaderReceiver, ReloaderService};
 
 fn main() {
-  init_logger();
-
   let mut runtime_builder = tokio::runtime::Builder::new_multi_thread();
   runtime_builder.enable_all();
   runtime_builder.thread_name("doh-auth-proxy");
@@ -29,19 +27,18 @@ fn main() {
       std::process::exit(1);
     };
 
+    init_logger(&parsed_opts);
+
     if !parsed_opts.watch {
       if let Err(e) = proxy_service_without_watcher(&parsed_opts.config_file_path, runtime.handle().clone()).await {
         error!("proxy service existed: {e}");
         std::process::exit(1);
       }
     } else {
-      let (config_service, config_rx) = ReloaderService::<ConfigReloader, TargetConfig>::new(
-        &parsed_opts.config_file_path,
-        CONFIG_WATCH_DELAY_SECS,
-        false,
-      )
-      .await
-      .unwrap();
+      let (config_service, config_rx) =
+        ReloaderService::<ConfigReloader, TargetConfig>::new(&parsed_opts.config_file_path, CONFIG_WATCH_DELAY_SECS, false)
+          .await
+          .unwrap();
 
       tokio::select! {
         Err(e) = config_service.start() => {

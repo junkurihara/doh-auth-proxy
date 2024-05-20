@@ -37,6 +37,10 @@ hot_reload = "0.1.5"
 
 # logging
 tracing = { version = "0.1.40" }
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.18", features = [
+  "env-filter",
+  "chrono",
+  "json",
+] }
 url = "2.5.0"
 dotenv = "0.15.0"

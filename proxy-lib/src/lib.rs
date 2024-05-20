@@ -17,9 +17,7 @@ use futures::{
 use std::sync::Arc;
 
 pub use auth_client::AuthenticationConfig;
-pub use globals::{
-  BootstrapDns, NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig, TargetConfig,
-};
+pub use globals::{BootstrapDns, NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig, TargetConfig};
 
 /// entrypoint of DoH w/ Auth Proxy
 /// This spawns UDP and TCP listeners and spawns the following services
@@ -34,11 +32,21 @@ pub async fn entrypoint(
 ) -> Result<()> {
   info!("Start DoH w/ Auth Proxy");
 
+  // build query logger
+  let query_log_tx = {
+    let (tx, mut logger) = QueryLogger::new(term_notify.clone());
+    runtime_handle.spawn(async move {
+      logger.start().await;
+    });
+    tx
+  };
+
   // build global
   let globals = Arc::new(Globals {
     proxy_config: proxy_config.clone(),
     runtime_handle: runtime_handle.clone(),
     term_notify: term_notify.clone(),
+    query_log_tx,
   });
 
   // build bootstrap DNS resolver
