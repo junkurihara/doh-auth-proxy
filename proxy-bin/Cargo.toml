@@ -17,7 +17,7 @@ publish.workspace = true
 [dependencies]
 doh-auth-proxy-lib = { path = "../proxy-lib/" }
 
-anyhow = "1.0.83"
+anyhow = "1.0.86"
 mimalloc = { version = "*", default-features = false }
 serde = { version = "1.0.202", default-features = false, features = ["derive"] }
 derive_builder = "0.20.0"
