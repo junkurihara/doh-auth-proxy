@@ -130,7 +130,6 @@ elif $ENABLE_QUERY_LOG ; then
   QUERY_LOG_ARG="--query-log ${QUERY_LOG_FILE}"
 fi
 
-
 ##########################
 # start
 echo "Start with logg level ${LOG_LEVEL:-${DEFAULT_LOG_LEVEL}}"
