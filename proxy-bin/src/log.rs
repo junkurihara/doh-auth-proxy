@@ -1,9 +1,11 @@
 use crate::{config::Opts, constants::QUERY_LOG_EVENT_NAME};
+use std::str::FromStr;
 pub use tracing::{error, info, warn};
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use tracing_subscriber::{fmt, prelude::*};
 
 pub fn init_logger(parsed_opts: &Opts) {
-  let global_level_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+  let level_string = std::env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string());
+  let level = tracing::Level::from_str(level_string.as_str()).unwrap_or(tracing::Level::INFO);
 
   // This limits the logger to emits only this crate with any level, for included crates it will emit only INFO or above level.
   let stdio_layer = fmt::layer()
@@ -14,13 +16,14 @@ pub fn init_logger(parsed_opts: &Opts) {
     .with_level(true)
     .compact()
     .with_filter(tracing_subscriber::filter::filter_fn(move |metadata| {
-      metadata
+      (metadata
         .target()
         .starts_with(env!("CARGO_PKG_NAME").replace('-', "_").as_str())
-        || metadata.level() <= &tracing::Level::INFO
+        && metadata.level() <= &level)
+        || metadata.level() <= &tracing::Level::INFO.min(level)
     }));
 
-  let reg = tracing_subscriber::registry().with(global_level_filter).with(stdio_layer);
+  let reg = tracing_subscriber::registry().with(stdio_layer);
 
   if let Some(query_log_path) = &parsed_opts.query_log_path {
     let query_log_file = open_log_file(query_log_path);
@@ -58,6 +61,7 @@ impl<S> tracing_subscriber::layer::Filter<S> for QueryLogFilter {
       .target()
       .starts_with(env!("CARGO_PKG_NAME").replace('-', "_").as_str())
       && metadata.name().contains(QUERY_LOG_EVENT_NAME)
+      && metadata.level() <= &tracing::Level::INFO
   }
 }
 
