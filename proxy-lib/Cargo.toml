@@ -35,6 +35,7 @@ async-trait = "0.1.80"
 serde = { version = "1.0.202", features = ["derive"] }
 itertools = "0.13.0"
 rustc-hash = "1.1.0"
+crossbeam-channel = "0.5.13"
 
 # doh and odoh client with cache and query manipulation plugins
 odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git" }
