@@ -86,3 +86,9 @@ pub const MAX_RELOGIN_ATTEMPTS: usize = 5;
 pub const HEALTHCHECK_TARGET_FQDN: &str = "dns.google.";
 /// Health check target IP address for assertion
 pub const HEALTHCHECK_TARGET_ADDR: &str = "8.8.8.8";
+
+// Query manipulation
+/// Block message for query manipulation (HINFO CPU field)
+pub const BLOCK_MESSAGE_HINFO_CPU: &str = "BLOCKED";
+/// Block message for query manipulation (HINFO OS field)
+pub const BLOCK_MESSAGE_HINFO_OS: &str = "POWERED-BY-DOH-AUTH-PROXY";

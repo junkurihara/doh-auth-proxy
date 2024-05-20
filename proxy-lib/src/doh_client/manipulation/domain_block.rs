@@ -3,10 +3,15 @@ use super::{
   regexp_vals::*,
   QueryManipulation, QueryManipulationResult,
 };
-use crate::{error::*, log::*, QueryManipulationConfig};
+use crate::{
+  constants::{BLOCK_MESSAGE_HINFO_CPU, BLOCK_MESSAGE_HINFO_OS},
+  error::*,
+  log::*,
+  QueryManipulationConfig,
+};
 use async_trait::async_trait;
 use cedarwood::Cedar;
-use hickory_proto::op::Message;
+use hickory_proto::{op::Message, rr};
 use regex::Regex;
 
 #[async_trait]
@@ -22,9 +27,22 @@ impl QueryManipulation for DomainBlockRule {
       "[Blocked] {} {:?} {:?}",
       query_key.query_name, query_key.query_type, query_key.query_class
     );
-    let response_msg = build_response_nx(query_message);
+    let response_msg = build_response_block(query_message);
     Ok(QueryManipulationResult::SyntheticResponse(response_msg))
   }
+}
+
+/// Build a synthetic response message for blocked domain
+/// By default, NXDOMAIN is returned with block message in HINFO record
+fn build_response_block(query_message: &Message) -> Message {
+  let mut msg = build_response_nx(query_message);
+  let hinfo = rr::rdata::HINFO::new(BLOCK_MESSAGE_HINFO_CPU.to_string(), BLOCK_MESSAGE_HINFO_OS.to_string());
+  msg.add_answer(rr::Record::from_rdata(
+    query_message.queries()[0].name().clone(),
+    0,
+    rr::RData::HINFO(hinfo),
+  ));
+  msg
 }
 
 #[derive(Debug, Clone)]
