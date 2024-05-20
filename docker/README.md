@@ -6,7 +6,9 @@ We have several docker-specific environment variables, which doesn't relates the
 - `HOST_UID` (default: `900`): `UID` of `HOST_USER`.
 - `HOST_GID` (default: `900`): `GID` of `HOST_USER`
 - `LOG_LEVEL=debug|info|warn|error` (default: `info`): Log level
-- `LOG_TO_FILE=true|false` (default: `false`): Enable logging to the log file `/modoh/log/doh-auth-proxy.log` using `logrotate`. You should mount `/modoh/log` via docker volume option if enabled. The log dir and file will be owned by the `HOST_USER` with `HOST_UID:HOST_GID` on the host machine. Hence, `HOST_USER`, `HOST_UID` and `HOST_GID` should be the same as ones of the user who executes the `doh-auth-proxy` docker container on the host.
+- `LOG_TO_FILE=true|false` (default: `false`): Enable system logging to the log file `/modoh/log/doh-auth-proxy.log` using `logrotate`. You should mount `/modoh/log` via docker volume option if enabled. The log dir and file will be owned by the `HOST_USER` with `HOST_UID:HOST_GID` on the host machine. Hence, `HOST_USER`, `HOST_UID` and `HOST_GID` should be the same as ones of the user who executes the `doh-auth-proxy` docker container on the host.
+- `ENABLE_QUERY_LOG=true|false` (default: `false`): Query log is enabled if true. Record in `/modoh/log/query.log`
+- `ENABLE_JSON_QUERY_LOG=true|false` (default: `false`): Query log in json is enabled if true. This is prioritized over `ENABLE_QUERY_LOG`. Record in `/modoh/log/query.log` as well.
 
 See [`docker/docker-compose.yml`](./docker/docker-compose.yml) for the detailed configuration of the above env vars.
 

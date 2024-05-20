@@ -6,6 +6,6 @@ mod utils_dns_proto;
 mod utils_verifier;
 
 pub use {
-  parse::parse_opts,
+  parse::{parse_opts, Opts},
   target_config::{ConfigReloader, TargetConfig},
 };

@@ -28,7 +28,7 @@ impl QueryManipulation for DomainBlockRule {
       query_key.query_name, query_key.query_type, query_key.query_class
     );
     let response_msg = build_response_block(query_message);
-    Ok(QueryManipulationResult::SyntheticResponse(response_msg))
+    Ok(QueryManipulationResult::SyntheticResponseBlocked(response_msg))
   }
 }
 

@@ -92,3 +92,9 @@ pub const HEALTHCHECK_TARGET_ADDR: &str = "8.8.8.8";
 pub const BLOCK_MESSAGE_HINFO_CPU: &str = "BLOCKED";
 /// Block message for query manipulation (HINFO OS field)
 pub const BLOCK_MESSAGE_HINFO_OS: &str = "POWERED-BY-DOH-AUTH-PROXY";
+
+// Logging
+/// Query log channel size
+pub const QUERY_LOG_CHANNEL_SIZE: usize = 1024;
+/// Query log event name
+pub const QUERY_LOG_EVENT_NAME: &str = "query_log";

@@ -152,15 +152,15 @@ See also the DNSCrypt-based &mu;ODNS as well, by referring to [our website](http
 ## All options in a configuration file
 
 ```shell
-USAGE:
-    doh-auth-proxy --config <config_file>
+Usage: doh-auth-proxy [OPTIONS] --config <FILE>
 
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-
-OPTIONS:
-    -c, --config <config_file>    Configuration file path like "doh-auth-proxy.toml"
+Options:
+  -c, --config <FILE>     Configuration file path like ./config.toml
+  -w, --watch             Activate dynamic reloading of the config file via continuous monitoring
+  -q, --query-log <PATH>  Enable query logging. Unless specified, it is disabled.
+  -j, --json-query-log    Enable query logging in json format. Unless specified, it is recorded in human-readable compact format. Must be used with --query-log option.
+  -h, --help              Print help
+  -V, --version           Print version
 ```
 
 `config.toml` can be configured as follows.

@@ -1,4 +1,4 @@
-use super::{counter::CounterType, proxy_main::Proxy, socket::bind_udp_socket};
+use super::{counter::CounterType, proxy_main::Proxy, socket::bind_udp_socket, ProxyProtocol};
 use crate::{error::*, log::*};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{
@@ -46,10 +46,7 @@ impl Proxy {
         let self_clone = self.clone();
         let channel_sender_clone = channel_sender.clone();
         self.globals.runtime_handle.spawn(async move {
-          if let Err(e) = self_clone
-            .serve_udp_query(packet_buf, src_addr, channel_sender_clone)
-            .await
-          {
+          if let Err(e) = self_clone.serve_udp_query(packet_buf, src_addr, channel_sender_clone).await {
             error!("Failed to handle UDP query: {}", e);
           }
         });
@@ -125,7 +122,7 @@ impl Proxy {
     let res = tokio::time::timeout(
       self.globals.proxy_config.http_timeout_sec + Duration::from_secs(1),
       // serve udp dns message here
-      self.doh_client.make_doh_query(&packet_buf),
+      self.doh_client.make_doh_query(&packet_buf, ProxyProtocol::Udp, &src_addr),
     )
     .await
     .ok();
@@ -136,11 +133,7 @@ impl Proxy {
     let Some(Ok(r)) = res else {
       return Err(DapError::FailedToMakeDohQuery);
     };
-    let res = tokio::time::timeout(
-      self.globals.proxy_config.udp_timeout_sec,
-      res_sender.send((r, src_addr)),
-    )
-    .await;
+    let res = tokio::time::timeout(self.globals.proxy_config.udp_timeout_sec, res_sender.send((r, src_addr))).await;
     match res {
       Err(e) => {
         error!("res_sender on channel timeout: {:?}", e);

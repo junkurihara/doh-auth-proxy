@@ -24,7 +24,7 @@ impl QueryManipulation for DomainOverrideRule {
       query_key.query_name, query_key.query_type, query_key.query_class, mapsto.0
     );
     let response_msg = build_response_given_ipaddr(query_message, query_key, &mapsto.0, self.min_ttl)?;
-    Ok(QueryManipulationResult::SyntheticResponse(response_msg))
+    Ok(QueryManipulationResult::SyntheticResponseOverridden(response_msg))
   }
 }
 

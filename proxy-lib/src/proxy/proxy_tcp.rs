@@ -1,4 +1,4 @@
-use super::{counter::CounterType, proxy_main::Proxy, socket::bind_tcp_socket};
+use super::{counter::CounterType, proxy_main::Proxy, socket::bind_tcp_socket, ProxyProtocol};
 use crate::{error::*, log::*};
 use std::net::SocketAddr;
 use tokio::{
@@ -65,7 +65,7 @@ impl Proxy {
     let res = tokio::time::timeout(
       self.globals.proxy_config.http_timeout_sec + std::time::Duration::from_secs(1),
       // serve tcp dns message here
-      self.doh_client.make_doh_query(&packet_buf),
+      self.doh_client.make_doh_query(&packet_buf, ProxyProtocol::Tcp, &src_addr),
     )
     .await
     .ok();

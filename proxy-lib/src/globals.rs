@@ -1,4 +1,4 @@
-use crate::{bootstrap::BootstrapDnsInner, constants::*};
+use crate::{bootstrap::BootstrapDnsInner, constants::*, QueryLoggingBase};
 use auth_client::AuthenticationConfig;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{sync::Notify, time::Duration};
@@ -15,6 +15,9 @@ pub struct Globals {
 
   /// notifier for termination at spawned tokio tasks
   pub term_notify: Option<Arc<Notify>>,
+
+  /// query logger sender
+  pub query_log_tx: crossbeam_channel::Sender<QueryLoggingBase>,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
