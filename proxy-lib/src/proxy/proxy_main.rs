@@ -31,17 +31,20 @@ impl Proxy {
       match term_notify {
         Some(term) => {
           tokio::select! {
-            _ = self_clone.start_udp_listener() => {
+            res = self_clone.start_udp_listener() => {
               warn!("UDP listener service got down");
+              res
             }
             _ = term.notified() => {
               info!("UDP listener received term signal");
+              Ok(())
             }
           }
         }
         None => {
-          let _ = self_clone.start_udp_listener().await;
+          let res = self_clone.start_udp_listener().await;
           warn!("UDP listener service got down");
+          res
         }
       }
     });
@@ -52,22 +55,28 @@ impl Proxy {
       match term_notify {
         Some(term) => {
           tokio::select! {
-            _ = self_clone.start_tcp_listener() => {
+            res = self_clone.start_tcp_listener() => {
               warn!("TCP listener service got down");
+              res
             }
             _ = term.notified() => {
               info!("TCP listener received term signal");
+              Ok(())
             }
           }
         }
         None => {
-          let _ = self_clone.start_tcp_listener().await;
+          let res = self_clone.start_tcp_listener().await;
           warn!("TCP listener service got down");
+          res
         }
       }
     });
 
-    select(udp_fut, tcp_fut).await;
+    // If something goes wrong in any of the futures, we will return the error
+    let Ok(Ok(_)) = select(udp_fut, tcp_fut).await.factor_first().0 else {
+      return Err(DapError::ProxyServiceError("UDP or TCP listener failed".to_string()));
+    };
 
     Ok(())
   }

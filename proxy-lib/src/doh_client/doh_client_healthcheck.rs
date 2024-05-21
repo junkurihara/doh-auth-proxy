@@ -16,20 +16,22 @@ impl DoHClient {
     match term_notify {
       Some(term) => {
         tokio::select! {
-          _ = self.healthcheck_service() => {
+          res = self.healthcheck_service() => {
             warn!("Health check service got down.");
+            res
           }
           _ = term.notified() => {
             info!("Health check service receives term signal");
+            Ok(())
           }
         }
       }
       None => {
-        self.healthcheck_service().await?;
+        let res = self.healthcheck_service().await;
         warn!("Health check service got down.");
+        res
       }
     }
-    Ok(())
   }
 
   /// Health check service periodically executes

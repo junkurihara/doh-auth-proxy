@@ -15,20 +15,22 @@ impl Authenticator {
     match term_notify {
       Some(term) => {
         tokio::select! {
-          _ = self.auth_service() => {
+          res = self.auth_service() => {
             warn!("Auth service got down. Possibly failed to refresh or login.");
+            res
           }
           _ = term.notified() => {
             info!("Auth service receives term signal");
+            Ok(())
           }
         }
       }
       None => {
-        self.auth_service().await?;
+        let res = self.auth_service().await;
         warn!("Auth service got down. Possibly failed to refresh or login.");
+        res
       }
     }
-    Ok(())
   }
 
   /// periodic refresh checker

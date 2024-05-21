@@ -73,12 +73,7 @@ pub async fn entrypoint(
   if let Some(auth_config) = &proxy_config.authentication_config {
     let auth = Arc::new(auth::Authenticator::new(auth_config, http_client.inner()).await?);
     let auth_clone = auth.clone();
-    let auth_service_inner = runtime_handle.spawn(async move {
-      auth_clone
-        .start_service(term_notify_clone)
-        .await
-        .with_context(|| "auth service got down")
-    });
+    let auth_service_inner = runtime_handle.spawn(async move { auth_clone.start_service(term_notify_clone).await });
     authenticator = Some(auth);
     auth_service = Some(auth_service_inner);
   }
@@ -94,18 +89,13 @@ pub async fn entrypoint(
     http_client_clone
       .start_endpoint_ip_update_service(doh_client_clone, bootstrap_dns_resolver, term_notify_clone)
       .await
-      .with_context(|| "endpoint ip update service got down")
   });
 
   // spawn health check service for checking every possible path and purging expired DNS cache
   let doh_client_clone = doh_client.clone();
   let term_notify_clone = term_notify.clone();
-  let healthcheck_service = runtime_handle.spawn(async move {
-    doh_client_clone
-      .start_healthcheck_service(term_notify_clone)
-      .await
-      .with_context(|| "health check service for path and dns cache got down")
-  });
+  let healthcheck_service =
+    runtime_handle.spawn(async move { doh_client_clone.start_healthcheck_service(term_notify_clone).await });
 
   // Start proxy for each listen address
   let addresses = globals.proxy_config.listen_addresses.clone();
@@ -115,34 +105,44 @@ pub async fn entrypoint(
   }));
 
   // wait for all future
-  if let Some(auth_service) = auth_service {
+  let select_res = if let Some(auth_service) = auth_service {
     select! {
-      _ = auth_service.fuse() => {
+      auth_res = auth_service.fuse() => {
         warn!("Auth service is down, or term notified");
+        auth_res
       }
-      _ = proxy_service.fuse() => {
+      proxy_res = proxy_service.fuse() => {
         warn!("Proxy services are down, or term notified");
+        proxy_res.0
       },
-      _ = ip_resolution_service.fuse() => {
+      ip_res = ip_resolution_service.fuse() => {
         warn!("Ip resolution service is down, or term notified");
+        ip_res
       },
-      _ = healthcheck_service.fuse() => {
+      health_res = healthcheck_service.fuse() => {
         warn!("Health check service is down, or term notified");
+        health_res
       }
     }
   } else {
     select! {
-      _ = proxy_service.fuse() => {
+      proxy_res = proxy_service.fuse() => {
         warn!("Proxy services are down, or term notified");
+        proxy_res.0
       },
-      _ = ip_resolution_service.fuse() => {
+      ip_res = ip_resolution_service.fuse() => {
         warn!("Ip resolution service is down, or term notified");
+        ip_res
       },
-      _ = healthcheck_service.fuse() => {
+      health_res = healthcheck_service.fuse() => {
         warn!("Health check service is down, or term notified");
+        health_res
       }
     }
-  }
+  };
 
-  Ok(())
+  let Ok(res_inner) = select_res else {
+    return Err(DapError::ServiceDown("Somthing went wrong in the service loop".to_string()));
+  };
+  res_inner
 }
