@@ -49,6 +49,7 @@ fn main() {
           error!("proxy service existed: {e}");
           std::process::exit(1);
         }
+        else => { }
       }
     }
   });

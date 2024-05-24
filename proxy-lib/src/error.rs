@@ -8,10 +8,12 @@ pub type Result<T> = std::result::Result<T, DapError>;
 /// Describes things that can go wrong in the Rpxy
 #[derive(Debug, Error)]
 pub enum DapError {
-  #[error("Service error: {0}")]
+  #[error("Service down: {0}")]
   ServiceDown(String),
-  #[error("Proxy service error: {0}")]
+  #[error("Proxy service exited: {0}")]
   ProxyServiceError(String),
+  #[error("Query log service exited")]
+  QueryLogServiceError,
 
   #[error("Bootstrap dns client error: {0}")]
   BootstrapDnsClientError(#[from] hickory_client::error::ClientError),

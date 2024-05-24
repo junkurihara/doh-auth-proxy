@@ -33,12 +33,12 @@ pub async fn entrypoint(
   info!("Start DoH w/ Auth Proxy");
 
   // build query logger
-  let query_log_tx = {
+  let (query_log_tx, query_log_service) = {
     let (tx, mut logger) = QueryLogger::new(term_notify.clone());
-    runtime_handle.spawn(async move {
+    let service = runtime_handle.spawn(async move {
       logger.start().await;
     });
-    tx
+    (tx, service)
   };
 
   // build global
@@ -123,6 +123,10 @@ pub async fn entrypoint(
         warn!("Health check service is down, or term notified");
         health_res
       }
+      query_log_res = query_log_service.fuse() => {
+        warn!("Query log service is down, or term notified");
+        query_log_res.map(|_| Err(DapError::QueryLogServiceError))
+      }
     }
   } else {
     select! {
@@ -137,6 +141,10 @@ pub async fn entrypoint(
       health_res = healthcheck_service.fuse() => {
         warn!("Health check service is down, or term notified");
         health_res
+      }
+      query_log_res = query_log_service.fuse() => {
+        warn!("Query log service is down, or term notified");
+        query_log_res.map(|_| Err(DapError::QueryLogServiceError))
       }
     }
   };
