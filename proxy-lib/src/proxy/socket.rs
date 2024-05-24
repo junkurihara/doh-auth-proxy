@@ -12,7 +12,10 @@ pub(super) fn bind_tcp_socket(listening_on: &SocketAddr) -> Result<TcpSocket> {
     TcpSocket::new_v4()
   }?;
   tcp_socket.set_reuseaddr(true)?;
+
+  #[cfg(not(target_os = "windows"))]
   tcp_socket.set_reuseport(true)?;
+
   if let Err(e) = tcp_socket.bind(*listening_on) {
     error!("Failed to bind TCP socket: {}", e);
     return Err(DapError::Io(e));
@@ -29,7 +32,10 @@ pub(super) fn bind_udp_socket(listening_on: &SocketAddr) -> Result<UdpSocket> {
     Socket::new(Domain::IPV4, Type::DGRAM, Some(Protocol::UDP))
   }?;
   socket.set_reuse_address(true)?;
+
+  #[cfg(not(target_os = "windows"))]
   socket.set_reuse_port(true)?;
+
   socket.set_nonblocking(true)?; // This is important to use `recv_from` in the UDP listener
 
   if let Err(e) = socket.bind(&(*listening_on).into()) {
