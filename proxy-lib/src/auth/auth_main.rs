@@ -49,10 +49,7 @@ pub struct Authenticator {
 }
 impl Authenticator {
   /// Build authentication client with initial login
-  pub async fn new(
-    auth_config: &AuthenticationConfig,
-    http_client: Arc<RwLock<HttpClientInner>>,
-  ) -> Result<Self, DapError> {
+  pub async fn new(auth_config: &AuthenticationConfig, http_client: Arc<RwLock<HttpClientInner>>) -> Result<Self, DapError> {
     let inner = TokenClient::new(auth_config, http_client).await?;
     inner.login().await?;
     Ok(Self { inner })
