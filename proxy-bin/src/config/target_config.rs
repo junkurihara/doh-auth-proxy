@@ -221,25 +221,24 @@ impl TryInto<ProxyConfig> for &TargetConfig {
     if let Some(auth) = &self.config_toml.authentication {
       if let (Some(credential_file), Some(token_api)) = (&auth.credential_file, &auth.token_api) {
         let cred_path = env::current_dir()?.join(credential_file);
-        dotenv::from_path(cred_path).ok();
-        let Ok(username) = env::var(CREDENTIAL_USERNAME_FIELD) else {
+        let env_vars = env_file_reader::read_file(cred_path.clone())?;
+        let Some(username) = env_vars.get(CREDENTIAL_USERNAME_FIELD) else {
           bail!("No username is given in the credential file.");
         };
-        let Ok(password) = env::var(CREDENTIAL_API_KEY_FIELD) else {
+        let Some(password) = env_vars.get(CREDENTIAL_API_KEY_FIELD) else {
           bail!("No password is given in the credential file.");
         };
-        let Ok(client_id) = env::var(CREDENTIAL_CLIENT_ID_FIELD) else {
+        let Some(client_id) = env_vars.get(CREDENTIAL_CLIENT_ID_FIELD) else {
           bail!("No client_id is given in the credential file.");
         };
         if verify_target_url(token_api).is_err() {
           bail!("Invalid token api urls");
         }
         info!("Token API: {}", token_api);
-
         let authentication_config = AuthenticationConfig {
-          username,
-          password,
-          client_id,
+          username: username.to_string(),
+          password: password.to_string(),
+          client_id: client_id.to_string(),
           token_api: token_api.parse().unwrap(),
         };
         proxy_config.authentication_config = Some(authentication_config);
