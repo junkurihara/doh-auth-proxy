@@ -15,7 +15,9 @@ publish.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-doh-auth-proxy-lib = { path = "../proxy-lib/" }
+doh-auth-proxy-lib = { path = "../proxy-lib/", default-features = false, features = [
+  "anonymous-token",
+] }
 
 anyhow = "1.0.86"
 mimalloc = { version = "*", default-features = false }

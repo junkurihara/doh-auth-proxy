@@ -71,4 +71,5 @@ hickory-client = "0.24.1"
 urlencoding = "2.1.3"
 
 [features]
-default = []
+default = ["anonymous-token"]
+anonymous-token = ["auth-client/blind-signatures"]

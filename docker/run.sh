@@ -20,6 +20,7 @@ EOF
   echo "Authorization is enabled to the token API: ${TOKEN_API}"
   CREDENTIAL_FP="credential_file = \"${CREDENTIAL_FILE_PATH}\""
   CREDENTIAL_API="token_api = \"${TOKEN_API}\""
+  USE_ANONYMOUS_TOKEN_STR="use_anonymous_token = ${USE_ANONYMOUS_TOKEN:-false}"
 fi
 
 ##########################
@@ -96,6 +97,7 @@ ${TARGET_RAND_STRING}
 [authentication]
 ${CREDENTIAL_API}
 ${CREDENTIAL_FP}
+${USE_ANONYMOUS_TOKEN_STR}
 
 [anonymization]
 ${ODOH_RELAY_URL_STRING}
