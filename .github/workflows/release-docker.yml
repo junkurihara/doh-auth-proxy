@@ -3,6 +3,7 @@ name: Nightly and release build
 on:
   push:
     branches:
+      - "feat/*"
       - "develop"
   pull_request:
     types: [closed]
@@ -49,7 +50,7 @@ jobs:
 
       - name: Release Build and push x86_64
         if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'develop' && github.event.pull_request.base.ref == 'main' && github.event.pull_request.merged == true }}
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
@@ -63,7 +64,7 @@ jobs:
 
       - name: Nightly build and push x86_64
         if: ${{ (github.ref_name == 'develop') && (github.event_name == 'push') }}
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
@@ -73,6 +74,20 @@ jobs:
           file: ./docker/Dockerfile
           cache-from: type=gha,scope=doh-auth-proxy-nightly
           cache-to: type=gha,mode=max,scope=doh-auth-proxy-nightly
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Unstable build and push x86_64 for 'feat/*' branches (for development purposes)
+        if: ${{ startsWith(github.ref_name, 'feat/') && (github.event_name == 'push') }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.GHCR }}/${{ env.GHCR_IMAGE_NAME }}:unstable
+            ${{ env.DH_REGISTRY_NAME }}:unstable
+          file: ./docker/Dockerfile
+          cache-from: type=gha,scope=doh-auth-proxy-unstable
+          cache-to: type=gha,mode=max,scope=doh-auth-proxy-unstable
           labels: ${{ steps.meta.outputs.labels }}
 
   dispatch_release:
