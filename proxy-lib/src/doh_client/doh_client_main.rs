@@ -257,7 +257,7 @@ impl DoHClient {
     match &self.auth_client {
       Some(auth) => {
         debug!("build headers with http authorization header");
-        let token = auth.id_token().await?;
+        let token = auth.bearer_token().await?;
         let token_str = format!("Bearer {}", &token);
         headers.insert(header::AUTHORIZATION, header::HeaderValue::from_str(&token_str).unwrap());
         Ok(headers)

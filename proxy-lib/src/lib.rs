@@ -17,7 +17,9 @@ use futures::{
 use std::sync::Arc;
 
 pub use auth_client::AuthenticationConfig;
-pub use globals::{BootstrapDns, NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig, TargetConfig};
+pub use globals::{
+  BootstrapDns, NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig, TargetConfig, TokenConfig,
+};
 
 /// entrypoint of DoH w/ Auth Proxy
 /// This spawns UDP and TCP listeners and spawns the following services
@@ -60,8 +62,8 @@ pub async fn entrypoint(
   } else {
     endpoint_candidates.extend(proxy_config.target_config.doh_target_urls.clone());
   }
-  if let Some(auth) = &proxy_config.authentication_config {
-    endpoint_candidates.push(auth.token_api.clone());
+  if let Some(auth) = &proxy_config.token_config {
+    endpoint_candidates.push(auth.authentication_config.token_api.clone());
   }
   let http_client = HttpClient::new(proxy_config, &endpoint_candidates, None, bootstrap_dns_resolver.clone()).await?;
   let http_client = Arc::new(http_client);
@@ -70,8 +72,8 @@ pub async fn entrypoint(
   let term_notify_clone = term_notify.clone();
   let mut authenticator = None;
   let mut auth_service = None;
-  if let Some(auth_config) = &proxy_config.authentication_config {
-    let auth = Arc::new(auth::Authenticator::new(auth_config, http_client.inner()).await?);
+  if let Some(token_config) = &proxy_config.token_config {
+    let auth = Arc::new(auth::Authenticator::new(token_config, http_client.inner()).await?);
     let auth_clone = auth.clone();
     let auth_service_inner = runtime_handle.spawn(async move { auth_clone.start_service(term_notify_clone).await });
     authenticator = Some(auth);

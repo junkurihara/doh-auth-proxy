@@ -13,7 +13,15 @@
 You should also include the user name that made the change.
 -->
 
-## 0.4 (Unreleased)
+## 0.5.0
+
+- Feat: Support anonymous token based on blind RSA signatures.
+- Refactor: Various minor improvements
+
+## 0.4.0
+
+- Feat: DNS query logging (`qrlog` feature)
+- Refactor: Various minor improvements
 
 ## 0.3.2
 

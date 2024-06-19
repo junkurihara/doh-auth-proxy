@@ -80,6 +80,10 @@ pub const TOKEN_RELOGIN_WAITING_SEC: u64 = 10;
 /// relogin at most 5 times
 pub const MAX_RELOGIN_ATTEMPTS: usize = 5;
 
+#[cfg(feature = "anonymous-token")]
+/// check blindjwks endpoint every 15 mins
+pub const BLIND_JWKS_ENDPOINT_WATCH_DELAY_SEC: u64 = 60 * 15;
+
 // Health check
 
 /// Health check target FQDN

@@ -30,6 +30,10 @@ pub enum DapError {
   #[error("Failed all attempts of login and refresh")]
   FailedAllAttemptsOfLoginAndRefresh,
 
+  #[cfg(feature = "anonymous-token")]
+  #[error("Failed to check blind validation key aliveness")]
+  FailedToCheckBlindValidationKey,
+
   #[error("Token error: {0}")]
   TokenError(String),
 

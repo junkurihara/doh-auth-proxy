@@ -1,5 +1,4 @@
 use crate::{bootstrap::BootstrapDnsInner, constants::*, QueryLoggingBase};
-use auth_client::AuthenticationConfig;
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{sync::Notify, time::Duration};
 use url::Url;
@@ -62,7 +61,7 @@ pub struct ProxyConfig {
   pub subseq_relay_config: Option<SubseqRelayConfig>,
 
   /// authentication settings
-  pub authentication_config: Option<AuthenticationConfig>,
+  pub token_config: Option<TokenConfig>,
 
   /// query manipulation settings
   pub query_manipulation_config: Option<Arc<QueryManipulationConfig>>,
@@ -88,6 +87,16 @@ pub struct NextHopRelayConfig {
 pub struct SubseqRelayConfig {
   pub mid_relay_urls: Vec<Url>,
   pub max_mid_relays: usize,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct TokenConfig {
+  /// authentication client configuration inner
+  pub authentication_config: auth_client::AuthenticationConfig,
+  #[cfg(feature = "anonymous-token")]
+  /// use anonymous token instead of ID token for the connection to the next hop node
+  /// only if the authentication is configured. if not, no token is set in the http authorization header.
+  pub use_anonymous_token: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -196,7 +205,7 @@ impl Default for ProxyConfig {
       nexthop_relay_config: None,
       subseq_relay_config: None,
 
-      authentication_config: None,
+      token_config: None,
 
       query_manipulation_config: None,
     }

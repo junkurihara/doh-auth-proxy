@@ -1,7 +1,9 @@
 use super::{toml::ConfigToml, utils_dns_proto::parse_proto_sockaddr_str, utils_verifier::*};
 use crate::{constants::*, error::*, log::*};
 use async_trait::async_trait;
-use doh_auth_proxy_lib::{AuthenticationConfig, NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig};
+use doh_auth_proxy_lib::{
+  AuthenticationConfig, NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig, TokenConfig,
+};
 use hot_reload::{Reload, ReloaderError};
 use std::{env, sync::Arc};
 use tokio::time::Duration;
@@ -133,7 +135,7 @@ impl TryInto<ProxyConfig> for &TargetConfig {
     if let Some(val) = &self.config_toml.target_randomization {
       if !val {
         proxy_config.target_config.target_randomization = false;
-        info!("Target randomization is disbled");
+        info!("Target randomization is disabled");
       }
     }
     if let Some(val) = self.config_toml.use_get_method {
@@ -235,27 +237,37 @@ impl TryInto<ProxyConfig> for &TargetConfig {
           bail!("Invalid token api urls");
         }
         info!("Token API: {}", token_api);
-        let authentication_config = AuthenticationConfig {
-          username: username.to_string(),
-          password: password.to_string(),
-          client_id: client_id.to_string(),
-          token_api: token_api.parse().unwrap(),
+
+        let use_anonymous_token = auth.use_anonymous_token.unwrap_or(false);
+        if use_anonymous_token {
+          info!("Use anonymous token for the secure channel to the nexthop node");
+        } else {
+          info!("Use ID token for the secure channel to the nexthop node");
+        }
+        let token_config = TokenConfig {
+          authentication_config: AuthenticationConfig {
+            username: username.to_string(),
+            password: password.to_string(),
+            client_id: client_id.to_string(),
+            token_api: token_api.parse().unwrap(),
+          },
+          use_anonymous_token,
         };
-        proxy_config.authentication_config = Some(authentication_config);
+        proxy_config.token_config = Some(token_config);
       }
     };
 
     ////////////////////////
-    if proxy_config.authentication_config.is_some() {
+    if proxy_config.token_config.is_some() {
       if proxy_config.nexthop_relay_config.is_some() {
         warn!("-----------------------------------");
         warn!("[NOTE!!!!] Both credential and ODoH nexthop proxy is set up.");
-        warn!("[NOTE!!!!] This means the authorization token will be sent not to the target but to the proxy.");
+        warn!("[NOTE!!!!] This means the authorization token (ID or anonymous token) will be sent not to the target but to the proxy.");
         warn!("[NOTE!!!!] Check if this is your intended behavior.");
         warn!("-----------------------------------");
       } else {
         warn!("-----------------------------------");
-        warn!("[NOTE!!!!] Authorization token will be sent to the target server!");
+        warn!("[NOTE!!!!] Authorization token (ID or anonymous token) will be sent to the target server!");
         warn!("[NOTE!!!!] Check if this is your intended behavior.");
         warn!("-----------------------------------");
       }
