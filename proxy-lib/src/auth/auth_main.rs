@@ -11,6 +11,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use url::Url;
 
+/* ------------------------------------------------------------------ */
 #[async_trait]
 /// TokenHttpClient trait implementation for HttpClientInner to use it in auth_client::TokenClient
 impl TokenHttpClient for HttpClientInner {
@@ -43,6 +44,7 @@ impl TokenHttpClient for HttpClientInner {
   }
 }
 
+/* ------------------------------------------------------------------ */
 /// Authentication client
 pub struct Authenticator {
   inner: TokenClient<HttpClientInner>,

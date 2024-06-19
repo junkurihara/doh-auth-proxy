@@ -31,13 +31,13 @@ tokio = { version = "1.38.0", default-features = false, features = [
 async-trait = "0.1.80"
 
 # config
-clap = { version = "4.5.4", features = ["std", "cargo", "wrap_help"] }
-toml = { version = "0.8.13", default-features = false, features = ["parse"] }
+clap = { version = "4.5.7", features = ["std", "cargo", "wrap_help"] }
+toml = { version = "0.8.14", default-features = false, features = ["parse"] }
 hot_reload = "0.1.5"
 
 # logging
 tracing = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18", features = ["chrono", "json"] }
 
-url = "2.5.0"
+url = "2.5.2"
 env-file-reader = "0.3.0"
