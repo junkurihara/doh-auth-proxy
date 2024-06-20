@@ -83,6 +83,8 @@ impl Authenticator {
 
     #[cfg(feature = "anonymous-token")]
     if token_config.use_anonymous_token {
+      // fetch blind validation key
+      let _ = inner.update_blind_validation_key_if_stale().await?;
       // request anonymous token to the token server
       inner.request_blind_signature_with_id_token().await?;
       info!("Successful request for signing blind signature with ID token");
@@ -115,6 +117,13 @@ impl Authenticator {
     }
 
     Ok(())
+  }
+
+  #[cfg(feature = "anonymous-token")]
+  /// Update blind validation key if it is stale
+  pub(super) async fn update_blind_validation_key_if_stale(&self) -> Result<bool, DapError> {
+    let res = self.inner.update_blind_validation_key_if_stale().await?;
+    Ok(res)
   }
 
   #[cfg(feature = "anonymous-token")]

@@ -73,16 +73,39 @@ impl Authenticator {
     use crate::constants::BLIND_JWKS_ENDPOINT_WATCH_DELAY_SEC;
     info!("Start periodic signing request service to retrieve anonymous token");
 
+    // In `new` method, the blind validation key is already fetch and the anonymous token is already requested.
+    // So we first sleep for the delay time.
+    sleep(Duration::from_secs(BLIND_JWKS_ENDPOINT_WATCH_DELAY_SEC)).await;
+
+    let mut expired_refetch_cnt = 0;
     loop {
+      // Check if the blind validation key is up-to-date.
+      let Ok(is_updated) = self.update_blind_validation_key_if_stale().await else {
+        error!("Failed to update the blind validation key. Terminating anonymous token service.");
+        return Err(DapError::FailedToCheckBlindValidationKey);
+      };
+
+      // Check if the blind validation key is alive just in case
       let Ok(remaining) = self.blind_remaining_seconds_until_expiration().await else {
         error!("Failed to check if the blind validation key is alive. Terminating anonymous token service.");
         return Err(DapError::FailedToCheckBlindValidationKey);
       };
+      if remaining < 0 {
+        error!("Blind validation key is already expired. refetch again.");
+        if expired_refetch_cnt >= MAX_RELOGIN_ATTEMPTS {
+          error!("Failed to refetch the blind validation key. Terminating anonymous token service.");
+          return Err(DapError::FailedAllAttemptsOfLoginAndRefresh);
+        }
+        expired_refetch_cnt += 1;
+        sleep(Duration::from_secs(TOKEN_RELOGIN_WAITING_SEC)).await;
+        continue;
+      }
+      expired_refetch_cnt = 0;
 
-      // This simply updates the anonymous token if the blind validation key is stale.
-      if remaining <= 0 {
+      // This simply (re)generates the anonymous token if the blind validation key was stale (just updated).
+      if is_updated {
         // request blind signature with ID token
-        debug!("Blind validation key is expired. Requesting blind signature with ID token.");
+        debug!("Requesting blind signature with ID token.");
         let mut cnt = 0;
         while cnt < MAX_RELOGIN_ATTEMPTS {
           if self.request_blind_signature_with_id_token().await.is_ok() {
