@@ -82,7 +82,7 @@ pub const MAX_RELOGIN_ATTEMPTS: usize = 5;
 
 #[cfg(feature = "anonymous-token")]
 /// check if blindjwks endpoint is updated every 5 mins
-pub const BLIND_JWKS_ENDPOINT_WATCH_DELAY_SEC: u64 = 60; // * 5;
+pub const BLIND_JWKS_ENDPOINT_WATCH_DELAY_SEC: u64 = 60 * 5;
 
 // Health check
 
