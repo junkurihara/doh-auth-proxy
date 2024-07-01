@@ -16,7 +16,7 @@ use futures::{
 use std::sync::Arc;
 
 pub use auth_client::AuthenticationConfig;
-pub use error::{AuthenticatorError, DapError, DohClientError, HttpClientError};
+pub use error::{AuthenticatorError, DohClientError, Error, HttpClientError};
 pub use globals::{
   BootstrapDns, NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig, TargetConfig, TokenConfig,
 };
@@ -111,7 +111,7 @@ pub async fn entrypoint(
     select! {
       auth_res = auth_service.fuse() => {
         warn!("Auth service is down, or term notified");
-        auth_res.map(|res| res.map_err(DapError::AuthenticatorError))
+        auth_res.map(|res| res.map_err(Error::AuthenticatorError))
       }
       proxy_res = proxy_service.fuse() => {
         warn!("Proxy services are down, or term notified");
@@ -119,15 +119,15 @@ pub async fn entrypoint(
       },
       ip_res = ip_resolution_service.fuse() => {
         warn!("Ip resolution service is down, or term notified");
-        ip_res.map(|res| res.map_err(DapError::HttpClientError))
+        ip_res.map(|res| res.map_err(Error::HttpClientError))
       },
       health_res = healthcheck_service.fuse() => {
         warn!("Health check service is down, or term notified");
-        health_res.map(|res| res.map_err(DapError::DohClientError))
+        health_res.map(|res| res.map_err(Error::DohClientError))
       }
       query_log_res = query_log_service.fuse() => {
         warn!("Query log service is down, or term notified");
-        query_log_res.map(|_| Err(DapError::QueryLogServiceError))
+        query_log_res.map(|_| Err(Error::QueryLogServiceError))
       }
     }
   } else {
@@ -138,21 +138,21 @@ pub async fn entrypoint(
       },
       ip_res = ip_resolution_service.fuse() => {
         warn!("Ip resolution service is down, or term notified");
-        ip_res.map(|res| res.map_err(DapError::HttpClientError))
+        ip_res.map(|res| res.map_err(Error::HttpClientError))
       },
       health_res = healthcheck_service.fuse() => {
         warn!("Health check service is down, or term notified");
-        health_res.map(|res| res.map_err(DapError::DohClientError))
+        health_res.map(|res| res.map_err(Error::DohClientError))
       }
       query_log_res = query_log_service.fuse() => {
         warn!("Query log service is down, or term notified");
-        query_log_res.map(|_| Err(DapError::QueryLogServiceError))
+        query_log_res.map(|_| Err(Error::QueryLogServiceError))
       }
     }
   };
 
   let Ok(res_inner) = select_res else {
-    return Err(DapError::ServiceDown("Something went wrong in the service loop".to_string()));
+    return Err(Error::ServiceDown("Something went wrong in the service loop".to_string()));
   };
   res_inner
 }

@@ -5,11 +5,11 @@ pub use crate::auth::AuthenticatorError;
 pub use crate::doh_client::DohClientError;
 pub use crate::http_client::HttpClientError;
 
-pub(crate) type Result<T> = std::result::Result<T, DapError>;
+pub(crate) type Result<T> = std::result::Result<T, Error>;
 
-/// Describes things that can go wrong in the Rpxy
+/// Describes things that can go wrong in the doh-auth-proxy
 #[derive(Debug, thiserror::Error)]
-pub enum DapError {
+pub enum Error {
   /// Error from the authenticator
   #[error(transparent)]
   AuthenticatorError(#[from] AuthenticatorError),
