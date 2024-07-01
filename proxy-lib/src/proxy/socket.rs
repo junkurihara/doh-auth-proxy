@@ -18,7 +18,7 @@ pub(super) fn bind_tcp_socket(listening_on: &SocketAddr) -> Result<TcpSocket> {
 
   if let Err(e) = tcp_socket.bind(*listening_on) {
     error!("Failed to bind TCP socket: {}", e);
-    return Err(DapError::Io(e));
+    return Err(Error::Io(e));
   };
   Ok(tcp_socket)
 }
@@ -40,7 +40,7 @@ pub(super) fn bind_udp_socket(listening_on: &SocketAddr) -> Result<UdpSocket> {
 
   if let Err(e) = socket.bind(&(*listening_on).into()) {
     error!("Failed to bind UDP socket: {}", e);
-    return Err(DapError::Io(e));
+    return Err(Error::Io(e));
   };
   let udp_socket: UdpSocket = socket.into();
 

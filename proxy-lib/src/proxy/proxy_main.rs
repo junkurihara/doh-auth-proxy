@@ -75,7 +75,7 @@ impl Proxy {
 
     // If something goes wrong in any of the futures, we will return the error
     let Ok(Ok(_)) = select(udp_fut, tcp_fut).await.factor_first().0 else {
-      return Err(DapError::ProxyServiceError("UDP or TCP listener failed".to_string()));
+      return Err(Error::ProxyServiceError("UDP or TCP listener failed".to_string()));
     };
 
     Ok(())

@@ -2,9 +2,10 @@ use crate::{
   constants::BOOTSTRAP_DNS_TIMEOUT_MSEC,
   error::*,
   globals::BootstrapDns,
+  http_client::{ResolveIpResponse, ResolveIps},
   log::*,
-  trait_resolve_ips::{ResolveIpResponse, ResolveIps},
 };
+use anyhow::anyhow;
 use async_trait::async_trait;
 use hickory_client::{
   client::{AsyncClient, ClientHandle},
@@ -40,13 +41,13 @@ pub(crate) enum BootstrapDnsProto {
   Tcp,
 }
 impl std::str::FromStr for BootstrapDnsProto {
-  type Err = DapError;
+  type Err = Error;
 
   fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
     match s {
       "udp" => Ok(Self::Udp),
       "tcp" => Ok(Self::Tcp),
-      _ => Err(DapError::Other(anyhow!("Invalid bootstrap dns protocol"))),
+      _ => Err(Error::Other(anyhow!("Invalid bootstrap dns protocol"))),
     }
   }
 }
@@ -82,11 +83,11 @@ impl BootstrapDnsInner {
       proto: <BootstrapDnsProto as std::str::FromStr>::from_str(proto)?,
       addr: addr
         .parse()
-        .map_err(|e| DapError::Other(anyhow!("Invalid bootstrap dns address: {}", e)))?,
+        .map_err(|e| Error::Other(anyhow!("Invalid bootstrap dns address: {}", e)))?,
     })
   }
   /// Lookup the IP addresses associated with a name using the bootstrap resolver connection
-  pub(crate) async fn lookup_ips(&self, fqdn: &str, runtime_handle: tokio::runtime::Handle) -> Result<Vec<IpAddr>> {
+  async fn lookup_ips(&self, fqdn: &str, runtime_handle: tokio::runtime::Handle) -> Result<Vec<IpAddr>> {
     let timeout = Duration::from_millis(BOOTSTRAP_DNS_TIMEOUT_MSEC);
     let bg_close_notify = Arc::new(Notify::new());
 
@@ -131,7 +132,7 @@ impl BootstrapDnsInner {
         _ = bg => debug!("Bootstrap dns client background task finished")
       }
     });
-    let name = Name::from_str(fqdn).map_err(|e| DapError::InvalidFqdn(e.to_string()))?;
+    let name = Name::from_str(fqdn).map_err(|e| Error::InvalidFqdn(e.to_string()))?;
 
     // First try to lookup an A record, if failed, try AAAA.
     let response = client.query(name.clone(), DNSClass::IN, RecordType::A).await?;
@@ -150,7 +151,7 @@ impl BootstrapDnsInner {
       .filter_map(|aaaa| aaaa.data().and_then(|v| v.as_aaaa()).map(|v| IpAddr::V6(v.0)))
       .collect::<Vec<_>>();
     if ipv6s.is_empty() {
-      return Err(DapError::InvalidBootstrapDnsResponse);
+      return Err(Error::InvalidBootstrapDnsResponse);
     }
     Ok(ipv6s)
   }
@@ -181,13 +182,14 @@ impl BootstrapDnsResolver {
 
 #[async_trait]
 impl ResolveIps for Arc<BootstrapDnsResolver> {
+  type Err = Error;
   /// Lookup the IP addresses associated with a name using the bootstrap resolver
   async fn resolve_ips(&self, target_url: &Url) -> Result<ResolveIpResponse> {
     // The final dot forces this to be an FQDN, otherwise the search rules as specified
     // in `ResolverOpts` will take effect. FQDN's are generally cheaper queries.
     let host = target_url
       .host_str()
-      .ok_or_else(|| DapError::Other(anyhow!("Unable to parse target host name")))?;
+      .ok_or_else(|| Self::Err::Other(anyhow!("Unable to parse target host name")))?;
     let fqdn = format!("{host}.");
 
     let port = target_url
@@ -217,7 +219,7 @@ impl ResolveIps for Arc<BootstrapDnsResolver> {
       }
     }
 
-    Err(DapError::Other(anyhow!(
+    Err(Self::Err::Other(anyhow!(
       "Invalid target url: {target_url}, cannot resolve ip address"
     )))
   }

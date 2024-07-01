@@ -1,7 +1,11 @@
-use super::{dns_message, path_manage::DoHPath, DoHClient};
+use super::{
+  dns_message,
+  error::{DohClientError, DohClientResult},
+  path_manage::DoHPath,
+  DoHClient,
+};
 use crate::{
   constants::{HEALTHCHECK_RETRY_WAITING_SEC, HEALTHCHECK_TARGET_ADDR, HEALTHCHECK_TARGET_FQDN, MAX_ALL_UNHEALTHY_RETRY},
-  error::*,
   log::*,
 };
 use futures::future::join_all;
@@ -11,7 +15,7 @@ use tokio::sync::Notify;
 
 impl DoHClient {
   /// Start health check service
-  pub async fn start_healthcheck_service(&self, term_notify: Option<Arc<Notify>>) -> Result<()> {
+  pub async fn start_healthcheck_service(&self, term_notify: Option<Arc<Notify>>) -> DohClientResult<()> {
     info!("Start periodic path health check service with cache purge");
     match term_notify {
       Some(term) => {
@@ -37,7 +41,7 @@ impl DoHClient {
   /// Health check service periodically executes
   /// - health of every path;
   /// - purge expired DNS cache
-  async fn healthcheck_service(&self) -> Result<()> {
+  async fn healthcheck_service(&self) -> DohClientResult<()> {
     let mut all_unhealthy_cnt = 0;
     // purge expired DNS cache
     loop {
@@ -53,7 +57,7 @@ impl DoHClient {
         if let Err(e) = self.healthcheck(path).await {
           warn!("Healthcheck fails for {}: {e}", path.as_url()?)
         }
-        Ok(()) as Result<()>
+        Ok(()) as DohClientResult<()>
       });
       let _ = join_all(futures).await;
 
@@ -61,7 +65,7 @@ impl DoHClient {
         all_unhealthy_cnt += 1;
         error!("All possible paths are unhealthy. Should check the Internet connection");
         if all_unhealthy_cnt > MAX_ALL_UNHEALTHY_RETRY {
-          return Err(DapError::AllPathsUnhealthy);
+          return Err(DohClientError::AllPathsUnhealthy);
         }
         tokio::time::sleep(tokio::time::Duration::from_secs(HEALTHCHECK_RETRY_WAITING_SEC)).await;
         continue;
@@ -71,7 +75,7 @@ impl DoHClient {
   }
 
   /// Check health for a given path, and update health status for the path.
-  async fn healthcheck(&self, path: &Arc<DoHPath>) -> Result<()> {
+  async fn healthcheck(&self, path: &Arc<DoHPath>) -> DohClientResult<()> {
     let q_msg = dns_message::build_query_a(HEALTHCHECK_TARGET_FQDN)?;
     let packet_buf = dns_message::encode(&q_msg)?;
 

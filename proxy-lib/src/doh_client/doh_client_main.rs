@@ -1,6 +1,7 @@
 use super::{
   cache::Cache,
   dns_message::{self, Request},
+  error::{DohClientError, DohClientResult},
   manipulation::{QueryManipulationResult, QueryManipulators},
   odoh_config_store::ODoHConfigStore,
   path_manage::{DoHPath, DoHPathManager},
@@ -8,12 +9,10 @@ use super::{
 };
 use crate::{
   auth::Authenticator,
-  error::*,
   globals::Globals,
-  http_client::HttpClientInner,
+  http_client::{HttpClientInner, ResolveIpResponse, ResolveIps},
   log::*,
   proxy::ProxyProtocol,
-  trait_resolve_ips::{ResolveIpResponse, ResolveIps},
 };
 use async_trait::async_trait;
 use data_encoding::BASE64URL_NOPAD;
@@ -57,7 +56,7 @@ impl DoHClient {
     globals: Arc<Globals>,
     http_client: Arc<RwLock<HttpClientInner>>,
     auth_client: Option<Arc<Authenticator>>,
-  ) -> Result<Self> {
+  ) -> DohClientResult<Self> {
     // 1. build all path candidates from globals
     let path_manager = Arc::new(DoHPathManager::new(&globals)?);
 
@@ -65,7 +64,7 @@ impl DoHClient {
     let odoh_configs = match &globals.proxy_config.nexthop_relay_config {
       Some(nexthop_relay_config) => {
         if nexthop_relay_config.odoh_relay_urls.is_empty() {
-          return Err(DapError::ODoHNoRelayUrl);
+          return Err(DohClientError::ODoHNoRelayUrl);
         }
         let odoh_configs = Arc::new(ODoHConfigStore::new(http_client.clone(), &path_manager.targets()).await?);
         let odoh_config_clone = odoh_configs.clone();
@@ -171,19 +170,19 @@ impl DoHClient {
 
   /// Make DoH query with intended automatic path selection.
   /// Also cache and plugins are enabled
-  pub async fn make_doh_query(&self, packet_buf: &[u8], proto: ProxyProtocol, src: &SocketAddr) -> Result<Vec<u8>> {
+  pub async fn make_doh_query(&self, packet_buf: &[u8], proto: ProxyProtocol, src: &SocketAddr) -> DohClientResult<Vec<u8>> {
     let start = std::time::Instant::now();
 
     // Check if the given packet buffer is consistent as a DNS query
     let query_msg = dns_message::is_query(packet_buf).map_err(|e| {
       error!("{e}");
-      DapError::InvalidDnsQuery
+      DohClientError::InvalidDnsQuery
     })?;
     // TODO: If error, should we build and return a synthetic reject response message?
     let query_id = query_msg.id();
     let req = Request::try_from(&query_msg).map_err(|e| {
       error!("Failed to parse DNS query, maybe invalid DNS query: {e}");
-      DapError::InvalidDnsQuery
+      DohClientError::InvalidDnsQuery
     })?;
 
     // Process query plugins from the beginning of vec, e.g., domain filtering, cloaking, etc.
@@ -217,7 +216,7 @@ impl DoHClient {
 
     // choose path
     let Some(path) = self.path_manager.get_path() else {
-      return Err(DapError::NoPathAvailable);
+      return Err(DohClientError::NoPathAvailable);
     };
 
     // make doh query with the given path
@@ -236,7 +235,7 @@ impl DoHClient {
 
   /// Make DoH query with a specifically given path.
   /// Note cache and plugins are disabled to be used for health check
-  pub(super) async fn make_doh_query_inner(&self, packet_buf: &[u8], path: &Arc<DoHPath>) -> Result<(Vec<u8>, Message)> {
+  pub(super) async fn make_doh_query_inner(&self, packet_buf: &[u8], path: &Arc<DoHPath>) -> DohClientResult<(Vec<u8>, Message)> {
     let headers = self.build_headers().await?;
     let response_buf = match self.doh_type {
       DoHType::Standard => self.serve_doh_query(packet_buf, path, headers).await,
@@ -246,13 +245,13 @@ impl DoHClient {
     // TODO: If error, should we build and return a synthetic reject response message?
     let response_message = dns_message::is_response(&response_buf).map_err(|e| {
       error!("{e}");
-      DapError::InvalidDnsResponse
+      DohClientError::InvalidDnsResponse
     })?;
     Ok((response_buf, response_message))
   }
 
   //// build headers for doh and odoh query with authorization if needed
-  async fn build_headers(&self) -> Result<header::HeaderMap> {
+  async fn build_headers(&self) -> DohClientResult<header::HeaderMap> {
     let mut headers = self.headers.clone();
     match &self.auth_client {
       Some(auth) => {
@@ -267,7 +266,7 @@ impl DoHClient {
   }
 
   /// serve doh query
-  async fn serve_doh_query(&self, packet_buf: &[u8], target_url: &Arc<DoHPath>, headers: HeaderMap) -> Result<Vec<u8>> {
+  async fn serve_doh_query(&self, packet_buf: &[u8], target_url: &Arc<DoHPath>, headers: HeaderMap) -> DohClientResult<Vec<u8>> {
     let target_url = target_url.as_url()?;
     debug!("[DoH] target url: {}", target_url.as_str());
 
@@ -292,7 +291,7 @@ impl DoHClient {
 
     if response.status() != reqwest::StatusCode::OK {
       error!("DoH query error!: {:?}", response.status());
-      return Err(DapError::DoHQueryError);
+      return Err(DohClientError::DoHQueryError);
     }
 
     let body = response.bytes().await?;
@@ -300,20 +299,25 @@ impl DoHClient {
   }
 
   /// serve oblivious doh query
-  async fn serve_oblivious_doh_query(&self, packet_buf: &[u8], odoh_path: &Arc<DoHPath>, headers: HeaderMap) -> Result<Vec<u8>> {
+  async fn serve_oblivious_doh_query(
+    &self,
+    packet_buf: &[u8],
+    odoh_path: &Arc<DoHPath>,
+    headers: HeaderMap,
+  ) -> DohClientResult<Vec<u8>> {
     let target_obj = odoh_path.target();
     let path_url = odoh_path.as_url()?;
     debug!("[ODoH] target url: {}", path_url.as_str());
 
     // odoh config
     if self.odoh_configs.is_none() {
-      return Err(DapError::ODoHNoClientConfig);
+      return Err(DohClientError::ODoHNoClientConfig);
     }
     let Some(odoh_config) = self.odoh_configs.as_ref().unwrap().get(target_obj).await else {
-      return Err(DapError::ODoHNoClientConfig);
+      return Err(DohClientError::ODoHNoClientConfig);
     };
     let Some(odoh_config) = odoh_config.as_ref() else {
-      return Err(DapError::ODoHNoClientConfig);
+      return Err(DohClientError::ODoHNoClientConfig);
     };
 
     // encrypt query
@@ -321,7 +325,7 @@ impl DoHClient {
 
     let response = match &self.doh_method {
       DoHMethod::Get => {
-        return Err(DapError::ODoHGetNotAllowed);
+        return Err(DohClientError::ODoHGetNotAllowed);
       }
       DoHMethod::Post => {
         let lock = self.http_client.read().await;
@@ -336,7 +340,7 @@ impl DoHClient {
       .get("content-length")
       .and_then(|v| v.to_str().map(|s| s.parse::<u16>().ok()).ok().flatten())
     else {
-      return Err(DapError::ODoHInvalidContentLength);
+      return Err(DohClientError::ODoHInvalidContentLength);
     };
     if response.status() == reqwest::StatusCode::UNAUTHORIZED
       || (response.status() == reqwest::StatusCode::OK && content_length == 0)
@@ -351,7 +355,7 @@ impl DoHClient {
     }
     if response.status() != reqwest::StatusCode::OK {
       error!("DoH query error!: {:?}", response.status());
-      return Err(DapError::DoHQueryError);
+      return Err(DohClientError::DoHQueryError);
     }
 
     let body = response.bytes().await?;
@@ -364,12 +368,13 @@ impl DoHClient {
 // ResolveIps for DoHClient
 #[async_trait]
 impl ResolveIps for Arc<DoHClient> {
+  type Err = DohClientError;
   /// Resolve ip addresses of the given domain name
-  async fn resolve_ips(&self, target_url: &Url) -> Result<ResolveIpResponse> {
+  async fn resolve_ips(&self, target_url: &Url) -> DohClientResult<ResolveIpResponse> {
     let host_str = match target_url.host() {
       Some(url::Host::Domain(host_str)) => host_str,
       _ => {
-        return Err(DapError::FailedToResolveIpsForHttpClient);
+        return Err(DohClientError::FailedToResolveIpsForHttpClient);
       }
     };
     let port = target_url
@@ -381,24 +386,24 @@ impl ResolveIps for Arc<DoHClient> {
     let packet_buf = dns_message::encode(&q_msg)?;
     // choose path
     let Some(path) = self.path_manager.get_path() else {
-      return Err(DapError::NoPathAvailable);
+      return Err(DohClientError::NoPathAvailable);
     };
     // make doh query with the given path
     let (res, _) = self.make_doh_query_inner(&packet_buf, &path).await?;
 
     if dns_message::is_response(&res).is_err() {
       error!("Invalid response: {fqdn}");
-      return Err(DapError::InvalidDnsResponse);
+      return Err(DohClientError::InvalidDnsResponse);
     }
     let r_msg = dns_message::decode(&res)?;
     if r_msg.header().response_code() != hickory_proto::op::response_code::ResponseCode::NoError {
       error!("erroneous response: {fqdn} {}", r_msg.header().response_code());
-      return Err(DapError::FailedToResolveIpsForHttpClient);
+      return Err(DohClientError::FailedToResolveIpsForHttpClient);
     }
     let answers = r_msg.answers().to_vec();
     if answers.is_empty() {
       error!("answer is empty: {fqdn}");
-      return Err(DapError::FailedToResolveIpsForHttpClient);
+      return Err(DohClientError::FailedToResolveIpsForHttpClient);
     }
     let rdata = answers.iter().map(|a| a.data());
     let addrs = rdata
@@ -408,7 +413,7 @@ impl ResolveIps for Arc<DoHClient> {
       .collect::<Vec<_>>();
     if addrs.is_empty() {
       error!("addrs is empty: {fqdn}");
-      return Err(DapError::FailedToResolveIpsForHttpClient);
+      return Err(DohClientError::FailedToResolveIpsForHttpClient);
     }
     debug!("resolved endpoint ip by DoHClient for {:?}: {:?}", fqdn, addrs);
     Ok(ResolveIpResponse {
