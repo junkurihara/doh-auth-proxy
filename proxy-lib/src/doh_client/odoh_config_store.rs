@@ -1,7 +1,6 @@
-use super::{odoh::ODoHConfig, path_manage::DoHTarget};
+use super::{error::DohClientError, odoh::ODoHConfig, path_manage::DoHTarget};
 use crate::{
   constants::{ODOH_CONFIG_PATH, ODOH_CONFIG_WATCH_DELAY},
-  error::*,
   http_client::HttpClientInner,
   log::*,
 };
@@ -22,7 +21,7 @@ pub struct ODoHConfigStore {
 
 impl ODoHConfigStore {
   /// Create a new ODoHConfigStore
-  pub async fn new(http_client: Arc<RwLock<HttpClientInner>>, targets: &[Arc<DoHTarget>]) -> Result<Self> {
+  pub async fn new(http_client: Arc<RwLock<HttpClientInner>>, targets: &[Arc<DoHTarget>]) -> Result<Self, DohClientError> {
     let inner = targets
       .iter()
       .map(|target| (target.clone(), Arc::new(None as Option<ODoHConfig>)))
@@ -43,7 +42,7 @@ impl ODoHConfigStore {
   }
 
   /// Fetch ODoHConfig from target
-  pub async fn update_odoh_config_from_well_known(&self) -> Result<()> {
+  pub async fn update_odoh_config_from_well_known(&self) -> Result<(), DohClientError> {
     // TODO: Add auth token when fetching config?
     // fetch public key from odoh target (/.well-known)
     let inner_lock = self.inner.read().await;
@@ -93,7 +92,7 @@ impl ODoHConfigStore {
   }
 
   /// start odoh config watch service
-  pub(super) async fn start_service(&self, term_notify: Option<Arc<Notify>>) -> Result<()> {
+  pub(super) async fn start_service(&self, term_notify: Option<Arc<Notify>>) -> Result<(), DohClientError> {
     info!("Start periodic odoh config watch service");
     match term_notify {
       Some(term) => {
@@ -115,7 +114,7 @@ impl ODoHConfigStore {
   }
 
   /// watch service
-  async fn watch_service(&self) -> Result<()> {
+  async fn watch_service(&self) -> Result<(), DohClientError> {
     loop {
       self.update_odoh_config_from_well_known().await?;
       sleep(Duration::from_secs(ODOH_CONFIG_WATCH_DELAY as u64)).await;

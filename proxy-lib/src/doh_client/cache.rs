@@ -1,5 +1,6 @@
 use super::dns_message::{self, Request};
-use crate::{error::*, log::*};
+use crate::log::*;
+use anyhow::anyhow;
 use hashlink::{linked_hash_map::RawEntryMut, LinkedHashMap};
 use hickory_proto::op::Message;
 use tokio::{
@@ -80,7 +81,7 @@ impl Cache {
   }
 
   /// Put a response message into cache
-  pub async fn put(&self, key: Request, response_message: &Message) -> Result<()> {
+  pub async fn put(&self, key: Request, response_message: &Message) -> anyhow::Result<()> {
     if !((response_message.response_code() == hickory_proto::op::ResponseCode::NoError)
       || (response_message.response_code() == hickory_proto::op::ResponseCode::NXDomain))
     {

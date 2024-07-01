@@ -7,7 +7,6 @@ mod globals;
 mod http_client;
 mod log;
 mod proxy;
-mod trait_resolve_ips;
 
 use crate::{doh_client::DoHClient, error::*, globals::Globals, http_client::HttpClient, log::*, proxy::Proxy};
 use futures::{
@@ -17,6 +16,7 @@ use futures::{
 use std::sync::Arc;
 
 pub use auth_client::AuthenticationConfig;
+pub use error::{AuthenticatorError, DapError, DohClientError, HttpClientError};
 pub use globals::{
   BootstrapDns, NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig, TargetConfig, TokenConfig,
 };
@@ -111,7 +111,7 @@ pub async fn entrypoint(
     select! {
       auth_res = auth_service.fuse() => {
         warn!("Auth service is down, or term notified");
-        auth_res
+        auth_res.map(|res| res.map_err(DapError::AuthenticatorError))
       }
       proxy_res = proxy_service.fuse() => {
         warn!("Proxy services are down, or term notified");
@@ -119,11 +119,11 @@ pub async fn entrypoint(
       },
       ip_res = ip_resolution_service.fuse() => {
         warn!("Ip resolution service is down, or term notified");
-        ip_res
+        ip_res.map(|res| res.map_err(DapError::HttpClientError))
       },
       health_res = healthcheck_service.fuse() => {
         warn!("Health check service is down, or term notified");
-        health_res
+        health_res.map(|res| res.map_err(DapError::DohClientError))
       }
       query_log_res = query_log_service.fuse() => {
         warn!("Query log service is down, or term notified");
@@ -138,11 +138,11 @@ pub async fn entrypoint(
       },
       ip_res = ip_resolution_service.fuse() => {
         warn!("Ip resolution service is down, or term notified");
-        ip_res
+        ip_res.map(|res| res.map_err(DapError::HttpClientError))
       },
       health_res = healthcheck_service.fuse() => {
         warn!("Health check service is down, or term notified");
-        health_res
+        health_res.map(|res| res.map_err(DapError::DohClientError))
       }
       query_log_res = query_log_service.fuse() => {
         warn!("Query log service is down, or term notified");

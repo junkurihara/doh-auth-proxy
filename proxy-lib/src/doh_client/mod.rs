@@ -2,12 +2,14 @@ mod cache;
 mod dns_message;
 mod doh_client_healthcheck;
 mod doh_client_main;
+mod error;
 mod manipulation;
 mod odoh;
 mod odoh_config_store;
 mod path_manage;
 
 pub use doh_client_main::DoHClient;
+pub use error::DohClientError;
 
 #[derive(Debug)]
 /// DoH response types

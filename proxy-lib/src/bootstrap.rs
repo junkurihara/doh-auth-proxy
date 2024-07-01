@@ -2,9 +2,10 @@ use crate::{
   constants::BOOTSTRAP_DNS_TIMEOUT_MSEC,
   error::*,
   globals::BootstrapDns,
+  http_client::{ResolveIpResponse, ResolveIps},
   log::*,
-  trait_resolve_ips::{ResolveIpResponse, ResolveIps},
 };
+use anyhow::anyhow;
 use async_trait::async_trait;
 use hickory_client::{
   client::{AsyncClient, ClientHandle},
@@ -181,6 +182,7 @@ impl BootstrapDnsResolver {
 
 #[async_trait]
 impl ResolveIps for Arc<BootstrapDnsResolver> {
+  type Error = DapError;
   /// Lookup the IP addresses associated with a name using the bootstrap resolver
   async fn resolve_ips(&self, target_url: &Url) -> Result<ResolveIpResponse> {
     // The final dot forces this to be an FQDN, otherwise the search rules as specified

@@ -1,5 +1,8 @@
-use super::DoHType;
-use crate::{error::*, globals::Globals};
+use super::{
+  error::{DohClientError, DohClientResult},
+  DoHType,
+};
+use crate::globals::Globals;
 use itertools::Itertools;
 use rand::Rng;
 use std::sync::{
@@ -23,12 +26,12 @@ impl Scheme {
   }
 }
 impl TryFrom<&str> for Scheme {
-  type Error = DapError;
-  fn try_from(s: &str) -> Result<Self> {
+  type Error = DohClientError;
+  fn try_from(s: &str) -> DohClientResult<Self> {
     match s {
       "http" => Ok(Self::Http),
       "https" => Ok(Self::Https),
-      _ => Err(DapError::FailedToBuildDohUrl),
+      _ => Err(DohClientError::FailedToBuildDohUrl),
     }
   }
 }
@@ -78,12 +81,12 @@ pub struct DoHPath {
 }
 impl DoHPath {
   /// build url from the path
-  pub fn as_url(&self) -> Result<Url> {
+  pub fn as_url(&self) -> DohClientResult<Url> {
     // standard doh
     match self.doh_type {
       DoHType::Standard => {
         if !self.relays.is_empty() {
-          return Err(DapError::FailedToBuildDohUrl);
+          return Err(DohClientError::FailedToBuildDohUrl);
         }
         let mut url = Url::parse(format!("{}://{}", self.target.scheme.as_str(), &self.target.authority).as_str())?;
         url.set_path(&self.target.path);
@@ -91,10 +94,9 @@ impl DoHPath {
       }
       DoHType::Oblivious => {
         if self.relays.is_empty() || !self.relays[0].can_be_next_hop {
-          return Err(DapError::FailedToBuildDohUrl);
+          return Err(DohClientError::FailedToBuildDohUrl);
         }
-        let mut url =
-          Url::parse(format!("{}://{}", &self.relays[0].scheme.as_str(), &self.relays[0].authority).as_str())?;
+        let mut url = Url::parse(format!("{}://{}", &self.relays[0].scheme.as_str(), &self.relays[0].authority).as_str())?;
         url.set_path(&self.relays[0].path);
         url
           .query_pairs_mut()
@@ -224,7 +226,7 @@ impl DoHPathManager {
   }
 
   /// build all possible paths without loop
-  pub fn new(globals: &Arc<Globals>) -> Result<Self> {
+  pub fn new(globals: &Arc<Globals>) -> DohClientResult<Self> {
     let targets = globals.proxy_config.target_config.doh_target_urls.iter().map(|url| {
       Arc::new(DoHTarget {
         authority: url.authority().to_string(),
@@ -325,9 +327,7 @@ impl DoHPathManager {
             .cloned()
             .collect::<Vec<_>>()
         });
-        loop_free
-          .filter(|per_next_hop| !per_next_hop.is_empty())
-          .collect::<Vec<_>>()
+        loop_free.filter(|per_next_hop| !per_next_hop.is_empty()).collect::<Vec<_>>()
       })
       .filter(|per_target| !per_target.is_empty())
       .collect::<Vec<_>>();

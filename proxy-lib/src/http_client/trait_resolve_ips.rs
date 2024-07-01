@@ -1,4 +1,4 @@
-use crate::error::*;
+use super::error::HttpClientError;
 use async_trait::async_trait;
 use std::net::SocketAddr;
 use url::Url;
@@ -7,7 +7,8 @@ use url::Url;
 /// Trait that resolves ip addresses from a given url.
 /// This will be used both for bootstrap DNS resolver and MODoH resolver itself.
 pub trait ResolveIps {
-  async fn resolve_ips(&self, target_url: &Url) -> Result<ResolveIpResponse>;
+  type Error: std::fmt::Debug;
+  async fn resolve_ips(&self, target_url: &Url) -> Result<ResolveIpResponse, Self::Error>;
 }
 /// Response of ResolveIps trait
 pub struct ResolveIpResponse {
@@ -18,7 +19,7 @@ pub struct ResolveIpResponse {
 }
 
 /// Resolve ip addresses for given endpoints
-pub async fn resolve_ips(endpoints: &[Url], resolver_ips: impl ResolveIps) -> Result<Vec<ResolveIpResponse>> {
+pub async fn resolve_ips(endpoints: &[Url], resolver_ips: impl ResolveIps) -> Result<Vec<ResolveIpResponse>, HttpClientError> {
   let resolve_ips_fut = endpoints.iter().map(|endpoint| async {
     let host_is_ipaddr = endpoint
       .host_str()
@@ -34,7 +35,7 @@ pub async fn resolve_ips(endpoints: &[Url], resolver_ips: impl ResolveIps) -> Re
   });
   let resolve_ips = futures::future::join_all(resolve_ips_fut).await;
   if resolve_ips.iter().any(|resolve_ip| resolve_ip.is_err()) {
-    return Err(DapError::FailedToResolveIpsForHttpClient);
+    return Err(HttpClientError::FailedToResolveIpsForHttpClient);
   }
   let resolve_ips_vec = resolve_ips.into_iter().map(|resolve_ip| resolve_ip.unwrap()).collect();
   Ok(resolve_ips_vec)

@@ -1,8 +1,8 @@
-use crate::{
-  error::*,
+use super::{
+  error::HttpClientError,
   trait_resolve_ips::{resolve_ips, ResolveIpResponse, ResolveIps},
-  ProxyConfig,
 };
+use crate::ProxyConfig;
 use reqwest::{header::HeaderMap, Client, IntoUrl, RequestBuilder, Url};
 use std::sync::Arc;
 use tokio::{sync::RwLock, time::Duration};
@@ -37,7 +37,7 @@ impl HttpClient {
     endpoints: &[Url],
     default_headers: Option<&HeaderMap>,
     resolver_ips: impl ResolveIps,
-  ) -> Result<Self> {
+  ) -> Result<Self, HttpClientError> {
     let timeout_sec = proxy_config.http_timeout_sec;
     let user_agent = &proxy_config.http_user_agent;
     let endpoint_resolution_period_sec = proxy_config.endpoint_resolution_period_sec;
@@ -97,7 +97,7 @@ impl HttpClientInner {
     user_agent: &str,
     default_headers: Option<&HeaderMap>,
     resolved_ips: &[ResolveIpResponse],
-  ) -> Result<Self> {
+  ) -> Result<Self, HttpClientError> {
     let mut client = Client::builder()
       .user_agent(user_agent)
       .timeout(timeout_sec)
@@ -113,7 +113,7 @@ impl HttpClientInner {
       client = client.default_headers(headers.clone());
     }
     Ok(Self {
-      client: client.build().map_err(DapError::HttpClientError)?,
+      client: client.build().map_err(HttpClientError::ReqwestError)?,
     })
   }
 

@@ -1,14 +1,17 @@
 use super::{
-  super::dns_message::{build_response_nx, QueryKey},
+  super::{
+    dns_message::{build_response_nx, QueryKey},
+    error::DohClientError,
+  },
   regexp_vals::*,
   QueryManipulation, QueryManipulationResult,
 };
 use crate::{
   constants::{BLOCK_MESSAGE_HINFO_CPU, BLOCK_MESSAGE_HINFO_OS},
-  error::*,
   log::*,
   QueryManipulationConfig,
 };
+use anyhow::bail;
 use async_trait::async_trait;
 use cedarwood::Cedar;
 use hickory_proto::{op::Message, rr};
@@ -16,10 +19,10 @@ use regex::Regex;
 
 #[async_trait]
 impl QueryManipulation for DomainBlockRule {
-  type Error = DapError;
+  type Error = DohClientError;
 
   /// Apply query plugin
-  async fn apply(&self, query_message: &Message, query_key: &QueryKey) -> Result<QueryManipulationResult> {
+  async fn apply(&self, query_message: &Message, query_key: &QueryKey) -> Result<QueryManipulationResult, DohClientError> {
     if !self.in_blocklist(query_key)? {
       return Ok(QueryManipulationResult::PassThrough);
     }
@@ -54,7 +57,7 @@ pub struct DomainBlockRule {
 }
 
 impl TryFrom<&QueryManipulationConfig> for Option<DomainBlockRule> {
-  type Error = DapError;
+  type Error = DohClientError;
   fn try_from(config: &QueryManipulationConfig) -> std::result::Result<Self, Self::Error> {
     let Some(config_domain_block) = &config.domain_block else {
       return Ok(None);
