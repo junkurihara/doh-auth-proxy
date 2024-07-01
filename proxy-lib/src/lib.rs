@@ -152,7 +152,7 @@ pub async fn entrypoint(
   };
 
   let Ok(res_inner) = select_res else {
-    return Err(DapError::ServiceDown("Somthing went wrong in the service loop".to_string()));
+    return Err(DapError::ServiceDown("Something went wrong in the service loop".to_string()));
   };
   res_inner
 }
