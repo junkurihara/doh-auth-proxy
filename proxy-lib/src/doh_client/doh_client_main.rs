@@ -368,7 +368,7 @@ impl DoHClient {
 // ResolveIps for DoHClient
 #[async_trait]
 impl ResolveIps for Arc<DoHClient> {
-  type Error = DohClientError;
+  type Err = DohClientError;
   /// Resolve ip addresses of the given domain name
   async fn resolve_ips(&self, target_url: &Url) -> DohClientResult<ResolveIpResponse> {
     let host_str = match target_url.host() {

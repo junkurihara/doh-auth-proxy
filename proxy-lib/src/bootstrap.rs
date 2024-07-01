@@ -87,7 +87,7 @@ impl BootstrapDnsInner {
     })
   }
   /// Lookup the IP addresses associated with a name using the bootstrap resolver connection
-  pub(crate) async fn lookup_ips(&self, fqdn: &str, runtime_handle: tokio::runtime::Handle) -> Result<Vec<IpAddr>> {
+  async fn lookup_ips(&self, fqdn: &str, runtime_handle: tokio::runtime::Handle) -> Result<Vec<IpAddr>> {
     let timeout = Duration::from_millis(BOOTSTRAP_DNS_TIMEOUT_MSEC);
     let bg_close_notify = Arc::new(Notify::new());
 
@@ -182,14 +182,14 @@ impl BootstrapDnsResolver {
 
 #[async_trait]
 impl ResolveIps for Arc<BootstrapDnsResolver> {
-  type Error = Error;
+  type Err = Error;
   /// Lookup the IP addresses associated with a name using the bootstrap resolver
   async fn resolve_ips(&self, target_url: &Url) -> Result<ResolveIpResponse> {
     // The final dot forces this to be an FQDN, otherwise the search rules as specified
     // in `ResolverOpts` will take effect. FQDN's are generally cheaper queries.
     let host = target_url
       .host_str()
-      .ok_or_else(|| Error::Other(anyhow!("Unable to parse target host name")))?;
+      .ok_or_else(|| Self::Err::Other(anyhow!("Unable to parse target host name")))?;
     let fqdn = format!("{host}.");
 
     let port = target_url
@@ -219,7 +219,7 @@ impl ResolveIps for Arc<BootstrapDnsResolver> {
       }
     }
 
-    Err(Error::Other(anyhow!(
+    Err(Self::Err::Other(anyhow!(
       "Invalid target url: {target_url}, cannot resolve ip address"
     )))
   }

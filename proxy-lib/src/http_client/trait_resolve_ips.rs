@@ -7,8 +7,8 @@ use url::Url;
 /// Trait that resolves ip addresses from a given url.
 /// This will be used both for bootstrap DNS resolver and MODoH resolver itself.
 pub trait ResolveIps {
-  type Error: std::fmt::Debug;
-  async fn resolve_ips(&self, target_url: &Url) -> Result<ResolveIpResponse, Self::Error>;
+  type Err: std::fmt::Debug;
+  async fn resolve_ips(&self, target_url: &Url) -> Result<ResolveIpResponse, Self::Err>;
 }
 /// Response of ResolveIps trait
 pub struct ResolveIpResponse {
