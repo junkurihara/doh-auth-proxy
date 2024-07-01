@@ -17,6 +17,7 @@ You should also include the user name that made the change.
 
 - Feat: Support anonymous token based on blind RSA signatures.
 - Feat: DNS query logging (`qrlog` feature)
+- Feat: Library error handling improvement (Changed the error type)
 - Refactor: Various minor improvements
 
 ## 0.3.2
