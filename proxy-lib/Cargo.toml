@@ -38,7 +38,7 @@ rustc-hash = "2.0.0"
 crossbeam-channel = "0.5.13"
 
 # doh and odoh client with cache and query manipulation plugins
-odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git" }
+odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git", branch = "master" }
 bytes = "1.6.0"
 hickory-proto = { version = "0.24.1", default-features = false }
 data-encoding = "2.6.0"
