@@ -17,7 +17,7 @@ publish.workspace = true
 
 [dependencies]
 rand = "0.8.5"
-tokio = { version = "1.38.0", features = [
+tokio = { version = "1.39.2", features = [
   "net",
   "rt-multi-thread",
   "time",
@@ -30,16 +30,16 @@ futures = { version = "0.3.30", default-features = false, features = [
 ] }
 anyhow = "1.0.86"
 tracing = "0.1.40"
-thiserror = "1.0.61"
-async-trait = "0.1.80"
-serde = { version = "1.0.203", features = ["derive"] }
+thiserror = "1.0.63"
+async-trait = "0.1.81"
+serde = { version = "1.0.204", features = ["derive"] }
 itertools = "0.13.0"
 rustc-hash = "2.0.0"
 crossbeam-channel = "0.5.13"
 
 # doh and odoh client with cache and query manipulation plugins
 odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git", branch = "master" }
-bytes = "1.6.0"
+bytes = "1.7.0"
 hickory-proto = { version = "0.24.1", default-features = false }
 data-encoding = "2.6.0"
 hashlink = "0.9.1"
