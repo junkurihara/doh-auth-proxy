@@ -39,12 +39,12 @@ crossbeam-channel = "0.5.13"
 
 # doh and odoh client with cache and query manipulation plugins
 odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git", branch = "master" }
-bytes = "1.7.0"
+bytes = "1.7.1"
 hickory-proto = { version = "0.24.1", default-features = false }
 data-encoding = "2.6.0"
 hashlink = "0.9.1"
 cedarwood = "0.4.6"
-regex = "1.10.5"
+regex = "1.10.6"
 
 # network
 socket2 = "0.5.7"

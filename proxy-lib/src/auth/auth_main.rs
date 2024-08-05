@@ -67,7 +67,7 @@ impl TokenHttpClient for HttpClientInner {
 pub struct Authenticator {
   inner: TokenClient<HttpClientInner>,
   #[cfg(feature = "anonymous-token")]
-  use_anonymous_token: bool,
+  pub(super) use_anonymous_token: bool,
 }
 impl Authenticator {
   /// Build authentication client with initial login

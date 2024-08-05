@@ -15,15 +15,21 @@ impl Authenticator {
     info!("Start periodic authentication service");
     let services = async {
       #[cfg(feature = "anonymous-token")]
-      tokio::select! {
-        res = self.auth_service() => {
-          warn!("Auth service got down. Possibly failed to refresh or login.");
-          res
+      if self.use_anonymous_token {
+        tokio::select! {
+          res = self.auth_service() => {
+            warn!("Auth service got down. Possibly failed to refresh or login.");
+            res
+          }
+          res = self.anonymous_token_service() => {
+            warn!("Anonymous token service got down. Possibly failed to refresh or login.");
+            res
+          }
         }
-        res = self.anonymous_token_service() => {
-          warn!("Anonymous token service got down. Possibly failed to refresh or login.");
-          res
-        }
+      } else {
+        let res = self.auth_service().await;
+        warn!("Auth service got down. Possibly failed to refresh or login.");
+        res
       }
 
       #[cfg(not(feature = "anonymous-token"))]
