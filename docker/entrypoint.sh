@@ -9,6 +9,9 @@ USER=${HOST_USER:-doh-auth-proxy}
 USER_ID=${HOST_UID:-900}
 GROUP_ID=${HOST_GID:-900}
 
+QUERY_LOG_FILE=${LOG_DIR}/query.log
+QUERY_LOGGING=${ENABLE_QUERY_LOG:-false}
+
 #######################################
 # Setup logrotate
 function setup_logrotate () {
@@ -39,7 +42,8 @@ include /etc/logrotate.d
 # system-specific logs may be also be configured here.
 EOF
 
-  cat > /etc/logrotate.d/doh-auth-proxy.conf << EOF
+  if "${LOGGING}"; then
+    cat > /etc/logrotate.d/doh-auth-proxy.conf << EOF
 ${LOG_FILE} {
     dateext
     daily
@@ -54,6 +58,25 @@ ${LOG_FILE} {
     su ${USER} ${USER}
 }
 EOF
+  fi
+
+  if "${QUERY_LOGGING}"; then
+    cat > /etc/logrotate.d/query-log.conf << EOF
+${QUERY_LOG_FILE} {
+    dateext
+    daily
+    missingok
+    rotate ${LOG_NUM}
+    notifempty
+    compress
+    delaycompress
+    dateformat -%Y-%m-%d-%s
+    size ${LOG_SIZE}
+    copytruncate
+    su ${USER} ${USER}
+}
+EOF
+  fi
 }
 
 #######################################
@@ -66,7 +89,7 @@ function setup_ubuntu () {
   fi
 
   # for crontab when logging
-  if "${LOGGING}"; then
+  if ${LOGGING} || ${QUERY_LOGGING} ; then
     # Set up logrotate
     setup_logrotate
 

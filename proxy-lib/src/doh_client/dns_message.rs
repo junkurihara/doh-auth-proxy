@@ -1,5 +1,5 @@
 // Handle packet buffer of DNS message (encode/decode)
-use crate::error::*;
+use anyhow::{anyhow, bail};
 use hickory_proto::{
   op::{update_message::MAX_PAYLOAD_LEN, Edns, Message, MessageType, OpCode, Query},
   rr::{
@@ -82,9 +82,7 @@ pub fn decode(packet_buf: &[u8]) -> anyhow::Result<Message> {
 
 /// Encode a DNS message
 pub fn encode(msg: &Message) -> anyhow::Result<Vec<u8>> {
-  msg
-    .to_bytes()
-    .map_err(|e| anyhow!("Failed to encode DNS message: {}", e))
+  msg.to_bytes().map_err(|e| anyhow!("Failed to encode DNS message: {}", e))
 }
 
 /// Build a DNS query message for A record
@@ -123,12 +121,7 @@ pub fn build_response_nx(msg: &Message) -> Message {
 }
 
 /// Build a DNS response message for given QueryKey and IP address
-pub fn build_response_given_ipaddr(
-  msg: &Message,
-  q_key: &QueryKey,
-  ipaddr: &IpAddr,
-  min_ttl: u32,
-) -> anyhow::Result<Message> {
+pub fn build_response_given_ipaddr(msg: &Message, q_key: &QueryKey, ipaddr: &IpAddr, min_ttl: u32) -> anyhow::Result<Message> {
   let mut res = msg.clone();
   res.set_message_type(hickory_proto::op::MessageType::Response);
   res.set_response_code(hickory_proto::op::ResponseCode::NoError);

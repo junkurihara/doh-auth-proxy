@@ -1,9 +1,12 @@
 use super::{
-  super::dns_message::{build_response_given_ipaddr, QueryKey},
+  super::{
+    dns_message::{build_response_given_ipaddr, QueryKey},
+    error::DohClientError,
+  },
   regexp_vals::*,
   QueryManipulation, QueryManipulationResult,
 };
-use crate::{error::*, log::*, QueryManipulationConfig};
+use crate::{log::*, QueryManipulationConfig};
 use async_trait::async_trait;
 use hickory_proto::{op::Message, rr};
 use regex::Regex;
@@ -12,10 +15,10 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 #[async_trait]
 impl QueryManipulation for DomainOverrideRule {
-  type Error = DapError;
+  type Error = DohClientError;
 
   /// Apply query plugin
-  async fn apply(&self, query_message: &Message, query_key: &QueryKey) -> Result<QueryManipulationResult> {
+  async fn apply(&self, query_message: &Message, query_key: &QueryKey) -> Result<QueryManipulationResult, DohClientError> {
     let Some(mapsto) = self.find_mapping(query_key) else {
       return Ok(QueryManipulationResult::PassThrough);
     };
@@ -24,7 +27,7 @@ impl QueryManipulation for DomainOverrideRule {
       query_key.query_name, query_key.query_type, query_key.query_class, mapsto.0
     );
     let response_msg = build_response_given_ipaddr(query_message, query_key, &mapsto.0, self.min_ttl)?;
-    Ok(QueryManipulationResult::SyntheticResponse(response_msg))
+    Ok(QueryManipulationResult::SyntheticResponseOverridden(response_msg))
   }
 }
 
@@ -61,7 +64,7 @@ pub struct DomainOverrideRule {
 }
 
 impl TryFrom<&QueryManipulationConfig> for Option<DomainOverrideRule> {
-  type Error = DapError;
+  type Error = DohClientError;
 
   fn try_from(config: &QueryManipulationConfig) -> std::result::Result<Self, Self::Error> {
     let Some(config_domain_override) = &config.domain_override else {

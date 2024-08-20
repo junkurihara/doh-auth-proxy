@@ -2,12 +2,38 @@ mod cache;
 mod dns_message;
 mod doh_client_healthcheck;
 mod doh_client_main;
+mod error;
 mod manipulation;
 mod odoh;
 mod odoh_config_store;
 mod path_manage;
 
 pub use doh_client_main::DoHClient;
+pub use error::DohClientError;
+
+#[derive(Debug)]
+/// DoH response types
+pub enum DoHResponseType {
+  /// Blocked response
+  Blocked,
+  /// Overridden response
+  Overridden,
+  /// Cached response
+  Cached,
+  /// Standard response fetched from upstream
+  Normal,
+}
+
+impl std::fmt::Display for DoHResponseType {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      DoHResponseType::Blocked => write!(f, "Blocked"),
+      DoHResponseType::Overridden => write!(f, "Overridden"),
+      DoHResponseType::Cached => write!(f, "Cached"),
+      DoHResponseType::Normal => write!(f, "Normal"),
+    }
+  }
+}
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 /// DoH method, GET or POST

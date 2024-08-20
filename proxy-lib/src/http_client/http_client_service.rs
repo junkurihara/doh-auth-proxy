@@ -1,11 +1,11 @@
 use tokio::time::sleep;
 
-use super::{HttpClient, HttpClientInner};
-use crate::{
-  error::*,
-  log::*,
+use super::{
+  error::HttpClientError,
   trait_resolve_ips::{resolve_ips, ResolveIpResponse, ResolveIps},
+  HttpClient, HttpClientInner,
 };
+use crate::log::*;
 use std::sync::Arc;
 
 impl HttpClient {
@@ -15,28 +15,28 @@ impl HttpClient {
     primary_resolver: impl ResolveIps + Clone,
     fallback_resolver: impl ResolveIps + Clone,
     term_notify: Option<Arc<tokio::sync::Notify>>,
-  ) -> Result<()> {
+  ) -> Result<(), HttpClientError> {
     info!("start periodic service for resolution of endpoint ip addresses");
 
     match term_notify {
       Some(term) => {
         tokio::select! {
-          _ = self.resolve_endpoint_ip_service(primary_resolver, fallback_resolver) => {
+          res = self.resolve_endpoint_ip_service(primary_resolver, fallback_resolver) => {
             warn!("Endpoint ip resolution service got down");
+            res
           }
           _ = term.notified() => {
             info!("Endpoint ip resolution service receives term signal");
+            Ok(())
           }
         }
       }
       None => {
-        self
-          .resolve_endpoint_ip_service(primary_resolver, fallback_resolver)
-          .await?;
+        let res = self.resolve_endpoint_ip_service(primary_resolver, fallback_resolver).await;
         warn!("Endpoint ip resolution service got down");
+        res
       }
     }
-    Ok(())
   }
 
   /// periodic refresh checker
@@ -44,7 +44,7 @@ impl HttpClient {
     &self,
     primary_resolver: impl ResolveIps + Clone,
     fallback_resolver: impl ResolveIps + Clone,
-  ) -> Result<()> {
+  ) -> Result<(), HttpClientError> {
     let mut fail_cnt = 0;
     loop {
       sleep(self.endpoint_resolution_period_sec()).await;
@@ -73,22 +73,16 @@ impl HttpClient {
 
       fail_cnt += 1;
       if fail_cnt > 3 {
-        return Err(DapError::TooManyFailsToResolveIps);
+        return Err(HttpClientError::TooManyFailsToResolveIps);
       }
     }
   }
 
   /// Update http client inner
-  async fn update_inner(&self, resolved_ips: &[ResolveIpResponse]) -> Result<()> {
+  async fn update_inner(&self, resolved_ips: &[ResolveIpResponse]) -> Result<(), HttpClientError> {
     let inner = self.inner();
     let mut inner_lock = inner.write().await;
-    *inner_lock = HttpClientInner::new(
-      self.timeout_sec(),
-      self.user_agent(),
-      self.default_headers(),
-      resolved_ips,
-    )
-    .await?;
+    *inner_lock = HttpClientInner::new(self.timeout_sec(), self.user_agent(), self.default_headers(), resolved_ips).await?;
     drop(inner_lock);
     Ok(())
   }

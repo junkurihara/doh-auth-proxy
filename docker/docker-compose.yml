@@ -1,4 +1,3 @@
-version: "3"
 services:
   doh-proxy:
     image: jqtype/doh-auth-proxy:latest
@@ -23,6 +22,8 @@ services:
       - HOST_USER=jun
       - HOST_UID=501
       - HOST_GID=501
+      - ENABLE_QUERY_LOG=true
+      # - ENABLE_JSON_QUERY_LOG=true
     volumes:
       # Plugin Directory
       - ./plugins:/modoh/plugins

@@ -35,6 +35,7 @@ pub struct Anonymization {
 pub struct Authentication {
   pub token_api: Option<String>,
   pub credential_file: Option<String>,
+  pub use_anonymous_token: Option<bool>,
 }
 
 impl ConfigToml {

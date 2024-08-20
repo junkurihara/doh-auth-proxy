@@ -7,7 +7,6 @@ mod globals;
 mod http_client;
 mod log;
 mod proxy;
-mod trait_resolve_ips;
 
 use crate::{doh_client::DoHClient, error::*, globals::Globals, http_client::HttpClient, log::*, proxy::Proxy};
 use futures::{
@@ -17,8 +16,9 @@ use futures::{
 use std::sync::Arc;
 
 pub use auth_client::AuthenticationConfig;
+pub use error::{AuthenticatorError, DohClientError, Error, HttpClientError};
 pub use globals::{
-  BootstrapDns, NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig, TargetConfig,
+  BootstrapDns, NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig, TargetConfig, TokenConfig,
 };
 
 /// entrypoint of DoH w/ Auth Proxy
@@ -34,11 +34,21 @@ pub async fn entrypoint(
 ) -> Result<()> {
   info!("Start DoH w/ Auth Proxy");
 
+  // build query logger
+  let (query_log_tx, query_log_service) = {
+    let (tx, mut logger) = QueryLogger::new(term_notify.clone());
+    let service = runtime_handle.spawn(async move {
+      logger.start().await;
+    });
+    (tx, service)
+  };
+
   // build global
   let globals = Arc::new(Globals {
     proxy_config: proxy_config.clone(),
     runtime_handle: runtime_handle.clone(),
     term_notify: term_notify.clone(),
+    query_log_tx,
   });
 
   // build bootstrap DNS resolver
@@ -52,8 +62,8 @@ pub async fn entrypoint(
   } else {
     endpoint_candidates.extend(proxy_config.target_config.doh_target_urls.clone());
   }
-  if let Some(auth) = &proxy_config.authentication_config {
-    endpoint_candidates.push(auth.token_api.clone());
+  if let Some(auth) = &proxy_config.token_config {
+    endpoint_candidates.push(auth.authentication_config.token_api.clone());
   }
   let http_client = HttpClient::new(proxy_config, &endpoint_candidates, None, bootstrap_dns_resolver.clone()).await?;
   let http_client = Arc::new(http_client);
@@ -62,15 +72,10 @@ pub async fn entrypoint(
   let term_notify_clone = term_notify.clone();
   let mut authenticator = None;
   let mut auth_service = None;
-  if let Some(auth_config) = &proxy_config.authentication_config {
-    let auth = Arc::new(auth::Authenticator::new(auth_config, http_client.inner()).await?);
+  if let Some(token_config) = &proxy_config.token_config {
+    let auth = Arc::new(auth::Authenticator::new(token_config, http_client.inner()).await?);
     let auth_clone = auth.clone();
-    let auth_service_inner = runtime_handle.spawn(async move {
-      auth_clone
-        .start_service(term_notify_clone)
-        .await
-        .with_context(|| "auth service got down")
-    });
+    let auth_service_inner = runtime_handle.spawn(async move { auth_clone.start_service(term_notify_clone).await });
     authenticator = Some(auth);
     auth_service = Some(auth_service_inner);
   }
@@ -86,18 +91,13 @@ pub async fn entrypoint(
     http_client_clone
       .start_endpoint_ip_update_service(doh_client_clone, bootstrap_dns_resolver, term_notify_clone)
       .await
-      .with_context(|| "endpoint ip update service got down")
   });
 
   // spawn health check service for checking every possible path and purging expired DNS cache
   let doh_client_clone = doh_client.clone();
   let term_notify_clone = term_notify.clone();
-  let healthcheck_service = runtime_handle.spawn(async move {
-    doh_client_clone
-      .start_healthcheck_service(term_notify_clone)
-      .await
-      .with_context(|| "health check service for path and dns cache got down")
-  });
+  let healthcheck_service =
+    runtime_handle.spawn(async move { doh_client_clone.start_healthcheck_service(term_notify_clone).await });
 
   // Start proxy for each listen address
   let addresses = globals.proxy_config.listen_addresses.clone();
@@ -107,34 +107,52 @@ pub async fn entrypoint(
   }));
 
   // wait for all future
-  if let Some(auth_service) = auth_service {
+  let select_res = if let Some(auth_service) = auth_service {
     select! {
-      _ = auth_service.fuse() => {
+      auth_res = auth_service.fuse() => {
         warn!("Auth service is down, or term notified");
+        auth_res.map(|res| res.map_err(Error::AuthenticatorError))
       }
-      _ = proxy_service.fuse() => {
+      proxy_res = proxy_service.fuse() => {
         warn!("Proxy services are down, or term notified");
+        proxy_res.0
       },
-      _ = ip_resolution_service.fuse() => {
+      ip_res = ip_resolution_service.fuse() => {
         warn!("Ip resolution service is down, or term notified");
+        ip_res.map(|res| res.map_err(Error::HttpClientError))
       },
-      _ = healthcheck_service.fuse() => {
+      health_res = healthcheck_service.fuse() => {
         warn!("Health check service is down, or term notified");
+        health_res.map(|res| res.map_err(Error::DohClientError))
+      }
+      query_log_res = query_log_service.fuse() => {
+        warn!("Query log service is down, or term notified");
+        query_log_res.map(|_| Err(Error::QueryLogServiceError))
       }
     }
   } else {
     select! {
-      _ = proxy_service.fuse() => {
+      proxy_res = proxy_service.fuse() => {
         warn!("Proxy services are down, or term notified");
+        proxy_res.0
       },
-      _ = ip_resolution_service.fuse() => {
+      ip_res = ip_resolution_service.fuse() => {
         warn!("Ip resolution service is down, or term notified");
+        ip_res.map(|res| res.map_err(Error::HttpClientError))
       },
-      _ = healthcheck_service.fuse() => {
+      health_res = healthcheck_service.fuse() => {
         warn!("Health check service is down, or term notified");
+        health_res.map(|res| res.map_err(Error::DohClientError))
+      }
+      query_log_res = query_log_service.fuse() => {
+        warn!("Query log service is down, or term notified");
+        query_log_res.map(|_| Err(Error::QueryLogServiceError))
       }
     }
-  }
+  };
 
-  Ok(())
+  let Ok(res_inner) = select_res else {
+    return Err(Error::ServiceDown("Something went wrong in the service loop".to_string()));
+  };
+  res_inner
 }

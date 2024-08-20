@@ -1,20 +1,28 @@
 use super::{
-  super::dns_message::{build_response_nx, QueryKey},
+  super::{
+    dns_message::{build_response_nx, QueryKey},
+    error::DohClientError,
+  },
   regexp_vals::*,
   QueryManipulation, QueryManipulationResult,
 };
-use crate::{error::*, log::*, QueryManipulationConfig};
+use crate::{
+  constants::{BLOCK_MESSAGE_HINFO_CPU, BLOCK_MESSAGE_HINFO_OS},
+  log::*,
+  QueryManipulationConfig,
+};
+use anyhow::bail;
 use async_trait::async_trait;
 use cedarwood::Cedar;
-use hickory_proto::op::Message;
+use hickory_proto::{op::Message, rr};
 use regex::Regex;
 
 #[async_trait]
 impl QueryManipulation for DomainBlockRule {
-  type Error = DapError;
+  type Error = DohClientError;
 
   /// Apply query plugin
-  async fn apply(&self, query_message: &Message, query_key: &QueryKey) -> Result<QueryManipulationResult> {
+  async fn apply(&self, query_message: &Message, query_key: &QueryKey) -> Result<QueryManipulationResult, DohClientError> {
     if !self.in_blocklist(query_key)? {
       return Ok(QueryManipulationResult::PassThrough);
     }
@@ -22,9 +30,22 @@ impl QueryManipulation for DomainBlockRule {
       "[Blocked] {} {:?} {:?}",
       query_key.query_name, query_key.query_type, query_key.query_class
     );
-    let response_msg = build_response_nx(query_message);
-    Ok(QueryManipulationResult::SyntheticResponse(response_msg))
+    let response_msg = build_response_block(query_message);
+    Ok(QueryManipulationResult::SyntheticResponseBlocked(response_msg))
   }
+}
+
+/// Build a synthetic response message for blocked domain
+/// By default, NXDOMAIN is returned with block message in HINFO record
+fn build_response_block(query_message: &Message) -> Message {
+  let mut msg = build_response_nx(query_message);
+  let hinfo = rr::rdata::HINFO::new(BLOCK_MESSAGE_HINFO_CPU.to_string(), BLOCK_MESSAGE_HINFO_OS.to_string());
+  msg.add_answer(rr::Record::from_rdata(
+    query_message.queries()[0].name().clone(),
+    0,
+    rr::RData::HINFO(hinfo),
+  ));
+  msg
 }
 
 #[derive(Debug, Clone)]
@@ -36,7 +57,7 @@ pub struct DomainBlockRule {
 }
 
 impl TryFrom<&QueryManipulationConfig> for Option<DomainBlockRule> {
-  type Error = DapError;
+  type Error = DohClientError;
   fn try_from(config: &QueryManipulationConfig) -> std::result::Result<Self, Self::Error> {
     let Some(config_domain_block) = &config.domain_block else {
       return Ok(None);

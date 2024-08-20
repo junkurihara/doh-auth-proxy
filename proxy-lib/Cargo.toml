@@ -17,7 +17,7 @@ publish.workspace = true
 
 [dependencies]
 rand = "0.8.5"
-tokio = { version = "1.36.0", features = [
+tokio = { version = "1.39.3", features = [
   "net",
   "rt-multi-thread",
   "time",
@@ -28,43 +28,53 @@ futures = { version = "0.3.30", default-features = false, features = [
   "std",
   "async-await",
 ] }
-anyhow = "1.0.81"
+anyhow = "1.0.86"
 tracing = "0.1.40"
-thiserror = "1.0.58"
-async-trait = "0.1.78"
-serde = { version = "1.0.197", features = ["derive"] }
-itertools = "0.12.1"
-rustc-hash = "1.1.0"
+thiserror = "1.0.63"
+async-trait = "0.1.81"
+serde = { version = "1.0.208", features = ["derive"] }
+itertools = "0.13.0"
+rustc-hash = "2.0.0"
+crossbeam-channel = "0.5.13"
 
 # doh and odoh client with cache and query manipulation plugins
-odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git" }
-bytes = "1.5.0"
-hickory-proto = { version = "0.24.0", default-features = false }
-data-encoding = "2.5.0"
-hashlink = "0.9.0"
+odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git", branch = "master" }
+bytes = "1.7.1"
+hickory-proto = { version = "0.24.1", default-features = false }
+data-encoding = "2.6.0"
+hashlink = "0.9.1"
 cedarwood = "0.4.6"
-regex = "1.10.3"
+regex = "1.10.6"
 
 # network
-socket2 = "0.5.6"
+socket2 = "0.5.7"
 
 # http client
-reqwest = { version = "0.12.0", default-features = false, features = [
+reqwest = { version = "0.12.7", default-features = false, features = [
   "json",
   "http2",
   "hickory-dns",
   "rustls-tls",
 ] }
-url = "2.5.0"
+url = "2.5.2"
 
 # for bootstrap dns resolver
-hickory-client = { version = "0.24.0", default-features = false, features = [
+hickory-client = { version = "0.24.1", default-features = false, features = [
   "dnssec",
 ] }
 
 # authentication
-auth-client = { git = "https://github.com/junkurihara/rust-token-server", package = "rust-token-server-client", branch = "develop" }
+auth-client = { git = "https://github.com/junkurihara/rust-token-server", package = "rust-token-server-client", branch = "develop", default-features = false, features = [
+  "reqwest",
+] }
+# auth-client = { path = "../../rust-token-server/lib-client/", package = "rust-token-server-client", default-features = false, features = [
+#   "reqwest",
+# ] }
 
 [dev-dependencies]
-hickory-client = "0.24.0"
+hickory-client = "0.24.1"
 urlencoding = "2.1.3"
+
+[features]
+default = ["anonymous-token"]
+anonymous-token = ["auth-client/blind-signatures"]

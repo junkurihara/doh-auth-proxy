@@ -24,7 +24,7 @@ Here is an example of the network architecture of &mu;ODoH.
 
 The &mu;ODoH network consists of &mu;ODoH client ([`doh-auth-proxy`](https://github.com/junkurihara/doh-auth-proxy)), &mu;ODoH relay and target servers([`modoh-server`](https://github.com/junkurihara/modoh-server)), and supplementary authentication server ([`rust-token-server`](https://github.com/junkurihara/rust-token-server)). Note that when there exist two `modoh-server`, i.e., single relay and single target available, it exactly coincides with ODoH.
 
-`doh-auth-proxy` and `modoh-server` supplementary provide access control function for queries, i.e., client authentication. In this mechanism, client queries are authenticated by Bearer token in their HTTP header. Note that to enable this client authentication, the `rust-token-server` must be configured and deployed on the Internet.
+`doh-auth-proxy` and `modoh-server` supplementary provide access control function for queries, i.e., client authentication. In this mechanism, client queries are authenticated by Bearer token in their HTTP header (based on Open ID Connect ID token or Anonymous Token using blind RSA signatures). Note that to enable this client authentication, the `rust-token-server` must be configured and deployed on the Internet.
 
 ## Installing/building an executable binary
 
@@ -152,15 +152,15 @@ See also the DNSCrypt-based &mu;ODNS as well, by referring to [our website](http
 ## All options in a configuration file
 
 ```shell
-USAGE:
-    doh-auth-proxy --config <config_file>
+Usage: doh-auth-proxy [OPTIONS] --config <FILE>
 
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-
-OPTIONS:
-    -c, --config <config_file>    Configuration file path like "doh-auth-proxy.toml"
+Options:
+  -c, --config <FILE>     Configuration file path like ./config.toml
+  -w, --watch             Activate dynamic reloading of the config file via continuous monitoring
+  -q, --query-log <PATH>  Enable query logging. Unless specified, it is disabled.
+  -j, --json-query-log    Enable query logging in json format. Unless specified, it is recorded in human-readable compact format. Must be used with --query-log option.
+  -h, --help              Print help
+  -V, --version           Print version
 ```
 
 `config.toml` can be configured as follows.
@@ -214,9 +214,9 @@ target_randomization = true
 [authentication]
 
 ## (optional)
-## API url to retrieve and refresh tokens and validation keys (jwks) like "https://example.com/v1.0",
+## API url to retrieve and refresh tokens and validation keys (jwks and blindjwks) like "https://example.com/v1.0",
 ## where /tokens and /refresh are used for login and refresh, respectively.
-## Also /jwks is used for jwks retrieval.
+## Also /jwks and /blindjwks are used for jwks retrieval.
 # token_api = "https://token.api.example.org/v1.0"
 
 ## (optional)
@@ -277,7 +277,9 @@ To leverage the function, an authentication server issuing Authorization Bearer 
 
 - [`modoh-server`](https://github.com/junkurihara/modoh-server): Relay and target implementation for Oblivious DoH (ODoH) and ODoH-based Mutualized Oblivious DNS (ODoH-based &mu;ODNS; &mu;ODoH) supporting authenticated connection, written in Rust. Standard DoH target server is also supported.
 
-- [`rust-token-server`](https://github.com/junkurihara/rust-token-server): An implementation of authentication server issueing `id_token` in the context of OIDC.
+- [`rust-token-server`](https://github.com/junkurihara/rust-token-server): An implementation of authentication server issuing `id_token` in the context of OIDC and anonymous token based on blind RSA signatures ([RFC9474](https://www.rfc-editor.org/rfc/rfc9474.html)).
+
+The authenticated connection can be established either the ID token or the anonymous token. Both are periodically refreshed by querying the `rust-token-server`, and the use of ID token is prioritized over the anonymous token. This means that the identity of the user is exposed to the next hop relay in addition to the user's IP address. If this is not acceptable, the anonymous token should be used (make `use_anonymous_token=true`).
 
 ## Distribution of queries to multiple target resolvers and relays
 

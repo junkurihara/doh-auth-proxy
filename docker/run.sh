@@ -3,6 +3,7 @@ CONFIG_FILE=/modoh/doh-auth-proxy.toml
 DEFAULT_LOG_LEVEL="info"
 DEFAULT_TARGET_URLS="https://dns.google/dns-query"
 DEFAULT_BOOTSTRAP_DNS="8.8.8.8"
+QUERY_LOG_FILE=/modoh/log/query.log
 
 # bootstrap DNS
 echo "Bootstrap DNS: ${BOOTSTRAP_DNS:-${DEFAULT_BOOTSTRAP_DNS}}"
@@ -19,6 +20,7 @@ EOF
   echo "Authorization is enabled to the token API: ${TOKEN_API}"
   CREDENTIAL_FP="credential_file = \"${CREDENTIAL_FILE_PATH}\""
   CREDENTIAL_API="token_api = \"${TOKEN_API}\""
+  USE_ANONYMOUS_TOKEN_STR="use_anonymous_token = ${USE_ANONYMOUS_TOKEN:-false}"
 fi
 
 ##########################
@@ -95,6 +97,7 @@ ${TARGET_RAND_STRING}
 [authentication]
 ${CREDENTIAL_API}
 ${CREDENTIAL_FP}
+${USE_ANONYMOUS_TOKEN_STR}
 
 [anonymization]
 ${ODOH_RELAY_URL_STRING}
@@ -112,7 +115,24 @@ echo "---------------------"
 cat ${CONFIG_FILE}
 echo "---------------------"
 
+
+# query-response logging
+QUERY_LOG_ARG=""
+if [ -z $ENABLE_QUERY_LOG ]; then
+  ENABLE_QUERY_LOG=false
+fi
+if [ -z $ENABLE_JSON_QUERY_LOG ]; then
+  ENABLE_JSON_QUERY_LOG=false
+fi
+if $ENABLE_JSON_QUERY_LOG; then
+  echo "Query-Response logging in JSON format enabled with file ${QUERY_LOG_FILE}"
+  QUERY_LOG_ARG="--query-log ${QUERY_LOG_FILE} --json-query-log"
+elif $ENABLE_QUERY_LOG ; then
+  echo "Query-Response logging enabled with file ${QUERY_LOG_FILE}"
+  QUERY_LOG_ARG="--query-log ${QUERY_LOG_FILE}"
+fi
+
 ##########################
 # start
 echo "Start with logg level ${LOG_LEVEL:-${DEFAULT_LOG_LEVEL}}"
-RUST_LOG=${LOG_LEVEL:-${DEFAULT_LOG_LEVEL}} /modoh/bin/doh-auth-proxy --config ${CONFIG_FILE}
+RUST_LOG=${LOG_LEVEL:-${DEFAULT_LOG_LEVEL}} /modoh/bin/doh-auth-proxy --config ${CONFIG_FILE} ${QUERY_LOG_ARG}

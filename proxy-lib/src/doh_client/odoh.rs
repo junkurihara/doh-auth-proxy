@@ -1,5 +1,6 @@
 // Based on https://github.com/DNSCrypt/doh-server/blob/master/src/libdoh/src/odoh.rs
-use crate::{error::*, log::*};
+use super::error::{DohClientError, DohClientResult};
+use crate::log::*;
 use bytes::Bytes;
 use odoh_rs::{
   parse, ObliviousDoHConfigContents, ObliviousDoHConfigs, ObliviousDoHMessage, ObliviousDoHMessagePlaintext, OdohSecret,
@@ -16,12 +17,12 @@ pub struct ODoHConfig {
 
 impl ODoHConfig {
   /// Create a new ODoHConfig
-  pub fn new(authority: &str, configs_vec: &[u8]) -> Result<Self> {
+  pub fn new(authority: &str, configs_vec: &[u8]) -> DohClientResult<Self> {
     let odoh_configs: ObliviousDoHConfigs = parse(&mut (<&[u8]>::clone(&configs_vec)))?;
     info!("[ODoH] Update ODoH configs: {authority}");
     let client_config = match odoh_configs.into_iter().next() {
       Some(t) => t,
-      None => return Err(DapError::ODoHNoClientConfig),
+      None => return Err(DohClientError::ODoHNoClientConfig),
     };
     let inner: ObliviousDoHConfigContents = client_config.into();
 
@@ -32,7 +33,7 @@ impl ODoHConfig {
   }
 
   /// Encrypt query
-  pub fn encrypt_query(&self, plaintext_query: &[u8]) -> Result<(ObliviousDoHMessagePlaintext, Bytes, OdohSecret)> {
+  pub fn encrypt_query(&self, plaintext_query: &[u8]) -> DohClientResult<(ObliviousDoHMessagePlaintext, Bytes, OdohSecret)> {
     debug!("[ODoH] Encrypt query");
     let mut rng = StdRng::from_entropy();
 
@@ -53,7 +54,7 @@ impl ODoHConfig {
     plaintext_query: &ObliviousDoHMessagePlaintext,
     encrypted_response: &Bytes,
     client_secret: OdohSecret,
-  ) -> Result<Bytes> {
+  ) -> DohClientResult<Bytes> {
     debug!("[ODoH] Decrypt query");
     let response_enc: ObliviousDoHMessage = parse(&mut (encrypted_response.clone()))?;
     let response_dec = odoh_rs::decrypt_response(plaintext_query, &response_enc, client_secret)?;

@@ -1,4 +1,4 @@
-use super::{counter::CounterType, proxy_main::Proxy, socket::bind_tcp_socket};
+use super::{counter::CounterType, proxy_main::Proxy, socket::bind_tcp_socket, ProxyProtocol};
 use crate::{error::*, log::*};
 use std::net::SocketAddr;
 use tokio::{
@@ -46,7 +46,7 @@ impl Proxy {
         self.globals.proxy_config.max_connections
       );
       counter.decrement(CounterType::Tcp);
-      return Err(DapError::TooManyConnections);
+      return Err(Error::TooManyConnections);
     }
     // let doh_client = self.context.get_random_client().await?;
 
@@ -56,7 +56,7 @@ impl Proxy {
     stream.read_exact(&mut length_buf).await?;
     let msg_length = u16::from_be_bytes(length_buf) as usize;
     if msg_length == 0 {
-      return Err(DapError::NullTcpStream);
+      return Err(Error::NullTcpStream);
     }
     let mut packet_buf = vec![0u8; msg_length];
     stream.read_exact(&mut packet_buf).await?;
@@ -65,7 +65,7 @@ impl Proxy {
     let res = tokio::time::timeout(
       self.globals.proxy_config.http_timeout_sec + std::time::Duration::from_secs(1),
       // serve tcp dns message here
-      self.doh_client.make_doh_query(&packet_buf),
+      self.doh_client.make_doh_query(&packet_buf, ProxyProtocol::Tcp, &src_addr),
     )
     .await
     .ok();
@@ -76,13 +76,13 @@ impl Proxy {
 
     if let Some(Ok(r)) = res {
       if r.len() > (u16::MAX as usize) {
-        return Err(DapError::InvalidDnsResponseSize);
+        return Err(Error::InvalidDnsResponseSize);
       }
       let length_buf = u16::to_be_bytes(r.len() as u16);
       stream.write_all(&length_buf).await?;
       stream.write_all(&r).await?;
     } else {
-      return Err(DapError::FailedToMakeDohQuery);
+      return Err(Error::FailedToMakeDohQuery);
     }
 
     Ok(())

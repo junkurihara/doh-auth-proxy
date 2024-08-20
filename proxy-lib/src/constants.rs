@@ -80,9 +80,25 @@ pub const TOKEN_RELOGIN_WAITING_SEC: u64 = 10;
 /// relogin at most 5 times
 pub const MAX_RELOGIN_ATTEMPTS: usize = 5;
 
+#[cfg(feature = "anonymous-token")]
+/// check if blindjwks endpoint is updated every 5 mins
+pub const BLIND_JWKS_ENDPOINT_WATCH_DELAY_SEC: u64 = 60 * 5;
+
 // Health check
 
 /// Health check target FQDN
 pub const HEALTHCHECK_TARGET_FQDN: &str = "dns.google.";
 /// Health check target IP address for assertion
 pub const HEALTHCHECK_TARGET_ADDR: &str = "8.8.8.8";
+
+// Query manipulation
+/// Block message for query manipulation (HINFO CPU field)
+pub const BLOCK_MESSAGE_HINFO_CPU: &str = "BLOCKED";
+/// Block message for query manipulation (HINFO OS field)
+pub const BLOCK_MESSAGE_HINFO_OS: &str = "POWERED-BY-DOH-AUTH-PROXY";
+
+// Logging
+/// Query log channel size
+pub const QUERY_LOG_CHANNEL_SIZE: usize = 1024;
+/// Query log event name
+pub const QUERY_LOG_EVENT_NAME: &str = "query_log";
