@@ -1,7 +1,7 @@
 FROM ubuntu:24.04 AS base
 
 SHELL ["/bin/sh", "-x", "-c"]
-ENV SERIAL 2
+ENV SERIAL=2
 
 ########################################
 FROM base AS builder
