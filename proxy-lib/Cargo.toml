@@ -32,7 +32,7 @@ anyhow = "1.0.86"
 tracing = "0.1.40"
 thiserror = "1.0.63"
 async-trait = "0.1.81"
-serde = { version = "1.0.208", features = ["derive"] }
+serde = { version = "1.0.209", features = ["derive"] }
 itertools = "0.13.0"
 rustc-hash = "2.0.0"
 crossbeam-channel = "0.5.13"
