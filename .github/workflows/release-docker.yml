@@ -21,6 +21,23 @@ jobs:
     if: ${{ github.event_name == 'push' }} || ${{ github.event_name == 'pull_request' && github.event.pull_request.merged == true }}
     strategy:
       fail-fast: false
+      matrix:
+        include:
+          - target: "default"
+            dockerfile: ./docker/Dockerfile
+            platforms: linux/amd64
+            # Aliases must be used only for release builds
+            aliases: |
+              jqtype/doh-auth-proxy:latest
+              ghcr.io/junkurihara/doh-auth-proxy:latest
+          - target: "slim"
+            dockerfile: ./docker/Dockerfile-slim
+            platforms: linux/amd64
+            tags-suffix: "-slim"
+            # Aliases must be used only for release builds
+            aliases: |
+              jqtype/doh-auth-proxy:slim
+              ghcr.io/junkurihara/doh-auth-proxy:slim
 
     steps:
       - name: checkout
@@ -55,11 +72,13 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ env.GHCR }}/${{ env.GHCR_IMAGE_NAME }}:latest
-            ${{ env.DH_REGISTRY_NAME }}:latest
-          file: ./docker/Dockerfile
+            ${{ env.GHCR }}/${{ env.GHCR_IMAGE_NAME }}:latest${{ matrix.tags-suffix }}
+            ${{ env.DH_REGISTRY_NAME }}:latest${{ matrix.tags-suffix }}
+            ${{ matrix.aliases }}
+          file: ${{ matrix.dockerfile }}
           cache-from: type=gha,scope=doh-auth-proxy-latest
           cache-to: type=gha,mode=max,scope=doh-auth-proxy-latest
+          platforms: ${{ matrix.platforms }}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Nightly build and push x86_64
@@ -69,11 +88,12 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ env.GHCR }}/${{ env.GHCR_IMAGE_NAME }}:nightly
-            ${{ env.DH_REGISTRY_NAME }}:nightly
-          file: ./docker/Dockerfile
+            ${{ env.GHCR }}/${{ env.GHCR_IMAGE_NAME }}:nightly${{ matrix.tags-suffix }}
+            ${{ env.DH_REGISTRY_NAME }}:nightly${{ matrix.tags-suffix }}
+          file: ${{ matrix.dockerfile }}
           cache-from: type=gha,scope=doh-auth-proxy-nightly
           cache-to: type=gha,mode=max,scope=doh-auth-proxy-nightly
+          platforms: ${{ matrix.platforms }}
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Unstable build and push x86_64 for 'feat/*' branches (for development purposes)
@@ -83,11 +103,12 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ env.GHCR }}/${{ env.GHCR_IMAGE_NAME }}:unstable
-            ${{ env.DH_REGISTRY_NAME }}:unstable
-          file: ./docker/Dockerfile
+            ${{ env.GHCR }}/${{ env.GHCR_IMAGE_NAME }}:unstable${{ matrix.tags-suffix }}
+            ${{ env.DH_REGISTRY_NAME }}:unstable${{ matrix.tags-suffix }}
+          file: ${{ matrix.dockerfile }}
           cache-from: type=gha,scope=doh-auth-proxy-unstable
           cache-to: type=gha,mode=max,scope=doh-auth-proxy-unstable
+          platforms: ${{ matrix.platforms }}
           labels: ${{ steps.meta.outputs.labels }}
 
   dispatch_release:

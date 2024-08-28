@@ -1,11 +1,13 @@
 services:
   doh-proxy:
-    image: jqtype/doh-auth-proxy:latest
+    image: jqtype/doh-auth-proxy:slim
+    # image: jqtype/doh-auth-proxy:latest
     container_name: doh-auth-proxy
     ## Uncomment if you build by yourself
     build:
       context: ../
-      dockerfile: ./docker/Dockerfile
+      dockerfile: ./docker/Dockerfile-slim
+      # dockerfile: ./docker/Dockerfile
     init: true
     restart: unless-stopped
     ports:
