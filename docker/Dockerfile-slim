@@ -21,7 +21,7 @@ FROM alpine:latest AS runner
 LABEL maintainer="Jun Kurihara"
 
 SHELL ["/bin/sh", "-x", "-c"]
-ENV SERIAL 2
+ENV SERIAL=2
 
 ARG RUNTIME_DEPS="logrotate ca-certificates su-exec bash"
 
