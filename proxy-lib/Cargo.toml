@@ -17,7 +17,7 @@ publish.workspace = true
 
 [dependencies]
 rand = "0.8.5"
-tokio = { version = "1.39.3", features = [
+tokio = { version = "1.40.0", features = [
   "net",
   "rt-multi-thread",
   "time",
@@ -28,11 +28,11 @@ futures = { version = "0.3.30", default-features = false, features = [
   "std",
   "async-await",
 ] }
-anyhow = "1.0.86"
+anyhow = "1.0.87"
 tracing = "0.1.40"
 thiserror = "1.0.63"
-async-trait = "0.1.81"
-serde = { version = "1.0.209", features = ["derive"] }
+async-trait = "0.1.82"
+serde = { version = "1.0.210", features = ["derive"] }
 itertools = "0.13.0"
 rustc-hash = "2.0.0"
 crossbeam-channel = "0.5.13"

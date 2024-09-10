@@ -19,21 +19,21 @@ doh-auth-proxy-lib = { path = "../proxy-lib/", default-features = false, feature
   "anonymous-token",
 ] }
 
-anyhow = "1.0.86"
+anyhow = "1.0.87"
 mimalloc = { version = "*", default-features = false }
-serde = { version = "1.0.209", default-features = false, features = ["derive"] }
-derive_builder = "0.20.0"
-tokio = { version = "1.39.3", default-features = false, features = [
+serde = { version = "1.0.210", default-features = false, features = ["derive"] }
+derive_builder = "0.20.1"
+tokio = { version = "1.40.0", default-features = false, features = [
   "net",
   "rt-multi-thread",
   "time",
   "sync",
   "macros",
 ] }
-async-trait = "0.1.81"
+async-trait = "0.1.82"
 
 # config
-clap = { version = "4.5.16", features = ["std", "cargo", "wrap_help"] }
+clap = { version = "4.5.17", features = ["std", "cargo", "wrap_help"] }
 toml = { version = "0.8.19", default-features = false, features = ["parse"] }
 hot_reload = "0.1.6"
 
