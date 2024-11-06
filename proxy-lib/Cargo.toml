@@ -17,7 +17,7 @@ publish.workspace = true
 
 [dependencies]
 rand = "0.8.5"
-tokio = { version = "1.40.0", features = [
+tokio = { version = "1.41.0", features = [
   "net",
   "rt-multi-thread",
   "time",
@@ -28,35 +28,35 @@ futures = { version = "0.3.31", default-features = false, features = [
   "std",
   "async-await",
 ] }
-anyhow = "1.0.89"
+anyhow = "1.0.92"
 tracing = "0.1.40"
-thiserror = "1.0.64"
+thiserror = "1.0.68"
 async-trait = "0.1.83"
-serde = { version = "1.0.210", features = ["derive"] }
+serde = { version = "1.0.214", features = ["derive"] }
 itertools = "0.13.0"
 rustc-hash = "2.0.0"
 crossbeam-channel = "0.5.13"
 
 # doh and odoh client with cache and query manipulation plugins
 odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git", branch = "master" }
-bytes = "1.7.2"
+bytes = "1.8.0"
 hickory-proto = { version = "0.24.1", default-features = false }
 data-encoding = "2.6.0"
 hashlink = "0.9.1"
 cedarwood = "0.4.6"
-regex = "1.11.0"
+regex = "1.11.1"
 
 # network
 socket2 = "0.5.7"
 
 # http client
-reqwest = { version = "0.12.8", default-features = false, features = [
+reqwest = { version = "0.12.9", default-features = false, features = [
   "json",
   "http2",
   "hickory-dns",
   "rustls-tls",
 ] }
-url = "2.5.2"
+url = "2.5.3"
 
 # for bootstrap dns resolver
 hickory-client = { version = "0.24.1", default-features = false, features = [
