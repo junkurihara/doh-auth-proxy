@@ -3,7 +3,6 @@ use super::{
     dns_message::{build_response_nx, QueryKey},
     error::DohClientError,
   },
-  regexp_vals::*,
   QueryManipulation, QueryManipulationResult,
 };
 use crate::{
@@ -13,9 +12,8 @@ use crate::{
 };
 use anyhow::bail;
 use async_trait::async_trait;
-use cedarwood::Cedar;
 use hickory_proto::{op::Message, rr};
-use regex::Regex;
+use match_domain::DomainMatchingRule;
 
 #[async_trait]
 impl QueryManipulation for DomainBlockRule {
@@ -49,11 +47,10 @@ fn build_response_block(query_message: &Message) -> Message {
 }
 
 #[derive(Debug, Clone)]
+/// DomainBlockRule is a query manipulation rule that blocks queries based on domain matching
 pub struct DomainBlockRule {
-  prefix_cedar: Cedar,
-  suffix_cedar: Cedar,
-  prefix_dict: Vec<String>,
-  suffix_dict: Vec<String>,
+  /// inner domain matching rule
+  inner: DomainMatchingRule,
 }
 
 impl TryFrom<&QueryManipulationConfig> for Option<DomainBlockRule> {
@@ -62,91 +59,13 @@ impl TryFrom<&QueryManipulationConfig> for Option<DomainBlockRule> {
     let Some(config_domain_block) = &config.domain_block else {
       return Ok(None);
     };
-
-    let start_with_star = Regex::new(r"^\*\..+").unwrap();
-    let end_with_star = Regex::new(r".+\.\*$").unwrap();
-    // TODO: currently either one of prefix or suffix match with '*' is supported
-    let re = Regex::new(&format!("{}{}{}", r"^", REGEXP_DOMAIN_OR_PREFIX, r"$")).unwrap();
-    let dict: Vec<String> = config_domain_block
-      .iter()
-      .map(|d| if start_with_star.is_match(d) { &d[2..] } else { d })
-      .filter(|x| re.is_match(x) || (x.split('.').count() == 1))
-      .map(|y| y.to_ascii_lowercase())
-      .collect();
-    let prefix_dict: Vec<String> = dict
-      .iter()
-      .filter(|d| end_with_star.is_match(d))
-      .map(|d| d[..d.len() - 2].to_string())
-      .collect();
-    let suffix_dict: Vec<String> = dict
-      .iter()
-      .filter(|d| !end_with_star.is_match(d))
-      .map(|d| reverse_string(d))
-      .collect();
-
-    let prefix_kv: Vec<(&str, i32)> = prefix_dict
-      .iter()
-      .map(AsRef::as_ref)
-      .enumerate()
-      .map(|(k, s)| (s, k as i32))
-      .collect();
-    let mut prefix_cedar = Cedar::new();
-    prefix_cedar.build(&prefix_kv);
-
-    let suffix_kv: Vec<(&str, i32)> = suffix_dict
-      .iter()
-      .map(AsRef::as_ref)
-      .enumerate()
-      .map(|(k, s)| (s, k as i32))
-      .collect();
-    let mut suffix_cedar = Cedar::new();
-    suffix_cedar.build(&suffix_kv);
-
-    Ok(Some(DomainBlockRule {
-      prefix_cedar,
-      suffix_cedar,
-      prefix_dict,
-      suffix_dict,
-    }))
+    let inner = DomainMatchingRule::try_from(config_domain_block.as_slice())?;
+    Ok(Some(DomainBlockRule { inner }))
   }
 }
 
 impl DomainBlockRule {
-  fn find_suffix_match(&self, query_domain: &str) -> bool {
-    let rev_nn = reverse_string(query_domain);
-    let matched_items = self
-      .suffix_cedar
-      .common_prefix_iter(&rev_nn)
-      .map(|(x, _)| self.suffix_dict[x as usize].clone());
-
-    let mut matched_as_domain = matched_items.filter(|found| {
-      if found.len() == rev_nn.len() {
-        true
-      } else if let Some(nth) = rev_nn.chars().nth(found.chars().count()) {
-        nth.to_string() == "."
-      } else {
-        false
-      }
-    });
-    matched_as_domain.next().is_some()
-  }
-
-  fn find_prefix_match(&self, query_domain: &str) -> bool {
-    let matched_items = self
-      .prefix_cedar
-      .common_prefix_iter(query_domain)
-      .map(|(x, _)| self.prefix_dict[x as usize].clone());
-
-    let mut matched_as_domain = matched_items.filter(|found| {
-      if let Some(nth) = query_domain.chars().nth(found.chars().count()) {
-        nth.to_string() == "."
-      } else {
-        false
-      }
-    });
-    matched_as_domain.next().is_some()
-  }
-
+  /// Check if the query key is in blocklist
   pub fn in_blocklist(&self, q_key: &QueryKey) -> anyhow::Result<bool> {
     // remove final dot
     let mut nn = q_key.clone().query_name.to_ascii_lowercase();
@@ -161,24 +80,8 @@ impl DomainBlockRule {
       }
     }
 
-    if self.find_suffix_match(&nn) {
-      debug!("[with cw] suffix/exact match found: {}", nn);
-      return Ok(true);
-    }
-
-    if self.find_prefix_match(&nn) {
-      debug!("[with cw] prefix match found: {}", nn);
-      return Ok(true);
-    }
-
-    // TODO: other matching patterns
-
-    Ok(false)
+    Ok(self.inner.is_matched(&nn))
   }
-}
-
-fn reverse_string(text: &str) -> String {
-  text.chars().rev().collect::<String>()
 }
 
 #[cfg(test)]

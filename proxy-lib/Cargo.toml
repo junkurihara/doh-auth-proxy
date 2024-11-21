@@ -43,7 +43,7 @@ bytes = "1.8.0"
 hickory-proto = { version = "0.24.1", default-features = false }
 data-encoding = "2.6.0"
 hashlink = "0.9.1"
-cedarwood = "0.4.6"
+match-domain = "0.1.1"
 regex = "1.11.1"
 
 # network
