@@ -42,7 +42,7 @@ odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git", branch = "master
 bytes = "1.9.0"
 hickory-proto = { version = "0.24.2", default-features = false }
 data-encoding = "2.6.0"
-hashlink = "0.9.1"
+hashlink = "0.10.0"
 match-domain = "0.1.2"
 regex = "1.11.1"
 
