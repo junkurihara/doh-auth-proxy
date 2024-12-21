@@ -248,7 +248,7 @@ impl TryInto<ProxyConfig> for &TargetConfig {
           authentication_config: AuthenticationConfig {
             username: username.to_string(),
             password: password.to_string(),
-            client_id: client_id.to_string(),
+            client_id: Some(client_id.to_string()),
             token_api: token_api.parse().unwrap(),
           },
           use_anonymous_token,

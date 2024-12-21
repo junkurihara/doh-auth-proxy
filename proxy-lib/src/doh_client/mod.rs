@@ -18,6 +18,10 @@ pub enum DoHResponseType {
   Blocked,
   /// Overridden response
   Overridden,
+  /// Not forwarded due to the nature of dns forwarding (like resolver.arpa)
+  NotForwarded,
+  /// Overridden response for the localhost and broadcast addresses
+  DefaultHost,
   /// Cached response
   Cached,
   /// Standard response fetched from upstream
@@ -29,6 +33,8 @@ impl std::fmt::Display for DoHResponseType {
     match self {
       DoHResponseType::Blocked => write!(f, "Blocked"),
       DoHResponseType::Overridden => write!(f, "Overridden"),
+      DoHResponseType::NotForwarded => write!(f, "NotForwarded"),
+      DoHResponseType::DefaultHost => write!(f, "DefaultHost"),
       DoHResponseType::Cached => write!(f, "Cached"),
       DoHResponseType::Normal => write!(f, "Normal"),
     }

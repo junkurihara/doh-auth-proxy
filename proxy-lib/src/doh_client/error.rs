@@ -47,6 +47,9 @@ pub enum DohClientError {
   #[error("Regex error: {0}")]
   RegexError(#[from] regex::Error),
 
+  #[error("Domain matcher error: {0}")]
+  DomainMatcherError(#[from] match_domain::Error),
+
   #[error(transparent)]
   Other(#[from] anyhow::Error),
 }

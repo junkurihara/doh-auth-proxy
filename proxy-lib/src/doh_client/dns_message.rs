@@ -120,6 +120,14 @@ pub fn build_response_nx(msg: &Message) -> Message {
   res
 }
 
+/// Build a DNS response message with REFUSED
+pub fn build_response_refused(msg: &Message) -> Message {
+  let mut res = msg.clone();
+  res.set_message_type(hickory_proto::op::MessageType::Response);
+  res.set_response_code(hickory_proto::op::ResponseCode::Refused);
+  res
+}
+
 /// Build a DNS response message for given QueryKey and IP address
 pub fn build_response_given_ipaddr(msg: &Message, q_key: &QueryKey, ipaddr: &IpAddr, min_ttl: u32) -> anyhow::Result<Message> {
   let mut res = msg.clone();

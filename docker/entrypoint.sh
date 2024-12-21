@@ -102,6 +102,27 @@ function setup_ubuntu () {
 }
 
 #######################################
+function setup_alpine () {
+  id ${USER} > /dev/null
+  # Check the existence of the user, if not exist, create it.
+  if [ $? -eq 1 ]; then
+    echo "doh-auth-proxy: Create user ${USER} with ${USER_ID}:${GROUP_ID}"
+    addgroup -g ${GROUP_ID} ${USER}
+    adduser -H -D -u ${USER_ID} -G ${USER} ${USER}
+  fi
+
+  # for crontab when logging
+  if ${LOGGING} || ${QUERY_LOGGING} ; then
+    # Set up logrotate
+    setup_logrotate
+
+    # Setup cron
+    cp -f /etc/periodic/daily/logrotate /etc/periodic/15min
+    crond -b -l 8
+  fi
+}
+
+#######################################
 
 if [ $(whoami) != "root" -o $(id -u) -ne 0 -a $(id -g) -ne 0 ]; then
   echo "Do not execute 'docker run' or 'docker-compose up' with a specific user through '-u'."
@@ -109,8 +130,21 @@ if [ $(whoami) != "root" -o $(id -u) -ne 0 -a $(id -g) -ne 0 ]; then
   exit 1
 fi
 
-# set up user and cron for ubuntu base image
-setup_ubuntu
+# Check gosu or su-exec, determine linux distribution, and set up user
+if [ $(command -v gosu) ]; then
+  # Ubuntu Linux
+  alias gosu='gosu'
+  setup_ubuntu
+  LINUX="Ubuntu"
+elif [ $(command -v su-exec) ]; then
+  # Alpine Linux
+  alias gosu='su-exec'
+  setup_alpine
+  LINUX="Alpine"
+else
+  echo "Unknown distribution!"
+  exit 1
+fi
 
 # Check the given user and its uid:gid
 if [ $(id -u ${USER}) -ne ${USER_ID} -a $(id -g ${USER}) -ne ${GROUP_ID} ]; then
