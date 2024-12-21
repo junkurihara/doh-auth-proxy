@@ -70,6 +70,8 @@ impl QueryLoggingBase {
     let dst = match self.res_type {
       DoHResponseType::Blocked => "blocked".to_owned(),
       DoHResponseType::Overridden => "overridden".to_owned(),
+      DoHResponseType::NotForwarded => "not_forwarded".to_owned(),
+      DoHResponseType::DefaultHost => "default_host".to_owned(),
       DoHResponseType::Cached => "cached".to_owned(),
       DoHResponseType::Normal => {
         if let Some(dst_url) = &self.dst_url {

@@ -13,7 +13,15 @@
 You should also include the user name that made the change.
 -->
 
-## 0.4.0 (Unreleased)
+## 0.4.2 (Unreleased)
+
+## 0.4.1
+
+- Feat: support handling not-forwarded domains and local domains by default. For example, `resolver.arpa` is not forwarded to the upstream resolver, and `localhost` is always resolved to `127.0.0.1` or `::1`.
+- Refactor: Various minor improvements
+- Deps.
+
+## 0.4.0
 
 - Feat: Support anonymous token based on blind RSA signatures.
 - Feat: DNS query logging (`qrlog` feature)
