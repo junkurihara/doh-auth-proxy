@@ -96,6 +96,10 @@ pub const HEALTHCHECK_TARGET_ADDR: &str = "8.8.8.8";
 pub const BLOCK_MESSAGE_HINFO_CPU: &str = "BLOCKED";
 /// Block message for query manipulation (HINFO OS field)
 pub const BLOCK_MESSAGE_HINFO_OS: &str = "POWERED-BY-DOH-AUTH-PROXY";
+/// Not-forwarded message for query manipulation (HINFO CPU field)
+pub const NOT_FORWARDED_MESSAGE_HINFO_CPU: &str = "NOT-FORWARDED-BY-DEFAULT";
+/// Not-forwarded message for query manipulation (HINFO OS field)
+pub const NOT_FORWARDED_MESSAGE_HINFO_OS: &str = "POWERED-BY-DOH-AUTH-PROXY";
 
 // Logging
 /// Query log channel size

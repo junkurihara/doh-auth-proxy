@@ -3,14 +3,13 @@ use super::{
     dns_message::{build_response_nx, QueryKey},
     error::DohClientError,
   },
-  QueryManipulation, QueryManipulationResult,
+  inspect_query_name, QueryManipulation, QueryManipulationResult,
 };
 use crate::{
   constants::{BLOCK_MESSAGE_HINFO_CPU, BLOCK_MESSAGE_HINFO_OS},
   log::*,
   QueryManipulationConfig,
 };
-use anyhow::bail;
 use async_trait::async_trait;
 use hickory_proto::{op::Message, rr};
 use match_domain::DomainMatchingRule;
@@ -67,19 +66,8 @@ impl TryFrom<&QueryManipulationConfig> for Option<DomainBlockRule> {
 impl DomainBlockRule {
   /// Check if the query key is in blocklist
   pub fn in_blocklist(&self, q_key: &QueryKey) -> anyhow::Result<bool> {
-    // remove final dot
-    let mut nn = q_key.clone().query_name.to_ascii_lowercase();
-    match nn.pop() {
-      Some(dot) => {
-        if dot != '.' {
-          bail!("Invalid query name as fqdn (missing final dot): {}", nn);
-        }
-      }
-      None => {
-        bail!("Missing query name");
-      }
-    }
-
+    // remove final dot and convert to lowercase
+    let nn = inspect_query_name(q_key.query_name.as_str())?;
     Ok(self.inner.is_matched(&nn))
   }
 }

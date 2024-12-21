@@ -3,6 +3,7 @@ use super::{
     dns_message::{build_response_given_ipaddr, QueryKey},
     error::DohClientError,
   },
+  inspect_query_name,
   regexp_vals::*,
   QueryManipulation, QueryManipulationResult,
 };
@@ -95,19 +96,10 @@ impl TryFrom<&QueryManipulationConfig> for Option<DomainOverrideRule> {
 impl DomainOverrideRule {
   pub fn find_mapping(&self, q_key: &QueryKey) -> Option<&MapsTo> {
     let q_type = q_key.query_type;
-    // remove final dot
-    let mut nn = q_key.clone().query_name.to_ascii_lowercase();
-    match nn.pop() {
-      Some(dot) => {
-        if dot != '.' {
-          return None;
-        }
-      }
-      None => {
-        warn!("Null request!");
-        return None;
-      }
-    }
+
+    // remove final dot and convert to lowercase
+    let nn = inspect_query_name(q_key.query_name.as_str()).ok()?;
+
     // find matches
     if let Some(targets) = self.inner.get(&nn) {
       targets.iter().find(|x| match x {

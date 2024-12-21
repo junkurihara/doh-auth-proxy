@@ -45,7 +45,7 @@ pub struct DoHClient {
   /// health check interval
   pub(super) healthcheck_period_sec: tokio::time::Duration,
   /// Query manipulation pulugins
-  query_manipulators: Option<QueryManipulators>,
+  query_manipulators: QueryManipulators,
   /// Query logging sender
   query_log_tx: crossbeam_channel::Sender<QueryLoggingBase>,
 }
@@ -119,10 +119,10 @@ impl DoHClient {
     let healthcheck_period_sec = globals.proxy_config.healthcheck_period_sec;
 
     // query manipulators
-    let query_manipulators: Option<QueryManipulators> = if let Some(q) = &globals.proxy_config.query_manipulation_config {
-      q.as_ref().try_into().ok()
+    let query_manipulators: QueryManipulators = if let Some(q) = &globals.proxy_config.query_manipulation_config {
+      q.as_ref().try_into().unwrap_or_default()
     } else {
-      None
+      QueryManipulators::default()
     };
 
     Ok(Self {
@@ -186,20 +186,29 @@ impl DoHClient {
     })?;
 
     // Process query plugins from the beginning of vec, e.g., domain filtering, cloaking, etc.
-    if let Some(manipulators) = &self.query_manipulators {
-      let execution_result = manipulators.apply(&query_msg, &req.0[0]).await?;
-      match execution_result {
-        QueryManipulationResult::PassThrough => (),
-        QueryManipulationResult::SyntheticResponseBlocked(response_msg) => {
-          let res = dns_message::encode(&response_msg)?;
-          self.log_dns_message(&res, proto, src, DoHResponseType::Blocked, None, start);
-          return Ok(res);
-        }
-        QueryManipulationResult::SyntheticResponseOverridden(response_msg) => {
-          let res = dns_message::encode(&response_msg)?;
-          self.log_dns_message(&res, proto, src, DoHResponseType::Overridden, None, start);
-          return Ok(res);
-        }
+
+    let execution_result = self.query_manipulators.apply(&query_msg, &req.0[0]).await?;
+    match execution_result {
+      QueryManipulationResult::PassThrough => (),
+      QueryManipulationResult::SyntheticResponseBlocked(response_msg) => {
+        let res = dns_message::encode(&response_msg)?;
+        self.log_dns_message(&res, proto, src, DoHResponseType::Blocked, None, start);
+        return Ok(res);
+      }
+      QueryManipulationResult::SyntheticResponseOverridden(response_msg) => {
+        let res = dns_message::encode(&response_msg)?;
+        self.log_dns_message(&res, proto, src, DoHResponseType::Overridden, None, start);
+        return Ok(res);
+      }
+      QueryManipulationResult::SyntheticResponseNotForwarded(response_msg) => {
+        let res = dns_message::encode(&response_msg)?;
+        self.log_dns_message(&res, proto, src, DoHResponseType::NotForwarded, None, start);
+        return Ok(res);
+      }
+      QueryManipulationResult::SyntheticResponseDefaultHost(response_msg) => {
+        let res = dns_message::encode(&response_msg)?;
+        self.log_dns_message(&res, proto, src, DoHResponseType::DefaultHost, None, start);
+        return Ok(res);
       }
     }
 
