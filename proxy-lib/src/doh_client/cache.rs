@@ -1,12 +1,15 @@
 use super::dns_message::{self, Request};
 use crate::log::*;
 use anyhow::anyhow;
-use hashlink::{linked_hash_map::RawEntryMut, LinkedHashMap};
+use hashlink::linked_hash_map::RawEntryMut;
 use hickory_proto::op::Message;
 use tokio::{
   sync::Mutex,
   time::{Duration, Instant},
 };
+
+/// Type alias for LinkedHashMap using ahash::RandomState as hasher
+type LinkedHashMap<K, V> = hashlink::LinkedHashMap<K, V, ahash::RandomState>;
 
 #[derive(Debug, Clone)]
 /// Cache object
@@ -75,7 +78,7 @@ impl Cache {
   /// Create a new cache
   pub fn new(max_size: usize) -> Self {
     Cache {
-      cache: Mutex::new(LinkedHashMap::new()),
+      cache: Mutex::new(LinkedHashMap::default()),
       max_size,
     }
   }

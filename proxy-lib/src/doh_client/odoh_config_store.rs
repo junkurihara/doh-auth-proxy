@@ -4,7 +4,7 @@ use crate::{
   http_client::HttpClientInner,
   log::*,
 };
-use rustc_hash::FxHashMap as HashMap;
+use ahash::HashMap;
 use std::sync::Arc;
 use tokio::{
   sync::{Notify, RwLock},

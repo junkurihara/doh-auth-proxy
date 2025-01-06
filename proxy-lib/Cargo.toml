@@ -34,7 +34,7 @@ thiserror = "2.0.9"
 async-trait = "0.1.84"
 serde = { version = "1.0.217", features = ["derive"] }
 itertools = "0.14.0"
-rustc-hash = "2.1.0"
+ahash = "0.8.11"
 crossbeam-channel = "0.5.14"
 
 # doh and odoh client with cache and query manipulation plugins
