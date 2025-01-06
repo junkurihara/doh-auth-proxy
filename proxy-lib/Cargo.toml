@@ -33,9 +33,12 @@ tracing = "0.1.41"
 thiserror = "2.0.9"
 async-trait = "0.1.84"
 serde = { version = "1.0.217", features = ["derive"] }
-itertools = "0.13.0"
-rustc-hash = "2.1.0"
+itertools = "0.14.0"
+ahash = "0.8.11"
 crossbeam-channel = "0.5.14"
+
+# odoh config server
+arc-swap = "1.7.1"
 
 # doh and odoh client with cache and query manipulation plugins
 odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git", branch = "master" }
