@@ -325,9 +325,6 @@ impl DoHClient {
     let Some(odoh_config) = self.odoh_configs.as_ref().unwrap().get(target_obj).await else {
       return Err(DohClientError::ODoHNoClientConfig);
     };
-    let Some(odoh_config) = odoh_config.as_ref() else {
-      return Err(DohClientError::ODoHNoClientConfig);
-    };
 
     // encrypt query
     let (odoh_plaintext_query, encrypted_query_body, secret) = odoh_config.encrypt_query(packet_buf)?;

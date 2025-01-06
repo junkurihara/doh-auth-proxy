@@ -13,7 +13,13 @@
 You should also include the user name that made the change.
 -->
 
-## 0.4.2 (Unreleased)
+## 0.4.3 (Unreleased)
+
+## 0.4.2
+
+- Feat: Change the default hasher for hashmaps and hashsets from `FxHash` to `aHash` for better performance with string keys. Use `ArcSwap` instead of `RwLock` for internal ODoH config storage.
+- Deps.
+- Refactor: Various minor improvements.
 
 ## 0.4.1
 

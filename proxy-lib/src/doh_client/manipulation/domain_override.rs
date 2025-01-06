@@ -8,10 +8,10 @@ use super::{
   QueryManipulation, QueryManipulationResult,
 };
 use crate::{log::*, QueryManipulationConfig};
+use ahash::HashMap;
 use async_trait::async_trait;
 use hickory_proto::{op::Message, rr};
 use regex::Regex;
-use rustc_hash::FxHashMap as HashMap;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 #[async_trait]
