@@ -28,11 +28,11 @@ futures = { version = "0.3.31", default-features = false, features = [
   "std",
   "async-await",
 ] }
-anyhow = "1.0.94"
+anyhow = "1.0.95"
 tracing = "0.1.41"
-thiserror = "2.0.8"
-async-trait = "0.1.83"
-serde = { version = "1.0.216", features = ["derive"] }
+thiserror = "2.0.9"
+async-trait = "0.1.84"
+serde = { version = "1.0.217", features = ["derive"] }
 itertools = "0.13.0"
 rustc-hash = "2.1.0"
 crossbeam-channel = "0.5.14"
@@ -50,7 +50,7 @@ regex = "1.11.1"
 socket2 = "0.5.8"
 
 # http client
-reqwest = { version = "0.12.9", default-features = false, features = [
+reqwest = { version = "0.12.12", default-features = false, features = [
   "json",
   "http2",
   "hickory-dns",

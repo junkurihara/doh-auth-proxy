@@ -19,9 +19,9 @@ doh-auth-proxy-lib = { path = "../proxy-lib/", default-features = false, feature
   "anonymous-token",
 ] }
 
-anyhow = "1.0.94"
+anyhow = "1.0.95"
 mimalloc = { version = "*", default-features = false }
-serde = { version = "1.0.216", default-features = false, features = ["derive"] }
+serde = { version = "1.0.217", default-features = false, features = ["derive"] }
 derive_builder = "0.20.2"
 tokio = { version = "1.42.0", default-features = false, features = [
   "net",
@@ -30,7 +30,7 @@ tokio = { version = "1.42.0", default-features = false, features = [
   "sync",
   "macros",
 ] }
-async-trait = "0.1.83"
+async-trait = "0.1.84"
 
 # config
 clap = { version = "4.5.23", features = ["std", "cargo", "wrap_help"] }
