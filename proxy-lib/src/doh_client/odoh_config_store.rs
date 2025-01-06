@@ -5,6 +5,7 @@ use crate::{
   log::*,
 };
 use ahash::HashMap;
+use arc_swap::ArcSwap;
 use std::sync::Arc;
 use tokio::{
   sync::{Notify, RwLock},
@@ -15,7 +16,8 @@ use url::Url;
 #[allow(clippy::complexity)]
 /// ODoH config store
 pub struct ODoHConfigStore {
-  inner: Arc<RwLock<HashMap<Arc<DoHTarget>, Arc<Option<ODoHConfig>>>>>,
+  // inner: Arc<RwLock<HashMap<Arc<DoHTarget>, Arc<Option<ODoHConfig>>>>>,
+  inner: ArcSwap<HashMap<Arc<DoHTarget>, Arc<Option<ODoHConfig>>>>,
   http_client: Arc<RwLock<HttpClientInner>>,
 }
 
@@ -27,7 +29,7 @@ impl ODoHConfigStore {
       .map(|target| (target.clone(), Arc::new(None as Option<ODoHConfig>)))
       .collect::<HashMap<_, _>>();
     let res = Self {
-      inner: Arc::new(RwLock::new(inner)),
+      inner: ArcSwap::new(Arc::new(inner)),
       http_client,
     };
     res.update_odoh_config_from_well_known().await?;
@@ -36,20 +38,16 @@ impl ODoHConfigStore {
 
   /// Get a ODoHConfig for DoHTarget
   pub async fn get(&self, target: &Arc<DoHTarget>) -> Option<Arc<Option<ODoHConfig>>> {
-    let inner_lock = self.inner.read().await;
-    let inner = inner_lock.get(target)?;
-    Some(inner.clone())
+    self.inner.load().get(target).cloned()
   }
 
   /// Fetch ODoHConfig from target
   pub async fn update_odoh_config_from_well_known(&self) -> Result<(), DohClientError> {
     // TODO: Add auth token when fetching config?
     // fetch public key from odoh target (/.well-known)
-    let inner_lock = self.inner.read().await;
-    let inner = inner_lock.clone();
-    drop(inner_lock);
+    let inner = self.inner.load().clone();
 
-    let futures = inner.keys().map(|target| async {
+    let futures = inner.as_ref().keys().map(|target| async {
       let mut destination = Url::parse(&format!("{}://{}", target.scheme(), target.authority())).unwrap();
       destination.set_path(ODOH_CONFIG_PATH);
       let lock = self.http_client.read().await;
@@ -61,7 +59,7 @@ impl ODoHConfigStore {
         .await
     });
     let joined = futures::future::join_all(futures);
-    let update_futures = joined.await.into_iter().zip(inner).map(|(res, current)| async move {
+    let update_futures = joined.await.into_iter().zip(inner.iter()).map(|(res, current)| async move {
       match res {
         Ok(response) => {
           if response.status() != reqwest::StatusCode::OK {
@@ -85,9 +83,7 @@ impl ODoHConfigStore {
       .await
       .into_iter()
       .collect::<HashMap<_, _>>();
-    let mut inner_lock = self.inner.write().await;
-    *inner_lock = update_joined;
-    drop(inner_lock);
+    self.inner.store(Arc::new(update_joined));
     Ok(())
   }
 
