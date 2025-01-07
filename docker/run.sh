@@ -134,5 +134,5 @@ fi
 
 ##########################
 # start
-echo "Start with logg level ${LOG_LEVEL:-${DEFAULT_LOG_LEVEL}}"
+echo "Start with log level ${LOG_LEVEL:-${DEFAULT_LOG_LEVEL}}"
 RUST_LOG=${LOG_LEVEL:-${DEFAULT_LOG_LEVEL}} /modoh/bin/doh-auth-proxy --config ${CONFIG_FILE} ${QUERY_LOG_ARG}
