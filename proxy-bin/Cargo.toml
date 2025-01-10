@@ -23,17 +23,17 @@ anyhow = "1.0.95"
 mimalloc = { version = "*", default-features = false }
 serde = { version = "1.0.217", default-features = false, features = ["derive"] }
 derive_builder = "0.20.2"
-tokio = { version = "1.42.0", default-features = false, features = [
+tokio = { version = "1.43.0", default-features = false, features = [
   "net",
   "rt-multi-thread",
   "time",
   "sync",
   "macros",
 ] }
-async-trait = "0.1.84"
+async-trait = "0.1.85"
 
 # config
-clap = { version = "4.5.23", features = ["std", "cargo", "wrap_help"] }
+clap = { version = "4.5.26", features = ["std", "cargo", "wrap_help"] }
 toml = { version = "0.8.19", default-features = false, features = ["parse"] }
 hot_reload = "0.1.8"
 
