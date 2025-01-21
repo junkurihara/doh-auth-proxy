@@ -11,6 +11,8 @@ pub const UDP_CHANNEL_CAPACITY: usize = 1024; // TODO: channelキャパシティ
 pub const UDP_TIMEOUT_SEC: u64 = 10;
 /// TCP listen backlog
 pub const TCP_LISTEN_BACKLOG: u32 = 1024;
+/// TCP idle timeout in secs
+pub const TCP_IDLE_TIMEOUT_SEC: u64 = 10;
 
 /// Max connections via UPD and TCP (total) TODO: めちゃ適当
 pub const MAX_CONNECTIONS: usize = 128;
