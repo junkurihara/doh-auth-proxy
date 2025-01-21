@@ -33,7 +33,7 @@ tokio = { version = "1.43.0", default-features = false, features = [
 async-trait = "0.1.85"
 
 # config
-clap = { version = "4.5.26", features = ["std", "cargo", "wrap_help"] }
+clap = { version = "4.5.27", features = ["std", "cargo", "wrap_help"] }
 toml = { version = "0.8.19", default-features = false, features = ["parse"] }
 hot_reload = "0.1.8"
 
