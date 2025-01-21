@@ -58,38 +58,73 @@ impl Proxy {
   }
 
   /// Serve TCP query inner, supporting connection reuse and pipelining (RFC7766)
-  pub async fn serve_tcp_query_inner(self, mut stream: TcpStream, src_addr: SocketAddr) -> Result<()> {
+  pub async fn serve_tcp_query_inner(self, stream: TcpStream, src_addr: SocketAddr) -> Result<()> {
+    // split stream into readable and writeable
+    let (mut readable_stream, mut writeable_stream) = stream.into_split();
+
+    /* ------- */
+    // spawn a task to make doh query and write response to stream
+    let (tx, mut rx) = tokio::sync::mpsc::channel::<Vec<u8>>(10);
+    let self_clone = self.clone();
+    self.globals.runtime_handle.spawn(async move {
+      while let Some(q) = rx.recv().await {
+        // if query is empty, connection is closed
+        if q.is_empty() {
+          debug!("TCP connection closed");
+          break;
+        }
+
+        // make DoH query
+        let res = tokio::time::timeout(
+          self_clone.globals.proxy_config.http_timeout_sec + std::time::Duration::from_secs(1),
+          // serve tcp dns message here
+          self_clone.doh_client.make_doh_query(&q, ProxyProtocol::Tcp, &src_addr),
+        )
+        .await
+        .ok();
+
+        // send response via stream
+        if let Some(Ok(r)) = res {
+          if r.len() > (u16::MAX as usize) {
+            error!("Response too large: {}", r.len());
+            break;
+          }
+          let length_buf = u16::to_be_bytes(r.len() as u16);
+          if let Err(e) = writeable_stream.write_all(&length_buf).await {
+            error!("Failed to write length to stream: {e}");
+            break;
+          }
+          if let Err(e) = writeable_stream.write_all(&r).await {
+            error!("Failed to write response to stream: {e}");
+            break;
+          }
+        } else {
+          error!("Failed to make DoH query");
+          break;
+        }
+      }
+      debug!("Finish serving TCP writable stream");
+    });
+    /* ------- */
+
+    // read query from readable stream
     loop {
-      let Ok(res) = tokio::time::timeout(self.globals.proxy_config.tcp_idle_timeout_sec, read_query(&mut stream)).await else {
+      let Ok(res) = tokio::time::timeout(
+        self.globals.proxy_config.tcp_idle_timeout_sec,
+        read_query(&mut readable_stream),
+      )
+      .await
+      else {
         debug!("TCP idle timeout or TCP connection closed");
+        let _ = tx.send(vec![]).await; // send empty vec to close connection
         break;
       };
       let packet_buf = res?;
-      if packet_buf.is_empty() {
+      let qsize = packet_buf.len();
+      let _ = tx.send(packet_buf).await;
+      if qsize == 0 {
         // connection closed
         break;
-      }
-
-      // make DoH query
-      let res = tokio::time::timeout(
-        self.globals.proxy_config.http_timeout_sec + std::time::Duration::from_secs(1),
-        // serve tcp dns message here
-        self.doh_client.make_doh_query(&packet_buf, ProxyProtocol::Tcp, &src_addr),
-      )
-      .await
-      .ok();
-      // debug!("response from DoH server: {:?}", res);
-
-      // send response via stream
-      if let Some(Ok(r)) = res {
-        if r.len() > (u16::MAX as usize) {
-          return Err(Error::InvalidDnsResponseSize);
-        }
-        let length_buf = u16::to_be_bytes(r.len() as u16);
-        stream.write_all(&length_buf).await?;
-        stream.write_all(&r).await?;
-      } else {
-        return Err(Error::FailedToMakeDohQuery);
       }
     }
 
@@ -98,7 +133,7 @@ impl Proxy {
 }
 
 /// Read query from stream, if stream is closed, return empty vec
-async fn read_query(stream: &mut TcpStream) -> Result<Vec<u8>> {
+async fn read_query(stream: &mut tokio::net::tcp::OwnedReadHalf) -> Result<Vec<u8>> {
   // check if stream is closed
   let x = stream.peek(&mut [0u8]).await?;
   if x == 0 {
