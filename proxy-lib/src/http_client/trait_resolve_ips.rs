@@ -23,7 +23,7 @@ pub async fn resolve_ips(endpoints: &[Url], resolver_ips: impl ResolveIps) -> Re
   let resolve_ips_fut = endpoints.iter().map(|endpoint| async {
     let host_is_ipaddr = endpoint
       .host_str()
-      .map_or(false, |host| host.parse::<std::net::IpAddr>().is_ok());
+      .is_some_and(|host| host.parse::<std::net::IpAddr>().is_ok());
     if host_is_ipaddr {
       Ok(ResolveIpResponse {
         hostname: endpoint.host_str().unwrap().to_string(),

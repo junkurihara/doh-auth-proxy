@@ -44,6 +44,8 @@ pub struct ProxyConfig {
   pub udp_timeout_sec: Duration,
   /// TCP listen backlog
   pub tcp_listen_backlog: u32,
+  /// TCP idle timeout
+  pub tcp_idle_timeout_sec: Duration,
 
   /// timeout for HTTP requests (DoH, ODoH, and authentication requests)
   pub http_timeout_sec: Duration,
@@ -197,6 +199,7 @@ impl Default for ProxyConfig {
       udp_channel_capacity: UDP_CHANNEL_CAPACITY,
       udp_timeout_sec: Duration::from_secs(UDP_TIMEOUT_SEC),
       tcp_listen_backlog: TCP_LISTEN_BACKLOG,
+      tcp_idle_timeout_sec: Duration::from_secs(TCP_IDLE_TIMEOUT_SEC),
 
       http_timeout_sec: Duration::from_secs(HTTP_TIMEOUT_SEC),
       http_user_agent: format!("{}/{}", HTTP_USER_AGENT, env!("CARGO_PKG_VERSION")),
