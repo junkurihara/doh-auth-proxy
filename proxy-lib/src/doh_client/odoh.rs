@@ -35,7 +35,7 @@ impl ODoHConfig {
   /// Encrypt query
   pub fn encrypt_query(&self, plaintext_query: &[u8]) -> DohClientResult<(ObliviousDoHMessagePlaintext, Bytes, OdohSecret)> {
     debug!("[ODoH] Encrypt query");
-    let mut rng = StdRng::from_entropy();
+    let mut rng = StdRng::from_os_rng();
 
     // TODO: Padding bytes should be add? Padding be handled by a client issuing plaintext queries.
     // add a random padding for testing purpose

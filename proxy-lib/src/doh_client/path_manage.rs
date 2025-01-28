@@ -210,18 +210,18 @@ impl DoHPathManager {
     if healthy_paths.is_empty() {
       return None;
     }
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let target_idx = if self.target_randomization {
-      rng.gen_range(0..healthy_paths.len())
+      rng.random_range(0..healthy_paths.len())
     } else {
       0
     };
     let nexthop_idx = if self.nexthop_randomization {
-      rng.gen_range(0..healthy_paths[target_idx].len())
+      rng.random_range(0..healthy_paths[target_idx].len())
     } else {
       0
     };
-    let path_idx = rng.gen_range(0..healthy_paths[target_idx][nexthop_idx].len());
+    let path_idx = rng.random_range(0..healthy_paths[target_idx][nexthop_idx].len());
     Some(healthy_paths[target_idx][nexthop_idx][path_idx].clone())
   }
 
