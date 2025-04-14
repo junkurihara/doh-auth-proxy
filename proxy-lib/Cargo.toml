@@ -17,7 +17,7 @@ publish.workspace = true
 
 [dependencies]
 rand = "0.9.0"
-tokio = { version = "1.44.1", features = [
+tokio = { version = "1.44.2", features = [
   "net",
   "rt-multi-thread",
   "time",
@@ -28,14 +28,14 @@ futures = { version = "0.3.31", default-features = false, features = [
   "std",
   "async-await",
 ] }
-anyhow = "1.0.97"
+anyhow = "1.0.98"
 tracing = "0.1.41"
 thiserror = "2.0.12"
 async-trait = "0.1.88"
 serde = { version = "1.0.219", features = ["derive"] }
 itertools = "0.14.0"
 ahash = "0.8.11"
-crossbeam-channel = "0.5.14"
+crossbeam-channel = "0.5.15"
 
 # odoh config server
 arc-swap = "1.7.1"
@@ -44,13 +44,13 @@ arc-swap = "1.7.1"
 odoh-rs = { git = "https://github.com/junkurihara/odoh-rs.git", branch = "master" }
 bytes = "1.10.1"
 hickory-proto = { version = "0.24.4", default-features = false }
-data-encoding = "2.8.0"
+data-encoding = "2.9.0"
 hashlink = "0.10.0"
 match-domain = "0.1.2"
 regex = "1.11.1"
 
 # network
-socket2 = "0.5.8"
+socket2 = "0.5.9"
 
 # http client
 reqwest = { version = "0.12.15", default-features = false, features = [
