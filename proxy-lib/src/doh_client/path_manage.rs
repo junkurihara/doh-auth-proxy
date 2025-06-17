@@ -1,13 +1,13 @@
 use super::{
-  error::{DohClientError, DohClientResult},
   DoHType,
+  error::{DohClientError, DohClientResult},
 };
 use crate::globals::Globals;
 use itertools::Itertools;
 use rand::Rng;
 use std::sync::{
-  atomic::{AtomicBool, Ordering},
   Arc,
+  atomic::{AtomicBool, Ordering},
 };
 use url::Url;
 
@@ -379,7 +379,10 @@ mod tests {
     let url = path.as_url().unwrap();
     let decoded = decode(url.as_str()).unwrap();
 
-    assert_eq!(decoded, "https://relay1.dns.google/proxy?targethost=dns.google&targetpath=/dns-query&relayhost[1]=relay2.dns.google&relaypath[1]=/proxy&relayhost[2]=relay3.dns.google&relaypath[2]=/proxy");
+    assert_eq!(
+      decoded,
+      "https://relay1.dns.google/proxy?targethost=dns.google&targetpath=/dns-query&relayhost[1]=relay2.dns.google&relaypath[1]=/proxy&relayhost[2]=relay3.dns.google&relaypath[2]=/proxy"
+    );
   }
 
   #[tokio::test]

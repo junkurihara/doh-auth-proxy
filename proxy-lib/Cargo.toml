@@ -17,7 +17,7 @@ publish.workspace = true
 
 [dependencies]
 rand = "0.9.1"
-tokio = { version = "1.44.2", features = [
+tokio = { version = "1.45.1", features = [
   "net",
   "rt-multi-thread",
   "time",
@@ -34,7 +34,7 @@ thiserror = "2.0.12"
 async-trait = "0.1.88"
 serde = { version = "1.0.219", features = ["derive"] }
 itertools = "0.14.0"
-ahash = "0.8.11"
+ahash = "0.8.12"
 crossbeam-channel = "0.5.15"
 
 # odoh config server
@@ -50,10 +50,10 @@ match-domain = "0.1.2"
 regex = "1.11.1"
 
 # network
-socket2 = "0.5.9"
+socket2 = "0.5.10"
 
 # http client
-reqwest = { version = "0.12.15", default-features = false, features = [
+reqwest = { version = "0.12.20", default-features = false, features = [
   "json",
   "http2",
   "hickory-dns",
