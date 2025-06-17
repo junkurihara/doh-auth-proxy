@@ -176,18 +176,20 @@ mod tests {
   use super::*;
   use crate::doh_client::dns_message::build_query_a;
   use hickory_client::{
-    client::{AsyncClient, ClientHandle},
-    proto::iocompat::AsyncIoTokioAsStd,
-    rr::{DNSClass, Name, RecordType},
-    tcp::TcpClientStream,
+    client::{Client, ClientHandle},
+    proto::{
+      rr::{DNSClass, Name, RecordType},
+      runtime::TokioRuntimeProvider,
+      tcp::TcpClientStream,
+    },
   };
+
   use std::str::FromStr;
-  use tokio::net::TcpStream as TokioTcpStream;
 
   #[tokio::test]
   async fn test_cache() {
-    let (stream, sender) = TcpClientStream::<AsyncIoTokioAsStd<TokioTcpStream>>::new(([1, 1, 1, 1], 53).into());
-    let client = AsyncClient::new(stream, sender, None);
+    let (stream, sender) = TcpClientStream::new(([1, 1, 1, 1], 53).into(), None, None, TokioRuntimeProvider::default());
+    let client = Client::new(stream, sender, None);
     // await the connection to be established
     let (mut client, bg) = client.await.expect("connection failed");
     tokio::spawn(bg);

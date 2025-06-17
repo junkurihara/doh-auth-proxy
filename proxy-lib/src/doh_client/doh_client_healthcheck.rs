@@ -1,8 +1,7 @@
 use super::{
-  dns_message,
+  DoHClient, dns_message,
   error::{DohClientError, DohClientResult},
   path_manage::DoHPath,
-  DoHClient,
 };
 use crate::{
   constants::{HEALTHCHECK_RETRY_WAITING_SEC, HEALTHCHECK_TARGET_ADDR, HEALTHCHECK_TARGET_FQDN, MAX_ALL_UNHEALTHY_RETRY},
@@ -106,10 +105,16 @@ impl DoHClient {
       return Ok(());
     }
 
+    // Check if the answer is an A record or AAAA record and contains the target address
     let target_addr_contains = answers
       .iter()
-      .filter_map(|answer| answer.data())
+      .filter_map(|answer| answer.data().as_a())
       .any(|v| v.to_string() == HEALTHCHECK_TARGET_ADDR);
+    let target_addr_contains = target_addr_contains
+      || answers
+        .iter()
+        .filter_map(|answer| answer.data().as_aaaa())
+        .any(|v| v.to_string() == HEALTHCHECK_TARGET_ADDR);
 
     if !target_addr_contains {
       path.make_unhealthy();

@@ -31,9 +31,9 @@ pub enum Error {
 
   /* -- bootstarp dns -- */
   #[error("Bootstrap dns client error: {0}")]
-  BootstrapDnsClientError(#[from] hickory_client::error::ClientError),
+  BootstrapDnsClientError(#[from] hickory_client::ClientError),
   #[error("Bootstrap dns proto error: {0}")]
-  BootstrapDnsProtoError(#[from] hickory_client::proto::error::ProtoError),
+  BootstrapDnsProtoError(#[from] hickory_client::proto::ProtoError),
   #[error("Invalid Fqdn is given to bootstrap dns: {0}")]
   InvalidFqdn(String),
   #[error("Invalid bootstrap dns response")]

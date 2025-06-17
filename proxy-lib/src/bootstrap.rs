@@ -8,20 +8,18 @@ use crate::{
 use anyhow::anyhow;
 use async_trait::async_trait;
 use hickory_client::{
-  client::{AsyncClient, ClientHandle},
-  proto::iocompat::AsyncIoTokioAsStd,
-  rr::{DNSClass, Name, RecordType},
-  tcp::TcpClientStream,
-  udp::UdpClientStream,
+  client::{Client, ClientHandle},
+  proto::{
+    rr::{DNSClass, Name, RecordType},
+    tcp::TcpClientStream,
+    udp::UdpClientStream,
+  },
 };
 use hickory_proto::{
+  runtime::{Time, TokioRuntimeProvider},
   xfer::{DnsExchangeBackground, DnsRequestSender},
-  Time,
 };
-use tokio::{
-  net::{TcpStream as TokioTcpStream, UdpSocket as TokioUdpSocket},
-  sync::Notify,
-};
+use tokio::sync::Notify;
 
 use reqwest::Url;
 use std::{
@@ -93,15 +91,17 @@ impl BootstrapDnsInner {
 
     let result_ips = match self.proto {
       BootstrapDnsProto::Udp => {
-        let stream = UdpClientStream::<TokioUdpSocket>::with_timeout(self.addr, timeout);
-        let (mut client, bg) = AsyncClient::connect(stream).await?;
+        let stream = UdpClientStream::builder(self.addr, TokioRuntimeProvider::default())
+          .with_timeout(Some(timeout))
+          .build();
+        let (mut client, bg) = Client::connect(stream).await?;
         self
           .lookup_ips_inner(fqdn, &mut client, bg, bg_close_notify.clone(), runtime_handle)
           .await
       }
       BootstrapDnsProto::Tcp => {
-        let (stream, sender) = TcpClientStream::<AsyncIoTokioAsStd<TokioTcpStream>>::with_timeout(self.addr, timeout);
-        let (mut client, bg) = AsyncClient::with_timeout(stream, sender, timeout, None).await?;
+        let (stream, sender) = TcpClientStream::new(self.addr, None, Some(timeout), TokioRuntimeProvider::default());
+        let (mut client, bg) = Client::with_timeout(stream, sender, timeout, None).await?;
         self
           .lookup_ips_inner(fqdn, &mut client, bg, bg_close_notify.clone(), runtime_handle)
           .await
@@ -117,7 +117,7 @@ impl BootstrapDnsInner {
   async fn lookup_ips_inner<S, TE>(
     &self,
     fqdn: &str,
-    client: &mut AsyncClient,
+    client: &mut Client,
     bg: DnsExchangeBackground<S, TE>,
     bg_close_notify: Arc<Notify>,
     runtime_handle: tokio::runtime::Handle,
@@ -139,7 +139,7 @@ impl BootstrapDnsInner {
     let ips = response
       .answers()
       .iter()
-      .filter_map(|a| a.data().and_then(|v| v.as_a()).map(|v| IpAddr::V4(v.0)))
+      .filter_map(|a| a.data().as_a().map(|a_record| IpAddr::V4(a_record.0)))
       .collect::<Vec<_>>();
     if !ips.is_empty() {
       return Ok(ips);
@@ -148,7 +148,7 @@ impl BootstrapDnsInner {
     let ipv6s = response
       .answers()
       .iter()
-      .filter_map(|aaaa| aaaa.data().and_then(|v| v.as_aaaa()).map(|v| IpAddr::V6(v.0)))
+      .filter_map(|aaaa| aaaa.data().as_aaaa().map(|aaaa_record| IpAddr::V6(aaaa_record.0)))
       .collect::<Vec<_>>();
     if ipv6s.is_empty() {
       return Err(Error::InvalidBootstrapDnsResponse);

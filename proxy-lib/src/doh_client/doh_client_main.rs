@@ -1,11 +1,11 @@
 use super::{
+  DoHMethod, DoHResponseType, DoHType,
   cache::Cache,
   dns_message::{self, Request},
   error::{DohClientError, DohClientResult},
   manipulation::{QueryManipulationResult, QueryManipulators},
   odoh_config_store::ODoHConfigStore,
   path_manage::{DoHPath, DoHPathManager},
-  DoHMethod, DoHResponseType, DoHType,
 };
 use crate::{
   auth::Authenticator,
@@ -413,10 +413,21 @@ impl ResolveIps for Arc<DoHClient> {
     }
     let rdata = answers.iter().map(|a| a.data());
     let addrs = rdata
-      .flatten()
-      .filter_map(|r| r.as_a())
-      .filter_map(|a| format!("{}:{}", a, port).parse::<SocketAddr>().ok())
+      .filter(|r| r.is_a() || r.is_aaaa())
+      .filter_map(|r| {
+        r.as_a()
+          .map(|a| format!("{}:{}", a, port).parse::<SocketAddr>().ok())
+          .or_else(|| {
+            r.as_aaaa()
+              .map(|aaaa| format!("{}:{}", aaaa, port).parse::<SocketAddr>().ok())
+          })
+          .flatten()
+      })
       .collect::<Vec<_>>();
+    // .flatten()
+    // .filter_map(|r| r.as_a())
+    // .filter_map(|a| format!("{}:{}", a, port).parse::<SocketAddr>().ok())
+    // .collect::<Vec<_>>();
     if addrs.is_empty() {
       error!("addrs is empty: {fqdn}");
       return Err(DohClientError::FailedToResolveIpsForHttpClient);
