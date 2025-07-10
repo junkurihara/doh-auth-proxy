@@ -7,11 +7,11 @@ mod error;
 mod log;
 
 use crate::{
-  config::{parse_opts, ConfigReloader, TargetConfig},
+  config::{ConfigReloader, TargetConfig, parse_opts},
   constants::CONFIG_WATCH_DELAY_SECS,
   log::*,
 };
-use doh_auth_proxy_lib::{entrypoint, ProxyConfig};
+use doh_auth_proxy_lib::{ProxyConfig, entrypoint};
 use hot_reload::{ReloaderReceiver, ReloaderService};
 
 fn main() {
@@ -36,7 +36,7 @@ fn main() {
       }
     } else {
       let (config_service, config_rx) =
-        ReloaderService::<ConfigReloader, TargetConfig>::new(&parsed_opts.config_file_path, CONFIG_WATCH_DELAY_SECS, false)
+        ReloaderService::<ConfigReloader, TargetConfig>::with_delay(&parsed_opts.config_file_path, CONFIG_WATCH_DELAY_SECS)
           .await
           .unwrap();
 

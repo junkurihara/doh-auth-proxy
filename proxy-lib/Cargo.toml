@@ -17,7 +17,7 @@ publish.workspace = true
 
 [dependencies]
 rand = "0.9.1"
-tokio = { version = "1.45.1", features = [
+tokio = { version = "1.46.1", features = [
   "net",
   "rt-multi-thread",
   "time",
@@ -50,10 +50,10 @@ match-domain = "0.1.2"
 regex = "1.11.1"
 
 # network
-socket2 = "0.5.10"
+socket2 = { version = "0.6.0", features = ["all"] }
 
 # http client
-reqwest = { version = "0.12.20", default-features = false, features = [
+reqwest = { version = "0.12.22", default-features = false, features = [
   "json",
   "http2",
   "hickory-dns",
