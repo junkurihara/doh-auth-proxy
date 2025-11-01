@@ -4,6 +4,7 @@ pub use tracing::{error, info, warn};
 use tracing_subscriber::{fmt, prelude::*};
 
 const TOKEN_SERVER_CLIENT_PKG_NAME: &str = "rust-token-server-client";
+const HOT_RELOAD_PKG_NAME: &str = "hot_reload";
 
 pub fn init_logger(parsed_opts: &Opts) {
   let level_string = std::env::var("RUST_LOG").unwrap_or_else(|_| "info".to_string());
@@ -12,6 +13,7 @@ pub fn init_logger(parsed_opts: &Opts) {
   let passed_pkg_names = [
     env!("CARGO_PKG_NAME").replace('-', "_"),
     TOKEN_SERVER_CLIENT_PKG_NAME.replace('-', "_"),
+    HOT_RELOAD_PKG_NAME.replace('-', "_"),
   ];
 
   // This limits the logger to emits only this crate with any level, for included crates it will emit only INFO or above level.

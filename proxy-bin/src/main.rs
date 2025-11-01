@@ -12,7 +12,7 @@ use crate::{
   log::*,
 };
 use doh_auth_proxy_lib::{ProxyConfig, entrypoint};
-use hot_reload::{ReloaderReceiver, ReloaderService};
+use hot_reload::{ReloaderConfig, ReloaderReceiver, ReloaderService};
 
 fn main() {
   let mut runtime_builder = tokio::runtime::Builder::new_multi_thread();
@@ -35,8 +35,9 @@ fn main() {
         std::process::exit(1);
       }
     } else {
+      let reloader_config = ReloaderConfig::polling(CONFIG_WATCH_DELAY_SECS);
       let (config_service, config_rx) =
-        ReloaderService::<ConfigReloader, TargetConfig>::with_delay(&parsed_opts.config_file_path, CONFIG_WATCH_DELAY_SECS)
+        ReloaderService::<ConfigReloader, TargetConfig, String>::new(&parsed_opts.config_file_path, reloader_config)
           .await
           .unwrap();
 
@@ -60,7 +61,7 @@ async fn proxy_service_without_watcher(
   runtime_handle: tokio::runtime::Handle,
 ) -> Result<(), anyhow::Error> {
   info!("Start DNS proxy service");
-  let config = match TargetConfig::new(config_file_path).await {
+  let config = match TargetConfig::new(&std::path::PathBuf::from(config_file_path)) {
     Ok(v) => v,
     Err(e) => {
       error!("Invalid toml file: {e}");
@@ -82,7 +83,7 @@ async fn proxy_service_without_watcher(
 }
 
 async fn proxy_service_with_watcher(
-  mut config_rx: ReloaderReceiver<TargetConfig>,
+  mut config_rx: ReloaderReceiver<TargetConfig, String>,
   runtime_handle: tokio::runtime::Handle,
 ) -> Result<(), anyhow::Error> {
   info!("Start proxy service with dynamic config reloader");

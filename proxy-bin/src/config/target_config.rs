@@ -1,12 +1,12 @@
 use super::{toml::ConfigToml, utils_dns_proto::parse_proto_sockaddr_str, utils_verifier::*};
 use crate::{constants::*, error::*, log::*};
-use async_trait::async_trait;
 use doh_auth_proxy_lib::{
   AuthenticationConfig, NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig, TokenConfig,
 };
-use hot_reload::{Reload, ReloaderError};
-use std::{env, sync::Arc};
+use std::{env, path::PathBuf, sync::Arc};
 use tokio::time::Duration;
+
+pub type ConfigReloader = hot_reload::file_reloader::FileReloader<TargetConfig>;
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 /// Wrapper of config toml and manipulation plugin settings
@@ -17,38 +17,17 @@ pub struct TargetConfig {
   pub query_manipulation_config: Option<Arc<QueryManipulationConfig>>,
 }
 
-#[derive(Clone)]
-/// config toml reloader
-pub struct ConfigReloader {
-  pub config_path: String,
-}
+impl TryFrom<&PathBuf> for TargetConfig {
+  type Error = String;
 
-#[async_trait]
-impl Reload<TargetConfig> for ConfigReloader {
-  type Source = String;
-  async fn new(source: &Self::Source) -> Result<Self, ReloaderError<TargetConfig>> {
-    Ok(Self {
-      config_path: source.clone(),
-    })
-  }
-
-  async fn reload(&self) -> Result<Option<TargetConfig>, ReloaderError<TargetConfig>> {
-    let config_toml =
-      ConfigToml::new(&self.config_path).map_err(|_e| ReloaderError::<TargetConfig>::Reload("Failed to reload config toml"))?;
-    let query_manipulation_config: Option<QueryManipulationConfig> = (&config_toml)
-      .try_into()
-      .map_err(|_e| ReloaderError::<TargetConfig>::Reload("Failed to reload manipulation plugin config"))?;
-
-    Ok(Some(TargetConfig {
-      config_toml,
-      query_manipulation_config: query_manipulation_config.map(Arc::new),
-    }))
+  fn try_from(path: &PathBuf) -> Result<Self, Self::Error> {
+    TargetConfig::new(path).map_err(|e| format!("Failed to load target config: {}", e))
   }
 }
 
 impl TargetConfig {
   /// build new target config by loading query manipulation plugin configs
-  pub async fn new(config_file: &str) -> anyhow::Result<Self> {
+  pub fn new(config_file: &PathBuf) -> anyhow::Result<Self> {
     let config_toml = ConfigToml::new(config_file)?;
     let query_manipulation_config: Option<QueryManipulationConfig> = (&config_toml).try_into()?;
     Ok(Self {
@@ -262,7 +241,9 @@ impl TryInto<ProxyConfig> for &TargetConfig {
       if proxy_config.nexthop_relay_config.is_some() {
         warn!("-----------------------------------");
         warn!("[NOTE!!!!] Both credential and ODoH nexthop proxy is set up.");
-        warn!("[NOTE!!!!] This means the authorization token (ID or anonymous token) will be sent not to the target but to the proxy.");
+        warn!(
+          "[NOTE!!!!] This means the authorization token (ID or anonymous token) will be sent not to the target but to the proxy."
+        );
         warn!("[NOTE!!!!] Check if this is your intended behavior.");
         warn!("-----------------------------------");
       } else {
