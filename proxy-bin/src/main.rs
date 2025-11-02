@@ -35,14 +35,15 @@ fn main() {
         std::process::exit(1);
       }
     } else {
-      let reloader_config = ReloaderConfig::polling(CONFIG_WATCH_DELAY_SECS);
+      // With config file watcher in hybrid mode
+      let reloader_config = ReloaderConfig::hybrid(CONFIG_WATCH_DELAY_SECS);
       let (config_service, config_rx) =
         ReloaderService::<ConfigReloader, TargetConfig, String>::new(&parsed_opts.config_file_path, reloader_config)
           .await
           .unwrap();
 
       tokio::select! {
-        Err(e) = config_service.start() => {
+        Err(e) = config_service.start_with_realtime() => {
           error!("config reloader service exited: {e}");
           std::process::exit(1);
         }

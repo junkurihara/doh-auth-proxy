@@ -1,9 +1,15 @@
 use super::{toml::ConfigToml, utils_dns_proto::parse_proto_sockaddr_str, utils_verifier::*};
 use crate::{constants::*, error::*, log::*};
+use async_trait::async_trait;
 use doh_auth_proxy_lib::{
   AuthenticationConfig, NextHopRelayConfig, ProxyConfig, QueryManipulationConfig, SubseqRelayConfig, TokenConfig,
 };
-use std::{env, path::PathBuf, sync::Arc};
+use hot_reload::AsyncFileLoad;
+use std::{
+  env,
+  path::{Path, PathBuf},
+  sync::Arc,
+};
 use tokio::time::Duration;
 
 pub type ConfigReloader = hot_reload::file_reloader::FileReloader<TargetConfig>;
@@ -22,6 +28,45 @@ impl TryFrom<&PathBuf> for TargetConfig {
 
   fn try_from(path: &PathBuf) -> Result<Self, Self::Error> {
     TargetConfig::new(path).map_err(|e| format!("Failed to load target config: {}", e))
+  }
+}
+
+#[async_trait]
+impl AsyncFileLoad for TargetConfig {
+  type Error = String;
+
+  async fn async_load_from<T>(path: T) -> Result<Self, Self::Error>
+  where
+    T: AsRef<Path> + Send,
+  {
+    let config_str = tokio::fs::read_to_string(path)
+      .await
+      .map_err(|e| format!("Failed to read config file: {}", e))?;
+    let config_toml: ConfigToml = toml::from_str(&config_str).map_err(|e| format!("Failed to parse toml: {}", e))?;
+    let query_manipulation_config: Option<QueryManipulationConfig> = (&config_toml)
+      .try_into()
+      .map_err(|e| format!("Failed to parse query manipulation config: {}", e))?;
+    Ok(Self {
+      config_toml,
+      query_manipulation_config: query_manipulation_config.map(Arc::new),
+    })
+  }
+
+  fn dependent_paths(&self) -> Vec<PathBuf> {
+    let mut paths = Vec::new();
+
+    let Some(plugins) = &self.config_toml.plugins else {
+      return paths;
+    };
+
+    if let Some(blocked_file) = &plugins.domains_blocked_file {
+      paths.push(PathBuf::from(blocked_file));
+    }
+    if let Some(overridden_file) = &plugins.domains_overridden_file {
+      paths.push(PathBuf::from(overridden_file));
+    }
+
+    paths
   }
 }
 
