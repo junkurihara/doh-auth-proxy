@@ -34,7 +34,7 @@ tokio = { version = "1.48.0", default-features = false, features = [
 async-trait = "0.1.89"
 
 # config
-clap = { version = "4.5.51", features = ["std", "cargo", "wrap_help"] }
+clap = { version = "4.5.53", features = ["std", "cargo", "wrap_help"] }
 toml = { version = "0.9.8", default-features = false, features = [
   "parse",
   "serde",
