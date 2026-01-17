@@ -2,7 +2,7 @@
 FROM rust:alpine AS builder
 
 ARG CFLAGS=-Ofast
-ARG BUILD_DEPS=musl-dev
+ARG BUILD_DEPS="musl-dev pkgconfig openssl-dev openssl-libs-static"
 
 WORKDIR /tmp
 
