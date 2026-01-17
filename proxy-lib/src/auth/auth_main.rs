@@ -1,8 +1,8 @@
-use super::{error::AuthResult, AuthenticatorError};
+use super::{AuthenticatorError, error::AuthResult};
 use crate::{constants::TOKEN_REFRESH_MARGIN, globals::TokenConfig, http_client::HttpClientInner, log::*};
 use async_trait::async_trait;
-use auth_client::{token::token_fields::Field, AuthError, TokenClient, TokenHttpClient};
-use serde::{de::DeserializeOwned, Serialize};
+use auth_client::{AuthError, TokenClient, TokenHttpClient, token::token_fields::Field};
+use serde::{Serialize, de::DeserializeOwned};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use url::Url;
