@@ -30,7 +30,7 @@ futures = { version = "0.3.31", default-features = false, features = [
 ] }
 anyhow = "1.0.100"
 tracing = "0.1.44"
-thiserror = "2.0.17"
+thiserror = "2.0.18"
 async-trait = "0.1.89"
 serde = { version = "1.0.228", features = ["derive"] }
 itertools = "0.14.0"
