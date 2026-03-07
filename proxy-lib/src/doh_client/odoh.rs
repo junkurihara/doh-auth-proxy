@@ -3,9 +3,9 @@ use super::error::{DohClientError, DohClientResult};
 use crate::log::*;
 use bytes::Bytes;
 use odoh_rs::{
-  parse, ObliviousDoHConfigContents, ObliviousDoHConfigs, ObliviousDoHMessage, ObliviousDoHMessagePlaintext, OdohSecret,
+  ObliviousDoHConfigContents, ObliviousDoHConfigs, ObliviousDoHMessage, ObliviousDoHMessagePlaintext, OdohSecret, parse,
 };
-use rand::{rngs::StdRng, SeedableRng};
+use rand::{SeedableRng, rngs::StdRng};
 
 #[derive(Debug, Clone)]
 /// ODoH config
