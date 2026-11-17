@@ -17,6 +17,7 @@ You should also include the user name that made the change.
 
 - Feat: add a new feature for serving TCP queries, defined in RFC7766: Pipelining queries and connection reuse.
 - Deps: Update `hickory-proto` to 0.26, and replace `hickory-client` with `hickory-net` for the bootstrap DNS resolver.
+- Deps: Update `rand` to 0.10, and update `odoh-rs` to 1.0.5 (`hpke` 0.15).
 - Deps.
 - Refactor: Various minor improvements.
 

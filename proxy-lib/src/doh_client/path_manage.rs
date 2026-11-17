@@ -4,7 +4,7 @@ use super::{
 };
 use crate::globals::Globals;
 use itertools::Itertools;
-use rand::Rng;
+use rand::RngExt;
 use std::sync::{
   Arc,
   atomic::{AtomicBool, Ordering},

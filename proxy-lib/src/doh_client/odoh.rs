@@ -5,7 +5,10 @@ use bytes::Bytes;
 use odoh_rs::{
   ObliviousDoHConfigContents, ObliviousDoHConfigs, ObliviousDoHMessage, ObliviousDoHMessagePlaintext, OdohSecret, parse,
 };
-use rand::{SeedableRng, rngs::StdRng};
+use rand::{
+  SeedableRng,
+  rngs::{StdRng, SysRng},
+};
 
 #[derive(Debug, Clone)]
 /// ODoH config
@@ -35,7 +38,7 @@ impl ODoHConfig {
   /// Encrypt query
   pub fn encrypt_query(&self, plaintext_query: &[u8]) -> DohClientResult<(ObliviousDoHMessagePlaintext, Bytes, OdohSecret)> {
     debug!("[ODoH] Encrypt query");
-    let mut rng = StdRng::from_os_rng();
+    let mut rng = StdRng::try_from_rng(&mut SysRng).map_err(|e| anyhow::anyhow!("Failed to seed rng from OS: {e}"))?;
 
     // TODO: Padding bytes should be add? Padding be handled by a client issuing plaintext queries.
     // add a random padding for testing purpose
