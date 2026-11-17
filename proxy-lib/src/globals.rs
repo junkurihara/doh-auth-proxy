@@ -1,4 +1,4 @@
-use crate::{bootstrap::BootstrapDnsInner, constants::*, QueryLoggingBase};
+use crate::{QueryLoggingBase, bootstrap::BootstrapDnsInner, constants::*};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{sync::Notify, time::Duration};
 use url::Url;

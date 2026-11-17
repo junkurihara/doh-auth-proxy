@@ -1,9 +1,9 @@
 use super::{
   error::HttpClientError,
-  trait_resolve_ips::{resolve_ips, ResolveIpResponse, ResolveIps},
+  trait_resolve_ips::{ResolveIpResponse, ResolveIps, resolve_ips},
 };
 use crate::ProxyConfig;
-use reqwest::{header::HeaderMap, Client, IntoUrl, RequestBuilder, Url};
+use reqwest::{Client, IntoUrl, RequestBuilder, Url, header::HeaderMap};
 use std::sync::Arc;
 use tokio::{sync::RwLock, time::Duration};
 

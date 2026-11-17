@@ -60,12 +60,13 @@ impl QueryLoggingBase {
       error!("Failed to parse message from raw packet");
       return;
     };
-    let id = message.id();
+    let id = message.id;
     let (qname, qtype, qclass) = message
-      .query()
+      .queries
+      .first()
       .map(|q| (q.name().to_string(), q.query_type().to_string(), q.query_class().to_string()))
       .unwrap_or_default();
-    let rcode = message.response_code().to_string();
+    let rcode = message.response_code.to_string();
     let proto = self.proto.to_string();
     let dst = match self.res_type {
       DoHResponseType::Blocked => "blocked".to_owned(),

@@ -1,9 +1,9 @@
-use super::{counter::CounterType, proxy_main::Proxy, socket::bind_udp_socket, ProxyProtocol};
+use super::{ProxyProtocol, counter::CounterType, proxy_main::Proxy, socket::bind_udp_socket};
 use crate::{error::*, log::*};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{
   net::UdpSocket,
-  sync::{mpsc, Notify},
+  sync::{Notify, mpsc},
   time::Duration,
 };
 

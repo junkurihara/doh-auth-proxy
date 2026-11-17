@@ -179,7 +179,7 @@ impl DoHClient {
       DohClientError::InvalidDnsQuery
     })?;
     // TODO: If error, should we build and return a synthetic reject response message?
-    let query_id = query_msg.id();
+    let query_id = query_msg.id;
     let req = Request::try_from(&query_msg).map_err(|e| {
       error!("Failed to parse DNS query, maybe invalid DNS query: {e}");
       DohClientError::InvalidDnsQuery
@@ -214,7 +214,7 @@ impl DoHClient {
 
     // Check cache and return if hit
     if let Some(res) = self.cache.get(&req).await {
-      debug!("Cache hit!: {:?}", res.message().queries());
+      debug!("Cache hit!: {:?}", res.message().queries);
       if let Ok(response_buf) = res.build_response(query_id) {
         self.log_dns_message(&response_buf, proto, src, DoHResponseType::Cached, None, start);
         return Ok(response_buf);
@@ -402,27 +402,19 @@ impl ResolveIps for Arc<DoHClient> {
       return Err(DohClientError::InvalidDnsResponse);
     }
     let r_msg = dns_message::decode(&res)?;
-    if r_msg.header().response_code() != hickory_proto::op::response_code::ResponseCode::NoError {
-      error!("erroneous response: {fqdn} {}", r_msg.header().response_code());
+    if r_msg.response_code != hickory_proto::op::ResponseCode::NoError {
+      error!("erroneous response: {fqdn} {}", r_msg.response_code);
       return Err(DohClientError::FailedToResolveIpsForHttpClient);
     }
-    let answers = r_msg.answers().to_vec();
+    let answers = &r_msg.answers;
     if answers.is_empty() {
       error!("answer is empty: {fqdn}");
       return Err(DohClientError::FailedToResolveIpsForHttpClient);
     }
-    let rdata = answers.iter().map(|a| a.data());
-    let addrs = rdata
-      .filter(|r| r.is_a() || r.is_aaaa())
-      .filter_map(|r| {
-        r.as_a()
-          .map(|a| format!("{}:{}", a, port).parse::<SocketAddr>().ok())
-          .or_else(|| {
-            r.as_aaaa()
-              .map(|aaaa| format!("{}:{}", aaaa, port).parse::<SocketAddr>().ok())
-          })
-          .flatten()
-      })
+    let addrs = answers
+      .iter()
+      .filter_map(|a| a.data.ip_addr())
+      .map(|ip| SocketAddr::new(ip, port))
       .collect::<Vec<_>>();
     // .flatten()
     // .filter_map(|r| r.as_a())

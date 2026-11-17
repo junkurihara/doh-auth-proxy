@@ -45,23 +45,16 @@ impl CacheObject {
   pub fn build_response(&self, query_id: u16) -> anyhow::Result<Vec<u8>> {
     let mut cached_msg = self.message().to_owned();
     let remained_ttl = self.remained_ttl().as_secs() as u32;
-    // TODO: more efficient way to update ttl
-    for record in cached_msg.take_answers() {
-      let mut record = record;
-      record.set_ttl(remained_ttl);
-      cached_msg.add_answer(record);
+    for record in cached_msg.answers.iter_mut() {
+      record.ttl = remained_ttl;
     }
-    for record in cached_msg.take_additionals() {
-      let mut record = record;
-      record.set_ttl(remained_ttl);
-      cached_msg.add_additional(record);
+    for record in cached_msg.additionals.iter_mut() {
+      record.ttl = remained_ttl;
     }
-    for record in cached_msg.take_name_servers() {
-      let mut record = record;
-      record.set_ttl(remained_ttl);
-      cached_msg.add_name_server(record);
+    for record in cached_msg.authorities.iter_mut() {
+      record.ttl = remained_ttl;
     }
-    cached_msg.set_id(query_id);
+    cached_msg.metadata.id = query_id;
 
     dns_message::encode(&cached_msg)
   }
@@ -85,21 +78,21 @@ impl Cache {
 
   /// Put a response message into cache
   pub async fn put(&self, key: Request, response_message: &Message) -> anyhow::Result<()> {
-    if !((response_message.response_code() == hickory_proto::op::ResponseCode::NoError)
-      || (response_message.response_code() == hickory_proto::op::ResponseCode::NXDomain))
+    if !((response_message.response_code == hickory_proto::op::ResponseCode::NoError)
+      || (response_message.response_code == hickory_proto::op::ResponseCode::NXDomain))
     {
       return Ok(());
     }
 
     // TODO: Override if configured
-    let min_ttl = response_message.answers().iter().map(|rr| rr.ttl()).min().unwrap_or(0);
+    let min_ttl = response_message.answers.iter().map(|rr| rr.ttl).min().unwrap_or(0);
     if min_ttl == 0 {
       return Ok(());
     }
 
     let now = Instant::now();
     let mut response_message_clone = response_message.clone();
-    response_message_clone.set_id(0); // when cache hit, update with given query id to respond
+    response_message_clone.metadata.id = 0; // when cache hit, update with given query id to respond
     let cache_object = CacheObject {
       message: response_message_clone,
       create_at: now,
@@ -175,13 +168,11 @@ impl Cache {
 mod tests {
   use super::*;
   use crate::doh_client::dns_message::build_query_a;
-  use hickory_client::{
+  use hickory_net::{
     client::{Client, ClientHandle},
-    proto::{
-      rr::{DNSClass, Name, RecordType},
-      runtime::TokioRuntimeProvider,
-      tcp::TcpClientStream,
-    },
+    proto::rr::{DNSClass, Name, RecordType},
+    runtime::TokioRuntimeProvider,
+    tcp::TcpClientStream,
   };
 
   use std::str::FromStr;
@@ -189,9 +180,9 @@ mod tests {
   #[tokio::test]
   async fn test_cache() {
     let (stream, sender) = TcpClientStream::new(([1, 1, 1, 1], 53).into(), None, None, TokioRuntimeProvider::default());
-    let client = Client::new(stream, sender, None);
     // await the connection to be established
-    let (mut client, bg) = client.await.expect("connection failed");
+    let stream = stream.await.expect("connection failed");
+    let (mut client, bg) = Client::<TokioRuntimeProvider>::new(stream, sender);
     tokio::spawn(bg);
 
     let fqdn1 = "www.google.com.";

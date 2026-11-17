@@ -1,4 +1,4 @@
-use super::{counter::CounterType, proxy_main::Proxy, socket::bind_tcp_socket, ProxyProtocol};
+use super::{ProxyProtocol, counter::CounterType, proxy_main::Proxy, socket::bind_tcp_socket};
 use crate::{error::*, log::*};
 use std::net::SocketAddr;
 use tokio::{
