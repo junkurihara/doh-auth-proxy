@@ -67,7 +67,7 @@ hickory-net = { version = "0.26.3", default-features = false, features = [
 ] }
 
 # authentication
-auth-client = { git = "https://github.com/junkurihara/rust-token-server", package = "rust-token-server-client", rev = "7cf3f4cc8ffe02f87446ac06a7e95bfacf460251", default-features = false, features = [
+auth-client = { git = "https://github.com/junkurihara/rust-token-server", package = "rust-token-server-client", rev = "4a755645bad2af5346fb6e3bbf785447e418b57c", default-features = false, features = [
   "reqwest",
 ] }
 # auth-client = { path = "../../rust-token-server/lib-client/", package = "rust-token-server-client", default-features = false, features = [
