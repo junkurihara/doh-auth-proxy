@@ -1,13 +1,12 @@
 use super::{
   super::{
-    dns_message::{build_response_given_ipaddr, QueryKey},
+    dns_message::{QueryKey, build_response_given_ipaddr},
     error::DohClientError,
   },
-  inspect_query_name,
+  QueryManipulation, QueryManipulationResult, inspect_query_name,
   regexp_vals::*,
-  QueryManipulation, QueryManipulationResult,
 };
-use crate::{log::*, QueryManipulationConfig};
+use crate::{QueryManipulationConfig, log::*};
 use ahash::HashMap;
 use async_trait::async_trait;
 use hickory_proto::{op::Message, rr};

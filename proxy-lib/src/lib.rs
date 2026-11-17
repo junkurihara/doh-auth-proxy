@@ -10,7 +10,7 @@ mod proxy;
 
 use crate::{doh_client::DoHClient, error::*, globals::Globals, http_client::HttpClient, log::*, proxy::Proxy};
 use futures::{
-  future::{select_all, FutureExt},
+  future::{FutureExt, select_all},
   select,
 };
 use std::sync::Arc;

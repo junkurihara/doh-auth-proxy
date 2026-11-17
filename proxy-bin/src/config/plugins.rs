@@ -44,10 +44,6 @@ impl TryFrom<&ConfigToml> for Option<QueryManipulationConfig> {
 /// Read plugin files
 fn read_plugin_file(path: &PathBuf) -> anyhow::Result<Vec<String>> {
   let content = fs::read_to_string(path)?;
-  let truncate_vec: Vec<String> = content
-    .split('\n')
-    .filter(|c| !c.is_empty())
-    .map(|v| v.to_string())
-    .collect();
+  let truncate_vec: Vec<String> = content.split('\n').filter(|c| !c.is_empty()).map(|v| v.to_string()).collect();
   Ok(truncate_vec)
 }

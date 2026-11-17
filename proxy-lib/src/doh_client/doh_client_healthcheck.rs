@@ -8,7 +8,7 @@ use crate::{
   log::*,
 };
 use futures::future::join_all;
-use hickory_proto::op::response_code::ResponseCode;
+use hickory_proto::op::ResponseCode;
 use std::sync::Arc;
 use tokio::sync::Notify;
 
@@ -91,13 +91,13 @@ impl DoHClient {
       }
     };
 
-    if res_msg.header().response_code() != ResponseCode::NoError {
+    if res_msg.response_code != ResponseCode::NoError {
       path.make_unhealthy();
       warn!("Response is not Ok. Path {} is unhealthy", path.as_url()?);
       return Ok(());
     }
 
-    let answers = res_msg.answers();
+    let answers = &res_msg.answers;
     if answers.is_empty() {
       path.make_unhealthy();
       warn!("Response has no answer. Path {} is unhealthy", path.as_url()?);
@@ -108,13 +108,8 @@ impl DoHClient {
     // Check if the answer is an A record or AAAA record and contains the target address
     let target_addr_contains = answers
       .iter()
-      .filter_map(|answer| answer.data().as_a())
+      .filter_map(|answer| answer.data.ip_addr())
       .any(|v| v.to_string() == HEALTHCHECK_TARGET_ADDR);
-    let target_addr_contains = target_addr_contains
-      || answers
-        .iter()
-        .filter_map(|answer| answer.data().as_aaaa())
-        .any(|v| v.to_string() == HEALTHCHECK_TARGET_ADDR);
 
     if !target_addr_contains {
       path.make_unhealthy();

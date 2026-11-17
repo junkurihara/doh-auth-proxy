@@ -7,16 +7,12 @@ use crate::{
 };
 use anyhow::anyhow;
 use async_trait::async_trait;
-use hickory_client::{
+use hickory_net::{
   client::{Client, ClientHandle},
-  proto::{
-    rr::{DNSClass, Name, RecordType},
-    tcp::TcpClientStream,
-    udp::UdpClientStream,
-  },
-};
-use hickory_proto::{
+  proto::rr::{DNSClass, Name, RData, RecordType},
   runtime::{Time, TokioRuntimeProvider},
+  tcp::TcpClientStream,
+  udp::UdpClientStream,
   xfer::{DnsExchangeBackground, DnsRequestSender},
 };
 use tokio::sync::Notify;
@@ -94,14 +90,16 @@ impl BootstrapDnsInner {
         let stream = UdpClientStream::builder(self.addr, TokioRuntimeProvider::default())
           .with_timeout(Some(timeout))
           .build();
-        let (mut client, bg) = Client::connect(stream).await?;
+        let (mut client, bg) = Client::<TokioRuntimeProvider>::from_sender(stream);
         self
           .lookup_ips_inner(fqdn, &mut client, bg, bg_close_notify.clone(), runtime_handle)
           .await
       }
       BootstrapDnsProto::Tcp => {
         let (stream, sender) = TcpClientStream::new(self.addr, None, Some(timeout), TokioRuntimeProvider::default());
-        let (mut client, bg) = Client::with_timeout(stream, sender, timeout, None).await?;
+        // await the connection to be established
+        let stream = stream.await?;
+        let (mut client, bg) = Client::<TokioRuntimeProvider>::with_timeout(stream, sender, timeout);
         self
           .lookup_ips_inner(fqdn, &mut client, bg, bg_close_notify.clone(), runtime_handle)
           .await
@@ -117,7 +115,7 @@ impl BootstrapDnsInner {
   async fn lookup_ips_inner<S, TE>(
     &self,
     fqdn: &str,
-    client: &mut Client,
+    client: &mut Client<TokioRuntimeProvider>,
     bg: DnsExchangeBackground<S, TE>,
     bg_close_notify: Arc<Notify>,
     runtime_handle: tokio::runtime::Handle,
@@ -137,18 +135,24 @@ impl BootstrapDnsInner {
     // First try to lookup an A record, if failed, try AAAA.
     let response = client.query(name.clone(), DNSClass::IN, RecordType::A).await?;
     let ips = response
-      .answers()
+      .answers
       .iter()
-      .filter_map(|a| a.data().as_a().map(|a_record| IpAddr::V4(a_record.0)))
+      .filter_map(|a| match &a.data {
+        RData::A(a_record) => Some(IpAddr::V4(a_record.0)),
+        _ => None,
+      })
       .collect::<Vec<_>>();
     if !ips.is_empty() {
       return Ok(ips);
     }
     let response = client.query(name, DNSClass::IN, RecordType::AAAA).await?;
     let ipv6s = response
-      .answers()
+      .answers
       .iter()
-      .filter_map(|aaaa| aaaa.data().as_aaaa().map(|aaaa_record| IpAddr::V6(aaaa_record.0)))
+      .filter_map(|aaaa| match &aaaa.data {
+        RData::AAAA(aaaa_record) => Some(IpAddr::V6(aaaa_record.0)),
+        _ => None,
+      })
       .collect::<Vec<_>>();
     if ipv6s.is_empty() {
       return Err(Error::InvalidBootstrapDnsResponse);

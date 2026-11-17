@@ -1,14 +1,14 @@
 use super::{
   super::{
-    dns_message::{build_response_nx, QueryKey},
+    dns_message::{QueryKey, build_response_nx},
     error::DohClientError,
   },
-  inspect_query_name, QueryManipulation, QueryManipulationResult,
+  QueryManipulation, QueryManipulationResult, inspect_query_name,
 };
 use crate::{
+  QueryManipulationConfig,
   constants::{BLOCK_MESSAGE_HINFO_CPU, BLOCK_MESSAGE_HINFO_OS},
   log::*,
-  QueryManipulationConfig,
 };
 use async_trait::async_trait;
 use hickory_proto::{op::Message, rr};
@@ -38,7 +38,7 @@ fn build_response_block(query_message: &Message) -> Message {
   let mut msg = build_response_nx(query_message);
   let hinfo = rr::rdata::HINFO::new(BLOCK_MESSAGE_HINFO_CPU.to_string(), BLOCK_MESSAGE_HINFO_OS.to_string());
   msg.add_answer(rr::Record::from_rdata(
-    query_message.queries()[0].name().clone(),
+    query_message.queries[0].name().clone(),
     0,
     rr::RData::HINFO(hinfo),
   ));

@@ -1,9 +1,9 @@
 use tokio::time::sleep;
 
 use super::{
-  error::HttpClientError,
-  trait_resolve_ips::{resolve_ips, ResolveIpResponse, ResolveIps},
   HttpClient, HttpClientInner,
+  error::HttpClientError,
+  trait_resolve_ips::{ResolveIpResponse, ResolveIps, resolve_ips},
 };
 use crate::log::*;
 use std::sync::Arc;

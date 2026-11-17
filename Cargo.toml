@@ -6,7 +6,6 @@ resolver = "2"
 [workspace.package]
 version = "0.4.3"
 authors = ["Jun Kurihara"]
-homepage = "https://github.com/junkurihara/doh-auth-proxy"
 repository = "https://github.com/junkurihara/doh-auth-proxy"
 license = "MIT"
 readme = "./README.md"

@@ -9,7 +9,7 @@ use arc_swap::ArcSwap;
 use std::sync::Arc;
 use tokio::{
   sync::{Notify, RwLock},
-  time::{sleep, Duration},
+  time::{Duration, sleep},
 };
 use url::Url;
 

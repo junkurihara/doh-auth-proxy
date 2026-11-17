@@ -1,9 +1,9 @@
 use super::{
   super::{
-    dns_message::{build_response_given_ipaddr, build_response_refused, QueryKey},
+    dns_message::{QueryKey, build_response_given_ipaddr, build_response_refused},
     error::DohClientError,
   },
-  inspect_query_name, QueryManipulation, QueryManipulationResult,
+  QueryManipulation, QueryManipulationResult, inspect_query_name,
 };
 use crate::{
   constants::{NOT_FORWARDED_MESSAGE_HINFO_CPU, NOT_FORWARDED_MESSAGE_HINFO_OS},
@@ -102,7 +102,7 @@ fn build_response_not_forwarded(query_message: &Message) -> Message {
     NOT_FORWARDED_MESSAGE_HINFO_OS.to_string(),
   );
   msg.add_answer(rr::Record::from_rdata(
-    query_message.queries()[0].name().clone(),
+    query_message.queries[0].name().clone(),
     0,
     rr::RData::HINFO(hinfo),
   ));

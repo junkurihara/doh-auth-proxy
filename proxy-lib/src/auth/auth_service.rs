@@ -1,13 +1,13 @@
 use super::{
-  error::{AuthResult, AuthenticatorError},
   Authenticator,
+  error::{AuthResult, AuthenticatorError},
 };
 use crate::{
   constants::{MAX_RELOGIN_ATTEMPTS, TOKEN_REFRESH_WATCH_DELAY, TOKEN_RELOGIN_WAITING_SEC},
   log::*,
 };
 use std::sync::Arc;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
 impl Authenticator {
   /// Check token expiration every 60 secs, and refresh if the token is about to expire.
